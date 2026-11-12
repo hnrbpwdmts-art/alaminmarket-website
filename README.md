@@ -13,6 +13,7 @@ Plain HTML/CSS/JavaScript. No build step, no installs.
 - Prefilled WhatsApp messages
 - Photos: drop your image into `images/`, then change the `src` and `alt` lines
 - Grocery categories
+- Brands we carry: add or remove names under `brands` (logos can be added later)
 - Announcement banner: set `show: true` and change `text`
 
 Page title and search description are in the `<head>` of `index.html`.
