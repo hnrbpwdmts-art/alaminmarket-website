@@ -98,6 +98,7 @@
 
   function renderItems() {
     itemsEl.textContent = "";
+    if (M.categories[activeCat].note) itemsEl.appendChild(el("p", "order-cat-note", M.categories[activeCat].note));
     (M.categories[activeCat].items || []).forEach(function (item) { itemsEl.appendChild(itemCard(item)); });
   }
 
