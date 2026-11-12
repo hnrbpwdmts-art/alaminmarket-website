@@ -45,7 +45,7 @@ window.SITE = {
      Paste the full link to each profile. Leave "" to hide one. */
   social: {
     instagram: "https://www.instagram.com/al_aminhalal/",
-    tiktok: "",
+    tiktok: "https://www.tiktok.com/@super.al.amin.hal",
     facebook: "https://www.facebook.com/alaminhalalmarket/"
   },
 
