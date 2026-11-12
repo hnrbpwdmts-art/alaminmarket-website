@@ -95,37 +95,34 @@
     });
   })();
 
-  // "Brands we carry" (homepage and Groceries page). Names or logos from site-config.js.
+  // "Brands we carry": a sliding row of logos (homepage and Groceries page), from site-config.js.
   (function brands() {
     var B = S.brands;
     var wrap = document.getElementById("brands");
-    var list = document.getElementById("brand-list");
-    if (!wrap || !list || !B) return;
+    var track = document.getElementById("brand-list");
+    if (!wrap || !track || !B) return;
     if (B.show === false) { (wrap.closest(".brands-section") || wrap).hidden = true; return; }
     wrap.querySelectorAll("[data-brands]").forEach(function (el) {
       var v = B[el.getAttribute("data-brands")];
       if (v) el.textContent = v;
     });
-    var entries = (B.list || []).map(function (b) { return typeof b === "string" ? { name: b } : b; })
-      .filter(function (b) { return b && b.name; });
-    if (!entries.length) return;
-    list.textContent = "";
-    entries.forEach(function (b) {
-      var li = document.createElement("li"); li.className = "brand-chip";
-      if (b.logo) {
-        li.classList.add("brand-logo");
-        var img = document.createElement("img");
-        img.src = asset(b.logo); img.alt = b.name; img.loading = "lazy"; img.decoding = "async";
-        li.appendChild(img);
-      } else {
-        li.textContent = b.name;
-      }
-      list.appendChild(li);
-    });
-    if (B.showMore !== false) {
-      var more = document.createElement("li"); more.className = "brand-chip brand-more"; more.textContent = "and many more";
-      list.appendChild(more);
+    var logos = (B.list || []).filter(function (b) { return b && typeof b === "object" && b.name && b.logo; });
+    if (!logos.length) { (wrap.closest(".brands-section") || wrap).hidden = true; return; }
+    function slide(b, copy) {
+      var li = document.createElement("li"); li.className = "brand-slide";
+      var img = document.createElement("img");
+      img.src = asset(b.logo); img.alt = copy ? "" : b.name; img.width = 250; img.height = 125;
+      img.loading = "lazy"; img.decoding = "async";
+      li.appendChild(img);
+      if (copy) li.setAttribute("aria-hidden", "true");
+      return li;
     }
+    track.textContent = "";
+    logos.forEach(function (b) { track.appendChild(slide(b, false)); });
+    // A second copy makes the loop seamless; it is hidden from screen readers.
+    logos.forEach(function (b) { track.appendChild(slide(b, true)); });
+    track.style.setProperty("--brand-duration", Math.max(20, logos.length * 3.5) + "s");
+    wrap.classList.add("is-sliding");
   })();
 
   // Groceries page: one tab per gallery in "showcases"

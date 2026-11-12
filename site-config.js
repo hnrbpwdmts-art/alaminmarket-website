@@ -168,22 +168,28 @@ window.SITE = {
 
 
   /* ---------- Brands we carry ----------
-     Shown on the homepage and the Groceries page.
-     To add a brand, add its name in quotes with a comma, e.g.  "Mehran",
-     To show a logo instead of the name, put the logo in images/brands/
-     and write it like this:  { name: "Shan", logo: "images/brands/shan.png" },
-     Logos look best as wide PNGs with a transparent or white background. */
+     Shown as a sliding row of logos on the homepage and the Groceries page.
+     Only brands with a logo appear in the slideshow. Names without a logo
+     are kept here so a logo can be added later.
+     To add a logo: put the photo in images/brands/ (wide, about 500x250)
+     and write the brand like this:  { name: "Amul", logo: "images/brands/amul.jpg" }, */
   brands: {
     show: true,
     title: "Brands we carry",
     text: "The names you know from home, all under one roof. Don't see yours? Ask us. We carry many more.",
-    showMore: true,   // adds an "and many more" tile at the end
     list: [
-      "Shan",
-      "National",
-      "Tapal",
+      { name: "Shan", logo: "images/brands/shan.jpg" },
+      { name: "National", logo: "images/brands/national.jpg" },
+      { name: "Tapal", logo: "images/brands/tapal.jpg" },
+      { name: "Tea India", logo: "images/brands/tea-india.jpg" },
+      { name: "Mitchell's", logo: "images/brands/mitchells.jpg" },
+      { name: "Shezan", logo: "images/brands/shezan.jpg" },
+      { name: "Knorr", logo: "images/brands/knorr.jpg" },
+      { name: "Lipton", logo: "images/brands/lipton.jpg" },
+      { name: "Brooke Bond", logo: "images/brands/brooke-bond.jpg" },
+      { name: "Qarshi", logo: "images/brands/qarshi.jpg" },
+      { name: "Deep", logo: "images/brands/deep.jpg" },
       "Vital",
-      "Tea India",
       "Wagh Bakri",
       "Crescent Foods",
       "Al Safa",
@@ -198,8 +204,6 @@ window.SITE = {
       "Dunar",
       "Royal Rice",
       "Laziza",
-      "Mitchell's",
-      "Shezan",
       "Ashoka",
       "Rani",
       "Desi Kitchen",
@@ -209,7 +213,6 @@ window.SITE = {
       "EBM",
       "LU",
       "Young's",
-      "Knorr",
       "Nanak",
       "Karoun",
       "Gopi",
