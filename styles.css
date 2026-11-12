@@ -426,3 +426,78 @@ a { color: var(--green); }
   .signup { grid-template-columns: 1fr 1.2fr; gap: 40px; padding: 36px 40px; align-items: start; }
   .signup-success { grid-column: 2; }
 }
+
+/* ---------- Order meat page ---------- */
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.order-layout { display: grid; gap: 32px; }
+.order-step-title { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; margin: 0 0 14px; }
+.order-step-num { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--green); color: #fff; font: 700 .95rem var(--sans); flex: none; }
+.order-cats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.order-cat, .order-opt {
+  font: 600 .98rem var(--sans); padding: 9px 16px; border-radius: 999px; cursor: pointer;
+  border: 1.5px solid var(--cream-2); background: var(--paper); color: var(--green-dark);
+}
+.order-cat[aria-selected="true"], .order-opt[aria-pressed="true"] { background: var(--green); border-color: var(--green); color: #fff; }
+.order-opt:disabled { cursor: default; opacity: 1; }
+.order-items { display: grid; gap: 12px; }
+.order-item { background: var(--paper); border: 1px solid var(--cream-2); border-radius: var(--radius); overflow: hidden; }
+.order-item-head {
+  width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 16px 18px; background: none; border: 0; cursor: pointer; text-align: left; font: inherit; color: inherit;
+}
+.order-item-head[aria-expanded="true"] { background: var(--cream); }
+.order-item-name { font-family: var(--serif); font-weight: 700; font-size: 1.15rem; color: var(--green-dark); }
+.order-item-price { color: var(--muted); font-size: .95rem; white-space: nowrap; }
+.order-item-body { padding: 4px 18px 18px; border-top: 1px solid var(--cream-2); }
+.order-item-days { color: var(--red); font-weight: 600; font-size: .92rem; margin: 12px 0 0; }
+.order-q { margin-top: 14px; }
+.order-q-label { font-weight: 700; font-size: .92rem; margin: 0 0 8px; color: var(--ink); }
+.order-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.order-qty-row { margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.order-qty-row .order-q-label { margin: 0; }
+.order-stepper { display: flex; align-items: center; border: 1.5px solid var(--cream-2); border-radius: 999px; overflow: hidden; }
+.order-step-btn { width: 44px; height: 44px; border: 0; background: var(--cream); font-size: 1.3rem; cursor: pointer; color: var(--green-dark); }
+.order-step-val { min-width: 64px; text-align: center; font-weight: 700; }
+.order-add { width: 100%; margin-top: 18px; justify-content: center; }
+.order-add:disabled { opacity: .55; cursor: not-allowed; }
+.order-summary { background: var(--cream); border-radius: var(--radius); padding: 20px; align-self: start; }
+.order-empty { color: var(--muted); margin: 0; }
+.order-lines { list-style: none; margin: 0; padding: 0; }
+.order-line { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 12px 0; border-bottom: 1px solid var(--cream-2); }
+.order-line-info { display: flex; flex-direction: column; }
+.order-line-name { font-weight: 700; }
+.order-line-desc { color: var(--muted); font-size: .92rem; }
+.order-line-cost { font-weight: 700; }
+.order-line-rm, .order-link-btn { grid-column: 1; justify-self: start; background: none; border: 0; padding: 4px 0; color: var(--red); font: 600 .88rem var(--sans); cursor: pointer; text-decoration: underline; }
+.order-total { display: flex; justify-content: space-between; gap: 12px; margin: 14px 0 0; font-size: 1.05rem; }
+.order-form { margin-top: 28px; }
+.order-choice { border: 0; padding: 0; margin: 0 0 14px; display: flex; gap: 10px; }
+.order-choice-opt { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border: 1.5px solid var(--cream-2); border-radius: var(--radius); background: var(--paper); font-weight: 700; cursor: pointer; }
+.order-choice-opt:has(input:checked) { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); }
+.order-choice-opt input { accent-color: var(--green); width: 18px; height: 18px; }
+.order-field-row { display: grid; grid-template-columns: 1fr; gap: 0 10px; }
+@media (min-width: 480px) { .order-field-row { grid-template-columns: 1.4fr 1fr; } }
+.order-field { display: flex; flex-direction: column; gap: 6px; font-weight: 700; font-size: .92rem; margin-bottom: 12px; }
+.order-field input, .order-field select, .order-field textarea {
+  font: 400 1rem var(--sans); padding: 11px 12px; border: 1.5px solid var(--cream-2); border-radius: 10px; background: #fff; color: var(--ink); width: 100%;
+}
+.order-field input:focus, .order-field select:focus, .order-field textarea:focus { outline: 2px solid var(--green-soft); outline-offset: 1px; }
+.order-delivery-note { background: var(--paper); border-left: 4px solid var(--green); padding: 10px 12px; border-radius: 6px; font-size: .95rem; }
+.order-error { color: var(--red); font-weight: 700; }
+.order-send { display: grid; gap: 10px; }
+.order-send .btn { justify-content: center; width: 100%; }
+.order-fineprint { color: var(--muted); font-size: .88rem; margin: 12px 0 0; }
+.order-done h2 { margin-bottom: .3em; }
+.order-done .btn { margin: 6px 0 4px; }
+@media (min-width: 900px) {
+  .order-layout { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 40px; }
+  .order-summary { position: sticky; top: calc(var(--header-h) + 16px); }
+}
+.order-section button.btn, .order-done button.btn { font-family: var(--sans); cursor: pointer; }
+.order-custom { margin: 16px 0 0; font-size: .92rem; }
+.order-line-custom { font-style: italic; }
+.order-qty-label { display: flex; flex-direction: column; gap: 8px; }
+.order-unit-toggle .order-opt { padding: 7px 14px; font-size: .92rem; }
+.order-qty-row { align-items: flex-end; }
+.order-item-note { color: var(--muted); font-size: .95rem; margin: 12px 0 0; }
+.meat-actions { display: flex; flex-wrap: wrap; gap: 10px; }
