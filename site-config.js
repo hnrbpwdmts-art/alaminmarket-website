@@ -46,7 +46,7 @@ window.SITE = {
   social: {
     instagram: "https://www.instagram.com/al_aminhalal/",
     tiktok: "",
-    facebook: ""
+    facebook: "https://www.facebook.com/alaminhalalmarket/"
   },
 
   /* ---------- Prefilled WhatsApp messages (customers can edit before sending) ---------- */
