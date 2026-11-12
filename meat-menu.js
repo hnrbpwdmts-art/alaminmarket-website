@@ -113,7 +113,7 @@ window.MEAT_MENU = {
           min: 1, step: 1,
           choices: ["Cut"],
           combos: [
-            { "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)", "Extra small (about ¼ in, taco cut)"] }
+            { "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)", "Extra small (about ¼ in, taco cut)", "Ground (coarse)", "Ground (fine)", "Ground (extra fine)"] }
           ]
         },
         {
@@ -126,7 +126,7 @@ window.MEAT_MENU = {
           min: 1, step: 1,
           choices: ["Cut"],
           combos: [
-            { "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)", "Extra small (about ¼ in, taco cut)"] }
+            { "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)", "Extra small (about ¼ in, taco cut)", "Ground (coarse)", "Ground (fine)", "Ground (extra fine)"] }
           ]
         },
         {
@@ -139,7 +139,7 @@ window.MEAT_MENU = {
           min: 1, step: 1,
           choices: ["Cut"],
           combos: [
-            { "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)", "Extra small (about ¼ in, taco cut)"] }
+            { "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)", "Extra small (about ¼ in, taco cut)", "Ground (coarse)", "Ground (fine)", "Ground (extra fine)"] }
           ]
         },
         {
