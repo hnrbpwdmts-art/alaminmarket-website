@@ -4,6 +4,9 @@
   var S = window.SITE;
   if (!S) return;
   var store = S.store;
+  // Pages in sub-folders set <html data-root="../"> so photo paths still work
+  var ROOT = document.documentElement.getAttribute("data-root") || "";
+  function asset(path) { return !path || /^(https?:|\/|data:)/.test(path) ? path : ROOT + path; }
   var address = store.street + ", " + store.city + ", " + store.state + " " + store.zip;
 
   function whatsappUrl(key) {
@@ -41,7 +44,7 @@
   document.querySelectorAll("img[data-photo]").forEach(function (img) {
     var p = S.photos[img.dataset.photo];
     if (!p) return;
-    img.src = p.src;
+    img.src = asset(p.src);
     img.alt = p.alt;
   });
 
@@ -55,8 +58,8 @@
     });
   }, { threshold: 0.25 }) : null;
   function setupVideo(v, src, poster, label) {
-    v.src = src;
-    if (poster) v.poster = poster;
+    v.src = asset(src);
+    if (poster) v.poster = asset(poster);
     v.setAttribute("aria-label", label || "");
     v.muted = true;
     if (reduceMotion) { v.controls = true; return; }
@@ -71,80 +74,127 @@
     setupVideo(v, p.video, p.src, p.alt);
   });
 
-  // Grocery grid
-  var grid = document.getElementById("grocery-grid");
-  (S.groceryCategories || []).forEach(function (cat) {
-    var li = document.createElement("li");
-    li.className = "grocery-card";
-    var img = document.createElement("img");
-    img.src = cat.image;
-    img.alt = cat.alt || "";
-    img.width = 400;
-    img.height = 300;
-    img.loading = "lazy";
-    var h = document.createElement("h3");
-    h.textContent = cat.name;
-    li.appendChild(img);
-    li.appendChild(h);
-    grid.appendChild(li);
-  });
+  // Grocery category cards (homepage). Each card opens its tab on the Groceries page.
+  (function categoryCards() {
+    var grid = document.getElementById("grocery-grid");
+    if (!grid) return;
+    (S.groceryCategories || []).forEach(function (cat) {
+      var li = document.createElement("li");
+      var a = document.createElement("a");
+      a.className = "category-card";
+      a.href = ROOT + "groceries/#" + (cat.tab || "");
+      var img = document.createElement("img");
+      img.src = asset(cat.image); img.alt = ""; img.width = 400; img.height = 300; img.loading = "lazy"; img.decoding = "async";
+      var body = document.createElement("span"); body.className = "category-body";
+      var h = document.createElement("span"); h.className = "category-name"; h.textContent = cat.name;
+      var t = document.createElement("span"); t.className = "category-text"; t.textContent = cat.text || "";
+      var go = document.createElement("span"); go.className = "category-go"; go.setAttribute("aria-hidden", "true"); go.textContent = "Browse →";
+      body.appendChild(h); body.appendChild(t); body.appendChild(go);
+      a.appendChild(img); a.appendChild(body);
+      li.appendChild(a); grid.appendChild(li);
+    });
+  })();
 
-  // "From our shelves" galleries
-  (function showcases() {
-    var wrap = document.getElementById("showcases");
-    (S.showcases || []).forEach(function (sc, i) {
-      if (!sc || !sc.title) return;
-      var sec = document.createElement("div");
-      sec.className = "showcase";
-      var id = "showcase-" + i;
-      var h = document.createElement("h3"); h.id = id; h.textContent = sc.title; sec.appendChild(h);
-      if (sc.text) { var p = document.createElement("p"); p.className = "showcase-text"; p.textContent = sc.text; sec.appendChild(p); }
+  // Groceries page: one tab per gallery in "showcases"
+  (function groceryTabs() {
+    var bar = document.getElementById("grocery-tabs");
+    var panels = document.getElementById("grocery-panels");
+    if (!bar || !panels) return;
+    var items = (S.showcases || []).filter(function (sc) { return sc && sc.id && sc.title; });
+    var tabs = [];
+
+    function makeItem(it) {
+      var li = document.createElement("li"); li.className = "showcase-item";
+      var img = document.createElement("img"); img.src = asset(it.image); img.alt = it.alt || it.name || "";
+      img.loading = "lazy"; img.width = 300; img.height = 300; img.decoding = "async";
+      var cap = document.createElement("span"); cap.textContent = it.name || "";
+      li.appendChild(img); li.appendChild(cap);
+      return li;
+    }
+    function askCard(sc) {
+      var li = document.createElement("li"); li.className = "ask-card";
+      var a = document.createElement("a");
+      a.href = "https://wa.me/" + store.whatsappNumber + "?text=" + encodeURIComponent(S.whatsappMessages.grocery || "");
+      a.target = "_blank"; a.rel = "noopener";
+      a.innerHTML = '<span class="ask-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5.1-1 .1-1.7-.1a15 15 0 0 1-6.3-5.5c-.5-.7-1-1.7-1-2.8 0-1.1.6-1.6.8-1.9.2-.2.5-.3.6-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.1.1.6-.1 1.2z"/></svg></span>' +
+        '<span class="ask-title"></span><span class="ask-text">Message us on WhatsApp and we\'ll check the shelf.</span>';
+      a.querySelector(".ask-title").textContent = sc.askTitle || "Looking for something else?";
+      li.appendChild(a);
+      return li;
+    }
+
+    items.forEach(function (sc, i) {
+      var tab = document.createElement("button");
+      tab.type = "button"; tab.className = "grocery-tab"; tab.id = "tab-" + sc.id;
+      tab.setAttribute("role", "tab"); tab.setAttribute("aria-controls", "panel-" + sc.id);
+      tab.textContent = sc.tab || sc.title;
+      bar.appendChild(tab);
+
+      var panel = document.createElement("section");
+      panel.className = "grocery-panel"; panel.id = "panel-" + sc.id;
+      panel.setAttribute("role", "tabpanel"); panel.setAttribute("aria-labelledby", "tab-" + sc.id);
+      panel.tabIndex = 0;
+      var head = document.createElement("div"); head.className = "panel-head";
+      var h = document.createElement("h2"); h.textContent = sc.title; head.appendChild(h);
+      if (sc.text) { var p = document.createElement("p"); p.textContent = sc.text; head.appendChild(p); }
+      panel.appendChild(head);
       if (sc.video) {
-        var fig = document.createElement("figure"); fig.className = "showcase-video";
+        var fig = document.createElement("figure"); fig.className = "panel-video";
         var v = document.createElement("video"); v.loop = true; v.playsInline = true; v.preload = "none";
         v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
-        fig.appendChild(v); sec.appendChild(fig);
+        fig.appendChild(v); panel.appendChild(fig);
         setupVideo(v, sc.video, sc.poster, sc.alt);
       }
-      if (sc.items && sc.items.length) {
-        var ul = document.createElement("ul"); ul.className = "showcase-grid";
-        ul.id = id + "-items";
-        ul.setAttribute("aria-labelledby", id);
-        var limit = sc.featured && sc.featured < sc.items.length ? sc.featured : 0;
-        sc.items.forEach(function (it, n) {
-          var li = document.createElement("li"); li.className = "showcase-item";
-          if (limit && n >= limit) { li.hidden = true; li.classList.add("is-extra"); }
-          var img = document.createElement("img"); img.src = it.image; img.alt = it.alt || it.name || "";
-          img.loading = "lazy"; img.width = 300; img.height = 300; img.decoding = "async";
-          var cap = document.createElement("span"); cap.textContent = it.name || "";
-          li.appendChild(img); li.appendChild(cap); ul.appendChild(li);
-        });
-        sec.appendChild(ul);
-        if (limit) {
-          var more = sc.items.length - limit;
-          var label = (sc.seeAllLabel || "See all") + " (" + more + " more)";
-          var btn = document.createElement("button");
-          btn.type = "button"; btn.className = "btn btn-outline showcase-toggle";
-          btn.setAttribute("aria-expanded", "false");
-          btn.setAttribute("aria-controls", ul.id);
-          btn.textContent = label;
-          btn.addEventListener("click", function () {
-            var open = btn.getAttribute("aria-expanded") === "true";
-            // Keep the button in the same spot on screen so the page doesn't jump
-            var before = btn.getBoundingClientRect().top;
-            ul.querySelectorAll(".is-extra").forEach(function (li) { li.hidden = open; });
-            btn.setAttribute("aria-expanded", String(!open));
-            btn.textContent = open ? label : "Show fewer";
-            var after = btn.getBoundingClientRect().top;
-            if (after !== before) window.scrollBy({ top: after - before, left: 0, behavior: "instant" });
-            if (!open) { var first = ul.querySelector(".is-extra img"); if (first) first.loading = "eager"; }
-          });
-          sec.appendChild(btn);
-        }
-      }
-      if (sc.video) sec.classList.add("showcase-has-video");
-      wrap.appendChild(sec);
+      var ul = document.createElement("ul"); ul.className = "showcase-grid";
+      ul.setAttribute("aria-label", sc.title);
+      (sc.items || []).forEach(function (it) { ul.appendChild(makeItem(it)); });
+      ul.appendChild(askCard(sc));
+      panel.appendChild(ul);
+      panels.appendChild(panel);
+      tabs.push({ tab: tab, panel: panel, id: sc.id });
+      tab.addEventListener("click", function () { select(i, true); });
     });
+
+    function select(i, fromClick) {
+      tabs.forEach(function (t, n) {
+        var on = n === i;
+        t.tab.setAttribute("aria-selected", String(on));
+        t.tab.tabIndex = on ? 0 : -1;
+        t.panel.hidden = !on;
+        if (on) {
+          // pause videos in hidden panels, keep the active tab visible in the scrolling bar
+          t.tab.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+        } else {
+          t.panel.querySelectorAll("video").forEach(function (v) { v.pause(); });
+        }
+      });
+      if (fromClick) {
+        history.replaceState(null, "", "#" + tabs[i].id);
+        // If the products start above the sticky tab bar, bring them back into view
+        var wrap = bar.closest(".tabs-wrap") || bar;
+        var barBottom = wrap.getBoundingClientRect().bottom;
+        var top = panels.getBoundingClientRect().top;
+        if (top < barBottom) window.scrollBy({ top: top - barBottom - 4, left: 0, behavior: "instant" });
+      }
+    }
+    bar.addEventListener("keydown", function (e) {
+      var cur = tabs.findIndex(function (t) { return t.tab === document.activeElement; });
+      if (cur < 0) return;
+      var next = null;
+      if (e.key === "ArrowRight") next = (cur + 1) % tabs.length;
+      else if (e.key === "ArrowLeft") next = (cur - 1 + tabs.length) % tabs.length;
+      else if (e.key === "Home") next = 0;
+      else if (e.key === "End") next = tabs.length - 1;
+      if (next === null) return;
+      e.preventDefault(); select(next, true); tabs[next].tab.focus();
+    });
+    function fromHash() {
+      var id = (location.hash || "").replace("#", "");
+      var i = tabs.findIndex(function (t) { return t.id === id; });
+      select(i < 0 ? 0 : i, false);
+    }
+    window.addEventListener("hashchange", fromHash);
+    fromHash();
   })();
 
   // Social media links
@@ -158,9 +208,11 @@
     if (!nets.length) return;
     var list = document.getElementById("social-list");
     var foot = document.getElementById("footer-social");
+    if (!foot) return;
     nets.forEach(function (n) {
       var url = so[n.key].trim();
       [list, foot].forEach(function (ul, i) {
+        if (!ul) return;
         var li = document.createElement("li");
         var a = document.createElement("a");
         a.href = url; a.target = "_blank"; a.rel = "noopener";
@@ -170,7 +222,7 @@
         li.appendChild(a); ul.appendChild(li);
       });
     });
-    document.getElementById("social").hidden = false;
+    if (document.getElementById("social")) document.getElementById("social").hidden = false;
   })();
 
   // Announcement banner
@@ -195,7 +247,7 @@
   // Deals come from your Google Sheet (dealsSheetUrl in site-config.js) if one is set,
   // otherwise from the "deals" list in site-config.js.
   (function deals() {
-    if (!(S.dealsSection && S.dealsSection.show)) return; // section stays hidden
+    if (!(S.dealsSection && S.dealsSection.show) || !document.getElementById("deals")) return; // section stays hidden
     document.getElementById("deals").hidden = false;
     document.querySelector("[data-deals-nav]").hidden = false;
     var list = document.getElementById("deals-list");
@@ -221,7 +273,7 @@
         li.className = "deal-card";
         if (d.image) {
           var img = document.createElement("img");
-          img.src = d.image; img.alt = d.alt || ""; img.loading = "lazy"; img.width = 640; img.height = 400;
+          img.src = asset(d.image); img.alt = d.alt || ""; img.loading = "lazy"; img.width = 640; img.height = 400;
           li.appendChild(img);
         }
         var body = document.createElement("div");
@@ -347,7 +399,7 @@
   // Google reviews
   (function reviews() {
     var R = S.reviews || {};
-    if (!R.show) return; // section stays hidden
+    if (!R.show || !document.getElementById("reviews")) return; // section stays hidden
     document.getElementById("reviews").hidden = false;
     document.querySelector("[data-reviews-nav]").hidden = false;
     var placeId = (R.googlePlaceId || "").trim();
