@@ -51,6 +51,11 @@ window.MEAT_MENU = {
     note: "We'll text you the delivery fee together with your total."
   },
 
+  /* Packing choices offered on every item (customers pick one).
+     An item can have its own "packing" list instead, and "packingSkip"
+     to hide the question for a choice, e.g. { "Pieces": "Whole (no cutting)" }. */
+  packing: ["All in one bag", "Packed in 1 lb packs"],
+
   daysAhead: 7,              // how many days ahead customers can choose
   closedDays: [],            // e.g. ["2026-12-25"] to block a date
 
@@ -67,6 +72,8 @@ window.MEAT_MENU = {
           unit: "each",
           countName: ["chicken", "chickens"],
           avgWeight: 3,
+          packing: ["1 whole chicken per bag", "½ chicken per bag"],
+          packingSkip: { "Pieces": "Whole (no cutting)" },
           min: 1, step: 1,
           choices: ["Skin", "Pieces", "BBQ cut"],
           combos: [
@@ -83,6 +90,8 @@ window.MEAT_MENU = {
           unit: "each",
           countName: ["chicken", "chickens"],
           avgWeight: 3,
+          packing: ["1 whole chicken per bag", "½ chicken per bag"],
+          packingSkip: { "Pieces": "Whole (no cutting)" },
           min: 1, step: 1,
           choices: ["Skin", "Pieces", "BBQ cut"],
           combos: [
@@ -99,6 +108,8 @@ window.MEAT_MENU = {
           priceUnit: "each",
           unit: "each",
           countName: ["rooster", "roosters"],
+          packing: ["1 whole rooster per bag", "½ rooster per bag"],
+          packingSkip: { "Pieces": "Whole (no cutting)" },
           min: 1, step: 1,
           choices: ["Skin", "Pieces", "BBQ cut"],
           combos: [

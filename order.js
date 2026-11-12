@@ -81,6 +81,13 @@
     return vals;
   }
 
+  function packingFor(item, picks) {
+    var list = item.packing || M.packing || [];
+    var skip = item.packingSkip || {};
+    for (var q in skip) if (picks[q] === skip[q]) return [];
+    return list;
+  }
+
   // ---------- saved state ----------
   var state = { cart: [], mode: "pickup", name: "", phone: "", address: "" };
   try {
@@ -170,6 +177,22 @@
         group.appendChild(row);
         body.appendChild(group);
       });
+      // packing
+      var packs = packingFor(item, picked);
+      if (packs.length) {
+        if (packs.indexOf(picked.Packing) === -1) picked.Packing = packs[0];
+        var pg = el("div", "order-q");
+        pg.appendChild(el("p", "order-q-label", "Packing"));
+        var prow = el("div", "order-opts");
+        packs.forEach(function (v) {
+          var b = el("button", "order-opt", v); b.type = "button";
+          b.setAttribute("aria-pressed", picked.Packing === v ? "true" : "false");
+          b.addEventListener("click", function () { picked.Packing = v; draw(); });
+          prow.appendChild(b);
+        });
+        pg.appendChild(prow); body.appendChild(pg);
+      } else delete picked.Packing;
+
       // quantity
       var qrow = el("div", "order-qty-row");
       var qlab = el("div", "order-qty-label");
@@ -235,6 +258,7 @@
         else if (optionsFor(item, q, l.picks).length > 1) parts.push("no BBQ cut");
       } else parts.push(v);
     });
+    if (l.picks.Packing) parts.push(l.picks.Packing);
     return { item: item, desc: parts.join(", "), custom: l.custom || "" };
   }
   function lineUnit(l) { var it = findItem(l.id); return l.unit || it.unit; }
