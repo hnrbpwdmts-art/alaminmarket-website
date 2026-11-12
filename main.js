@@ -30,7 +30,8 @@
     address: address,
     phone: store.phoneDisplay,
     whatsapp: store.whatsappDisplay,
-    footerHours: store.footerHours || ""
+    hoursSummary: store.hoursSummary || "",
+    fridayNote: store.fridayNote || ""
   };
   document.querySelectorAll("[data-text]").forEach(function (el) {
     el.textContent = texts[el.dataset.text] || "";
@@ -106,49 +107,45 @@
         setupVideo(v, sc.video, sc.poster, sc.alt);
       }
       if (sc.items && sc.items.length) {
-        var ul = document.createElement("ul"); ul.className = "showcase-row";
+        var ul = document.createElement("ul"); ul.className = "showcase-grid";
+        ul.id = id + "-items";
         ul.setAttribute("aria-labelledby", id);
-        ul.tabIndex = 0;
-        sc.items.forEach(function (it) {
+        var limit = sc.featured && sc.featured < sc.items.length ? sc.featured : 0;
+        sc.items.forEach(function (it, n) {
           var li = document.createElement("li"); li.className = "showcase-item";
+          if (limit && n >= limit) { li.hidden = true; li.classList.add("is-extra"); }
           var img = document.createElement("img"); img.src = it.image; img.alt = it.alt || it.name || "";
           img.loading = "lazy"; img.width = 300; img.height = 300; img.decoding = "async";
           var cap = document.createElement("span"); cap.textContent = it.name || "";
           li.appendChild(img); li.appendChild(cap); ul.appendChild(li);
         });
         sec.appendChild(ul);
-        if (sc.items.length > 2) {
-          var hint = document.createElement("p"); hint.className = "showcase-hint"; hint.setAttribute("aria-hidden", "true");
-          hint.textContent = "Swipe for more →"; sec.appendChild(hint);
+        if (limit) {
+          var more = sc.items.length - limit;
+          var label = (sc.seeAllLabel || "See all") + " (" + more + " more)";
+          var btn = document.createElement("button");
+          btn.type = "button"; btn.className = "btn btn-outline showcase-toggle";
+          btn.setAttribute("aria-expanded", "false");
+          btn.setAttribute("aria-controls", ul.id);
+          btn.textContent = label;
+          btn.addEventListener("click", function () {
+            var open = btn.getAttribute("aria-expanded") === "true";
+            // Keep the button in the same spot on screen so the page doesn't jump
+            var before = btn.getBoundingClientRect().top;
+            ul.querySelectorAll(".is-extra").forEach(function (li) { li.hidden = open; });
+            btn.setAttribute("aria-expanded", String(!open));
+            btn.textContent = open ? label : "Show fewer";
+            var after = btn.getBoundingClientRect().top;
+            if (after !== before) window.scrollBy({ top: after - before, left: 0, behavior: "instant" });
+            if (!open) { var first = ul.querySelector(".is-extra img"); if (first) first.loading = "eager"; }
+          });
+          sec.appendChild(btn);
         }
       }
       if (sc.video) sec.classList.add("showcase-has-video");
       wrap.appendChild(sec);
     });
   })();
-
-  // Hours (only shown once provided)
-  if (store.hours && store.hours.length) {
-    var dl = document.getElementById("hours-list");
-    store.hours.forEach(function (row) {
-      var div = document.createElement("div");
-      div.className = "hours-row";
-      var dt = document.createElement("dt");
-      dt.textContent = row.days;
-      var dd = document.createElement("dd");
-      dd.textContent = row.time;
-      if (row.note) {
-        var n = document.createElement("span");
-        n.className = "hours-note";
-        n.textContent = row.note;
-        dd.appendChild(n);
-      }
-      div.appendChild(dt);
-      div.appendChild(dd);
-      dl.appendChild(div);
-    });
-    document.getElementById("hours").hidden = false;
-  }
 
   // Social media links
   (function social() {
