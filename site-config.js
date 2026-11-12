@@ -77,27 +77,30 @@ window.SITE = {
     }
   },
 
-  /* ---------- Grocery categories (shown as a grid) ---------- */
+  /* ---------- Grocery categories (homepage cards) ----------
+     Each card opens its tab on the Groceries page. "tab" must match the
+     "id" of a gallery below. */
   groceryCategories: [
-    { name: "Rice & Atta",      image: "images/rice-atta.svg",          alt: "Bags of basmati rice and atta flour" },
-    { name: "Lentils & Beans",  image: "images/lentils.svg",            alt: "Bowls of colorful lentils and beans" },
-    { name: "Spices & Masalas", image: "images/spices-photo.jpg",       alt: "Shelves of Sri Lankan curry powders, masalas, and pickles at Super Al-Amin" },
-    { name: "Snacks & Tea",     image: "images/snacks-tea-photo.jpg",   alt: "A bag of Nimco's Mix Nimco snack" },
-    { name: "Fresh Produce",    image: "images/produce-photo.jpg",      alt: "A box of fresh pomegranates" }
+    { name: "Fresh Produce",        text: "Fruit, vegetables, herbs, and seasonal favorites", image: "images/cat-produce.jpg",   tab: "produce" },
+    { name: "Snacks & Chai",        text: "Nimco, puffs, crisps, and chai-time treats",       image: "images/cat-snacks.jpg",    tab: "snacks" },
+    { name: "Pantry Staples",       text: "Rice, atta, lentils, spices, and masalas",         image: "images/cat-pantry.jpg",    tab: "pantry" },
+    { name: "Sri Lankan Groceries", text: "Curry powders, pickles, biscuits, and more",       image: "images/cat-srilankan.jpg", tab: "sri-lankan" },
+    { name: "Halal Treats",         text: "Grab-and-go snacks and sweets",                    image: "images/cat-treats.jpg",    tab: "treats" }
   ],
 
-  /* ---------- "From our shelves" photo galleries (Groceries section) ----------
-     Each gallery has a title, a short line of text, and a list of items.
-     To add a product: put the photo in the images folder and copy one line.
-     "featured" = how many items show before the "See all" button (leave it
-     out to show everything). "seeAllLabel" is the button text.
-     A gallery can also have a "video" (and "poster" image) instead of items. */
+  /* ---------- Groceries page galleries (one tab each) ----------
+     id:    short name used in links, e.g. alaminmarket.com/groceries/#snacks
+     tab:   the label on the tab
+     title, text: heading and line shown above the photos
+     items: the products. To add one, put the photo in the images folder and
+            copy a line. Square photos (about 600x600) look best.
+     A gallery can also have a "video" and "poster" image. */
   showcases: [
     {
+      id: "produce",
+      tab: "Produce",
       title: "Fresh fruit & vegetables",
       text: "Seasonal favorites arrive throughout the year. Ask us what's in this week.",
-      featured: 5,
-      seeAllLabel: "See all produce",
       items: [
         { name: "Pomegranates",           image: "images/produce/pomegranates.jpg",    alt: "A box of fresh pomegranates" },
         { name: "Mangoes",                image: "images/produce/mangoes.jpg",         alt: "Boxes of ripe mangoes" },
@@ -111,10 +114,10 @@ window.SITE = {
       ]
     },
     {
+      id: "snacks",
+      tab: "Snacks & Chai",
       title: "Pakistani snacks & chai-time favorites",
       text: "Crunchy nimco, puffs, and something for every cup of chai.",
-      featured: 5,
-      seeAllLabel: "See all snacks",
       items: [
         { name: "Mix Nimco",                  image: "images/snacks/snack-mix-nimco.jpg",                 alt: "Nimco's Mix Nimco" },
         { name: "Chana Chilli",               image: "images/snacks/snack-chana-chilli.jpg",              alt: "Nimco's Chana Chilli" },
@@ -131,22 +134,31 @@ window.SITE = {
       ]
     },
     {
+      id: "pantry",
+      tab: "Pantry",
       title: "Pantry staples",
-      text: "Everyday cooking basics from brands you know from home.",
+      text: "Rice, atta, lentils, spices, masalas, and everyday cooking basics from brands you know from home.",
       items: [
         { name: "Bake Parlor macaroni", image: "images/snacks/bake-parlor-macaroni.jpg", alt: "Bake Parlor macaroni boxes on a store rack" }
       ]
     },
     {
+      id: "sri-lankan",
+      tab: "Sri Lankan",
       title: "Authentic Sri Lankan groceries",
       text: "Curry powders, masalas, pickles, biscuits, and more, all in one aisle.",
       video: "videos/sri-lankan-aisle.mp4",
       poster: "images/sri-lankan-aisle.jpg",
-      alt: "A walk down Super Al-Amin's Sri Lankan grocery aisle"
+      alt: "A walk down Super Al-Amin's Sri Lankan grocery aisle",
+      items: [
+        { name: "Curry powders & masalas", image: "images/spices-photo.jpg", alt: "Shelves of Sri Lankan curry powders, masalas, and pickles" }
+      ]
     },
     {
+      id: "treats",
+      tab: "Halal Treats",
       title: "Halal treats",
-      text: "Grab-and-go snacks at the counter.",
+      text: "Grab-and-go snacks and sweets at the counter.",
       items: [
         { name: "Halal beef sticks",   image: "images/treats/halal-beef-sticks.jpg", alt: "Boxes of Sharifa halal beef sticks, original and jalapeño" },
         { name: "Dubai chocolate bar", image: "images/treats/dubai-chocolate.jpg",   alt: "A box of Dubai milk chocolate flavor bars" }

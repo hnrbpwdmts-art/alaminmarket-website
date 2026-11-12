@@ -55,7 +55,13 @@ Everyday use (works from your phone in the Google Sheets app):
 - To get an email for each sign-up: Forms > Form notifications > Add notification > Email.
 - Only message people who signed up, and stop messaging anyone who asks.
 
+## Pages
+- Home: `index.html`. Groceries: `groceries/index.html` (alaminmarket.com/groceries/).
+- Each Groceries tab has its own link to share, e.g. alaminmarket.com/groceries/#snacks
+  (also #produce, #pantry, #sri-lankan, #treats).
+
 ## Photos and videos
-- Gallery photos ("From our shelves") are listed under `showcases` in site-config.js.
+- Homepage category cards are listed under `groceryCategories` in site-config.js.
+- Groceries page tabs and products are listed under `showcases` in site-config.js.
 - Square photos about 600x600 work best for galleries; keep each photo under ~150 KB.
 - Videos: short, muted clips (under ~15 seconds, under ~1 MB) in the `videos` folder.
