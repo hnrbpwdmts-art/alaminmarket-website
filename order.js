@@ -177,8 +177,12 @@
         group.appendChild(row);
         body.appendChild(group);
       });
-      // packing
-      var packs = packingFor(item, picked);
+      // packing: pack sizes bigger than the order are not offered
+      var orderLb = unit === "lb" ? qty : (item.avgWeight ? qty * item.avgWeight : null);
+      var packs = packingFor(item, picked).filter(function (v) {
+        var m = v.match(/^(\d+(?:\.\d+)?) lb packs/);
+        return !m || orderLb == null || +m[1] < orderLb;
+      });
       if (packs.length) {
         if (packs.indexOf(picked.Packing) === -1) picked.Packing = packs[0];
         var pg = el("div", "order-q");
@@ -213,8 +217,8 @@
       var minus = el("button", "order-step-btn", "−"); minus.type = "button"; minus.setAttribute("aria-label", "Less");
       var val = el("span", "order-step-val", unit === "lb" ? fmtQty(qty, "lb") : String(qty)); val.setAttribute("aria-live", "polite");
       var plus = el("button", "order-step-btn", "+"); plus.type = "button"; plus.setAttribute("aria-label", "More");
-      minus.addEventListener("click", function () { qty = Math.max(min, Math.round((qty - step) * 100) / 100); val.textContent = unit === "lb" ? fmtQty(qty, "lb") : String(qty); });
-      plus.addEventListener("click", function () { qty = Math.round((qty + step) * 100) / 100; val.textContent = unit === "lb" ? fmtQty(qty, "lb") : String(qty); });
+      minus.addEventListener("click", function () { qty = Math.max(min, Math.round((qty - step) * 100) / 100); draw(); });
+      plus.addEventListener("click", function () { qty = Math.round((qty + step) * 100) / 100; draw(); });
       stepper.appendChild(minus); stepper.appendChild(val); stepper.appendChild(plus);
       qrow.appendChild(stepper);
       body.appendChild(qrow);
