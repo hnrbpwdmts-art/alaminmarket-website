@@ -53,8 +53,8 @@ window.MEAT_MENU = {
 
   /* Packing choices offered on every item (customers pick one).
      An item can have its own "packing" list instead, and "packingSkip"
-     to hide the question for a choice, e.g. { "Pieces": "Whole (no cutting)" }. */
-  packing: ["All in one bag", "Packed in 1 lb packs"],
+     to offer only the first packing choice for an answer, e.g. { "Pieces": "Whole (no cutting)" }. */
+  packing: ["All in one bag", "1 lb packs", "2 lb packs", "3 lb packs", "5 lb packs", "Other size (write below)"],
 
   daysAhead: 7,              // how many days ahead customers can choose
   closedDays: [],            // e.g. ["2026-12-25"] to block a date
