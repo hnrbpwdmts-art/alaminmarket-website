@@ -272,6 +272,20 @@ a { color: var(--green); }
 .hours dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .hours-note { display: block; font-size: .88rem; color: var(--red); font-weight: 600; }
 
+/* Social */
+.social { margin-top: 24px; }
+.social h3 { margin-bottom: 10px; }
+.social-list, .footer-social { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.social-link {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 18px;
+  border-radius: 999px; border: 1.5px solid var(--green); color: var(--green-dark);
+  background: var(--paper); font-weight: 700; text-decoration: none;
+}
+.social-link::after { content: "↗"; font-size: .9em; opacity: .7; }
+.social-link:hover { background: var(--green); color: #fff; }
+.footer-social { margin: 10px 0 8px; gap: 6px 18px; }
+.footer-social a { color: var(--cream); font-weight: 600; }
+
 /* Footer */
 .site-footer { background: var(--green-dark); color: var(--cream); padding: 28px 0; font-size: .95rem; }
 .site-footer p { margin: 0 0 .3em; }

@@ -41,6 +41,14 @@ window.SITE = {
     footerHours: "Open daily 10 AM – 8 PM"
   },
 
+  /* ---------- Social media ----------
+     Paste the full link to each profile. Leave "" to hide one. */
+  social: {
+    instagram: "https://www.instagram.com/al_aminhalal/",
+    tiktok: "",
+    facebook: ""
+  },
+
   /* ---------- Prefilled WhatsApp messages (customers can edit before sending) ---------- */
   whatsappMessages: {
     general: "Hi Super Al-Amin!",

@@ -85,6 +85,32 @@
     document.getElementById("hours").hidden = false;
   }
 
+  // Social media links
+  (function social() {
+    var so = S.social || {};
+    var nets = [
+      { key: "instagram", label: "Instagram" },
+      { key: "tiktok", label: "TikTok" },
+      { key: "facebook", label: "Facebook" }
+    ].filter(function (n) { return /^https?:\/\//.test((so[n.key] || "").trim()); });
+    if (!nets.length) return;
+    var list = document.getElementById("social-list");
+    var foot = document.getElementById("footer-social");
+    nets.forEach(function (n) {
+      var url = so[n.key].trim();
+      [list, foot].forEach(function (ul, i) {
+        var li = document.createElement("li");
+        var a = document.createElement("a");
+        a.href = url; a.target = "_blank"; a.rel = "noopener";
+        a.className = i === 0 ? "social-link" : "";
+        a.textContent = n.label;
+        a.setAttribute("aria-label", "Super Al-Amin on " + n.label + " (opens in a new tab)");
+        li.appendChild(a); ul.appendChild(li);
+      });
+    });
+    document.getElementById("social").hidden = false;
+  })();
+
   // Announcement banner
   var a = S.announcement;
   if (a && a.show && a.text) {
