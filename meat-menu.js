@@ -2,6 +2,7 @@
    MEAT ORDER MENU — used by the "Order meat" page (order/index.html)
    ---------------------------------------------------------------------
    Categories -> items -> choices. Keep the quotes and commas as they are.
+   A category can have a "note" shown above its items.
 
    Each item:
      name:     what the customer sees, e.g. "Whole Chicken"
@@ -182,6 +183,39 @@ window.MEAT_MENU = {
           choices: ["Cut"],
           combos: [
             { "Cut": ["Whole (no cutting)", "Split in two"] }
+          ]
+        }
+      ]
+    },
+    {
+      id: "lamb",
+      name: "Lamb",
+      note: "All our lamb is New Zealand grass-fed and comes frozen.",
+      items: [
+        {
+          id: "lamb-leg",
+          name: "Lamb Leg",
+          note: "Cut on the band saw. Sold by weight.",
+          price: 7.99,
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          choices: ["Cut"],
+          combos: [
+            { "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)", "Slices (1 in)"] }
+          ]
+        },
+        {
+          id: "lamb-shoulder",
+          name: "Lamb Shoulder",
+          note: "Cut on the band saw. Sold by weight.",
+          price: 6.99,
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          choices: ["Cut"],
+          combos: [
+            { "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)", "Slices (1 in)", "Slices (½ in)"] }
           ]
         }
       ]
