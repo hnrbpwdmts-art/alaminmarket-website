@@ -167,6 +167,56 @@ window.SITE = {
   ],
 
 
+  /* ---------- Brands we carry ----------
+     Shown on the homepage and the Groceries page.
+     To add a brand, add its name in quotes with a comma, e.g.  "Mehran",
+     To show a logo instead of the name, put the logo in images/brands/
+     and write it like this:  { name: "Shan", logo: "images/brands/shan.png" },
+     Logos look best as wide PNGs with a transparent or white background. */
+  brands: {
+    show: true,
+    title: "Brands we carry",
+    text: "The names you know from home, all under one roof. Don't see yours? Ask us. We carry many more.",
+    showMore: true,   // adds an "and many more" tile at the end
+    list: [
+      "Shan",
+      "National",
+      "Tapal",
+      "Vital",
+      "Tea India",
+      "Wagh Bakri",
+      "Crescent Foods",
+      "Al Safa",
+      "Mezban",
+      "Dawn",
+      "United King",
+      "Rehmat-e-Shereen",
+      "Jazza",
+      "Tooba",
+      "Bake Parlor",
+      "Amul",
+      "Dunar",
+      "Royal Rice",
+      "Laziza",
+      "Mitchell's",
+      "Shezan",
+      "Ashoka",
+      "Rani",
+      "Desi Kitchen",
+      "Crispy",
+      "KCB",
+      "RFP",
+      "EBM",
+      "LU",
+      "Young's",
+      "Knorr",
+      "Nanak",
+      "Karoun",
+      "Gopi",
+      "Dahiwala"
+    ]
+  },
+
   /* ---------- What's New & Deals ---------- */
   dealsSection: {
     show: false   // true = show the Deals section, WhatsApp sign-up, and menu link
