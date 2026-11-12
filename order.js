@@ -84,7 +84,7 @@
   function packingFor(item, picks) {
     var list = item.packing || M.packing || [];
     var skip = item.packingSkip || {};
-    for (var q in skip) if (picks[q] === skip[q]) return [];
+    for (var q in skip) if (picks[q] === skip[q]) return list.slice(0, 1);
     return list;
   }
 
@@ -182,11 +182,12 @@
       if (packs.length) {
         if (packs.indexOf(picked.Packing) === -1) picked.Packing = packs[0];
         var pg = el("div", "order-q");
-        pg.appendChild(el("p", "order-q-label", "Packing"));
+        pg.appendChild(el("p", "order-q-label", "Packing" + (item.packing ? "" : " (smallest pack is 1 lb)")));
         var prow = el("div", "order-opts");
         packs.forEach(function (v) {
           var b = el("button", "order-opt", v); b.type = "button";
           b.setAttribute("aria-pressed", picked.Packing === v ? "true" : "false");
+          if (packs.length === 1) b.disabled = true;
           b.addEventListener("click", function () { picked.Packing = v; draw(); });
           prow.appendChild(b);
         });
@@ -220,10 +221,10 @@
 
       // Free-text special cutting request, at the end of every item
       var cl = el("label", "order-field order-custom");
-      cl.appendChild(document.createTextNode("Want it cut a different way? (optional)"));
+      cl.appendChild(document.createTextNode("Special cutting or packing? (optional)"));
       var ct = document.createElement("textarea");
       ct.rows = 2; ct.maxLength = 200; ct.value = custom;
-      ct.placeholder = "Example: 10 pieces, curry size, keep the neck";
+      ct.placeholder = "Example: 10 pieces, curry size, 1.5 lb packs";
       ct.addEventListener("input", function () { custom = ct.value; });
       cl.appendChild(ct);
       body.appendChild(cl);
@@ -258,7 +259,7 @@
         else if (optionsFor(item, q, l.picks).length > 1) parts.push("no BBQ cut");
       } else parts.push(v);
     });
-    if (l.picks.Packing) parts.push(l.picks.Packing);
+    if (l.picks.Packing) parts.push(/^Other size/.test(l.picks.Packing) ? "custom packing (see note)" : l.picks.Packing);
     return { item: item, desc: parts.join(", "), custom: l.custom || "" };
   }
   function lineUnit(l) { var it = findItem(l.id); return l.unit || it.unit; }
@@ -285,7 +286,7 @@
       var info = el("div", "order-line-info");
       info.appendChild(el("span", "order-line-name", lineUnit(l) === "lb" ? fmtQty(l.qty, "lb") + " " + t.item.name : l.qty + " × " + t.item.name));
       info.appendChild(el("span", "order-line-desc", t.desc));
-      if (t.custom) info.appendChild(el("span", "order-line-desc order-line-custom", "Special cut: " + t.custom));
+      if (t.custom) info.appendChild(el("span", "order-line-desc order-line-custom", "Special request: " + t.custom));
       li.appendChild(info);
       li.appendChild(el("span", "order-line-cost", cost != null ? money(cost) : (itemPrice(t.item, l.picks) != null ? priceLabel(t.item, l.picks) : "")));
       var rm = el("button", "order-line-rm", "Remove"); rm.type = "button";
@@ -397,7 +398,7 @@
       if (cost == null) allPriced = false; else total += cost;
       lines.push((i + 1) + ") " + t.item.name + ": " + t.desc + " | " + (lineUnit(l) === "lb" ? fmtQty(l.qty, "lb") : "Qty " + fmtQty(l.qty, "each", t.item)) +
         (cost != null ? " | about " + money(cost) : (itemPrice(t.item, l.picks) != null ? " | " + priceLabel(t.item, l.picks) : "")));
-      if (t.custom) lines.push("   Special cut: " + t.custom);
+      if (t.custom) lines.push("   Special request: " + t.custom);
     });
     lines.push("");
     var byWeight = state.cart.some(function (l) { return priceUnit(findItem(l.id)) === "lb"; });
