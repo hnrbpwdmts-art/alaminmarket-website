@@ -256,6 +256,7 @@ a { color: var(--green); }
 .panel-video { margin: 0 0 18px; max-width: 360px; }
 .panel-video video { width: 100%; display: block; aspect-ratio: 4 / 5; object-fit: cover; border-radius: var(--radius); box-shadow: var(--shadow); background: var(--cream-2); }
 
+.nf-spacer { min-height: 30vh; }
 .visit-strip { background: var(--cream); border-top: 1px solid var(--cream-2); padding: 36px 0; }
 .visit-strip h2 { font-size: 1.5rem; margin-bottom: .3em; }
 .visit-strip .hero-info { margin-top: 8px; }
