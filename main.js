@@ -97,6 +97,9 @@
   // Deals come from your Google Sheet (dealsSheetUrl in site-config.js) if one is set,
   // otherwise from the "deals" list in site-config.js.
   (function deals() {
+    if (!(S.dealsSection && S.dealsSection.show)) return; // section stays hidden
+    document.getElementById("deals").hidden = false;
+    document.querySelector("[data-deals-nav]").hidden = false;
     var list = document.getElementById("deals-list");
     var today = new Date(); today.setHours(0, 0, 0, 0);
 
@@ -200,7 +203,7 @@
   // WhatsApp sign-up form (submissions go to Netlify > Forms)
   (function signup() {
     var form = document.getElementById("signup-form");
-    if (!form) return;
+    if (!form || !(S.dealsSection && S.dealsSection.show)) return;
     var phone = document.getElementById("su-phone");
     var errorBox = document.getElementById("signup-error");
     var btn = form.querySelector('button[type="submit"]');

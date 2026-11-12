@@ -71,7 +71,12 @@ window.SITE = {
     { name: "Fresh Produce",    image: "images/produce.svg",     alt: "Fresh vegetables, chilies, and herbs" }
   ],
 
-  /* ---------- What's New & Deals ----------
+  /* ---------- What's New & Deals ---------- */
+  dealsSection: {
+    show: false   // true = show the Deals section, WhatsApp sign-up, and menu link
+  },
+
+  /* 
      EASIEST: post deals from a Google Sheet (no code needed).
      Paste the sheet's "Publish to web" CSV link between the quotes below.
      See README.md, "Posting deals from a Google Sheet".                    */
