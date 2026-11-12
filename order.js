@@ -101,11 +101,25 @@
     try { localStorage.setItem(STORE_KEY, JSON.stringify({ cart: state.cart, mode: state.mode, name: state.name, phone: state.phone, address: state.address })); } catch (e) { /* ignore */ }
   }
 
+  // ---------- category icons (simple line drawings) ----------
+  var ICONS = {
+    chicken: '<ellipse cx="15" cy="9" rx="6" ry="5" transform="rotate(-45 15 9)"/><path d="M11.5 12.5L6 18"/><circle cx="4.6" cy="17.6" r="1.6"/><circle cx="6.4" cy="19.4" r="1.6"/>',
+    lamb: '<circle cx="9" cy="15" r="5.5"/><circle cx="9" cy="15" r="2"/><path d="M13 11l6.5-6.5"/><circle cx="20" cy="3.6" r="1.3"/><circle cx="20.6" cy="5.8" r="1.3"/>',
+    beef: '<path d="M3.5 12.5C3.5 7.5 8 4.5 13 4.5c4.5 0 7.5 2.7 7.5 6.2 0 2.6-1.8 3.8-3.6 4.8-1.9 1-2.4 4-6.4 4C6.2 19.5 3.5 16.6 3.5 12.5z"/><circle cx="14" cy="10" r="2.2"/>',
+    goat: '<path d="M8 7C6.5 4.5 4 4 2.5 5.5c2 .2 3.3 1.5 4 3.5"/><path d="M16 7c1.5-2.5 4-3 5.5-1.5-2 .2-3.3 1.5-4 3.5"/><path d="M7 10c0-2.4 2.2-3.6 5-3.6s5 1.2 5 3.6v4.5c0 3-2.2 5.5-5 5.5s-5-2.5-5-5.5z"/><path d="M10 12h.01M14 12h.01"/><path d="M11 20.5c.3 1 .6 1.5 1 1.5s.7-.5 1-1.5"/>',
+    veal: '<path d="M5 10c0-3 3-5 7-5s7 2 7 5v3c0 4-3 7-7 7s-7-3-7-7z"/><path d="M5 10L2.5 8.5M19 10l2.5-1.5"/><path d="M9.5 15.5c1.5 1 3.5 1 5 0"/><path d="M9.5 11h.01M14.5 11h.01"/>'
+  };
+  function icon(id) {
+    return ICONS[id] ? '<svg aria-hidden="true" viewBox="0 0 24 24">' + ICONS[id] + "</svg>" : "";
+  }
+
   // ---------- menu ----------
   var activeCat = 0, catTabs = [];
   function renderCats() {
     M.categories.forEach(function (cat, i) {
-      var b = el("button", "order-cat", cat.name);
+      var b = el("button", "order-cat");
+      b.innerHTML = icon(cat.id);
+      b.appendChild(el("span", null, cat.name));
       b.type = "button"; b.setAttribute("role", "tab");
       b.addEventListener("click", function () { activeCat = i; updateCats(); renderItems(); });
       catsEl.appendChild(b); catTabs.push(b);
@@ -140,6 +154,18 @@
     return card;
   }
 
+  // Questions with many answers use a drop-down instead of buttons
+  var LONG_LIST = 5;
+  function selectFor(label, opts, current, onChange) {
+    var sel = document.createElement("select");
+    sel.className = "order-select";
+    sel.setAttribute("aria-label", label);
+    if (!current) { var ph = el("option", null, "Choose " + label.toLowerCase() + "…"); ph.value = ""; ph.disabled = true; ph.selected = true; sel.appendChild(ph); }
+    opts.forEach(function (v) { var o = el("option", null, v); o.value = v; if (v === current) o.selected = true; sel.appendChild(o); });
+    sel.addEventListener("change", function () { onChange(sel.value); });
+    return sel;
+  }
+
   function buildPicker(item, body) {
     var picked = {}, qty = item.min || 1, custom = "";
     var units = item.units && item.units.length ? item.units : [item.unit];
@@ -157,6 +183,16 @@
         if (opts.length === 1 && (item.choices || []).indexOf(q) > 0) return;
         var group = el("div", "order-q");
         group.appendChild(el("p", "order-q-label", q));
+        if (opts.length > LONG_LIST) {
+          group.appendChild(selectFor(q, opts, picked[q], function (v) {
+            picked[q] = v;
+            var qs = item.choices, i = qs.indexOf(q);
+            for (var k = i + 1; k < qs.length; k++) delete picked[qs[k]];
+            draw();
+          }));
+          body.appendChild(group);
+          return;
+        }
         var row = el("div", "order-opts");
         opts.forEach(function (v) {
           var label = v;
@@ -177,27 +213,6 @@
         group.appendChild(row);
         body.appendChild(group);
       });
-      // packing: pack sizes bigger than the order are not offered
-      var orderLb = unit === "lb" ? qty : (item.avgWeight ? qty * item.avgWeight : null);
-      var packs = packingFor(item, picked).filter(function (v) {
-        var m = v.match(/^(\d+(?:\.\d+)?) lb packs/);
-        return !m || orderLb == null || +m[1] < orderLb;
-      });
-      if (packs.length) {
-        if (packs.indexOf(picked.Packing) === -1) picked.Packing = packs[0];
-        var pg = el("div", "order-q");
-        pg.appendChild(el("p", "order-q-label", "Packing" + (item.packing ? "" : " (smallest pack is 1 lb)")));
-        var prow = el("div", "order-opts");
-        packs.forEach(function (v) {
-          var b = el("button", "order-opt", v); b.type = "button";
-          b.setAttribute("aria-pressed", picked.Packing === v ? "true" : "false");
-          if (packs.length === 1) b.disabled = true;
-          b.addEventListener("click", function () { picked.Packing = v; draw(); });
-          prow.appendChild(b);
-        });
-        pg.appendChild(prow); body.appendChild(pg);
-      } else delete picked.Packing;
-
       // quantity
       var qrow = el("div", "order-qty-row");
       var qlab = el("div", "order-qty-label");
@@ -222,6 +237,33 @@
       stepper.appendChild(minus); stepper.appendChild(val); stepper.appendChild(plus);
       qrow.appendChild(stepper);
       body.appendChild(qrow);
+
+
+      // packing: pack sizes bigger than the order are not offered
+      var orderLb = unit === "lb" ? qty : (item.avgWeight ? qty * item.avgWeight : null);
+      var packs = packingFor(item, picked).filter(function (v) {
+        var m = v.match(/^(\d+(?:\.\d+)?) lb packs/);
+        return !m || orderLb == null || +m[1] < orderLb;
+      });
+      if (packs.length) {
+        if (packs.indexOf(picked.Packing) === -1) picked.Packing = packs[0];
+        var pg = el("div", "order-q");
+        pg.appendChild(el("p", "order-q-label", "Packing" + (item.packing ? "" : " (smallest pack is 1 lb)")));
+        if (packs.length > LONG_LIST) {
+          pg.appendChild(selectFor("Packing", packs, picked.Packing, function (v) { picked.Packing = v; draw(); }));
+          body.appendChild(pg);
+        } else {
+        var prow = el("div", "order-opts");
+        packs.forEach(function (v) {
+          var b = el("button", "order-opt", v); b.type = "button";
+          b.setAttribute("aria-pressed", picked.Packing === v ? "true" : "false");
+          if (packs.length === 1) b.disabled = true;
+          b.addEventListener("click", function () { picked.Packing = v; draw(); });
+          prow.appendChild(b);
+        });
+        pg.appendChild(prow); body.appendChild(pg);
+        }
+      } else delete picked.Packing;
 
       // Free-text special cutting request, at the end of every item
       var cl = el("label", "order-field order-custom");

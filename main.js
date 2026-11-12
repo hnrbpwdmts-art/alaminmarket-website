@@ -538,9 +538,22 @@
     setMenu(toggle.getAttribute("aria-expanded") !== "true");
   });
   nav.addEventListener("click", function (e) {
-    if (e.target.closest("a")) setMenu(false);
+    if (e.target.closest("a")) { setMenu(false); closeSubs(); }
   });
+  // "Shop" dropdown
+  var subToggles = nav.querySelectorAll(".nav-sub-toggle");
+  function closeSubs(except) {
+    subToggles.forEach(function (b) { if (b !== except) b.setAttribute("aria-expanded", "false"); });
+  }
+  subToggles.forEach(function (b) {
+    b.addEventListener("click", function () {
+      var open = b.getAttribute("aria-expanded") !== "true";
+      closeSubs(b); b.setAttribute("aria-expanded", String(open));
+    });
+  });
+  document.addEventListener("click", function (e) { if (!e.target.closest(".has-sub")) closeSubs(); });
   document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeSubs();
     if (e.key === "Escape" && nav.classList.contains("is-open")) { setMenu(false); toggle.focus(); }
   });
 

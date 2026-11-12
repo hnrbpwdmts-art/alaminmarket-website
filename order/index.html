@@ -27,25 +27,52 @@
         <span class="nav-toggle-label">Menu</span>
       </button>
       <nav id="site-nav" class="site-nav" aria-label="Main">
-        <ul>
+        <ul class="nav-list">
           <li><a href="../#home">Home</a></li>
+          <li class="has-sub">
+            <button class="nav-sub-toggle" type="button" aria-expanded="false" aria-controls="nav-shop">Shop <svg class="nav-chev" aria-hidden="true" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+            <ul class="nav-sub" id="nav-shop">
+              <li><a class="nav-sub-feature" href="../order/" aria-current="page"><strong>Order meat online</strong><span>Choose your cuts, pick up at the store</span></a></li>
+              <li><a href="../groceries/#produce">Fresh produce</a></li>
+              <li><a href="../groceries/#snacks">Snacks &amp; chai</a></li>
+              <li><a href="../groceries/#pantry">Pantry staples</a></li>
+              <li><a href="../groceries/#sri-lankan">Sri Lankan groceries</a></li>
+              <li><a href="../groceries/#treats">Halal treats</a></li>
+              <li><a href="../groceries/">All groceries →</a></li>
+            </ul>
+          </li>
           <li><a href="../#meat">Meat Counter</a></li>
           <li><a href="../#samosas">Samosas &amp; Chai</a></li>
-          <li><a href="../groceries/">Groceries</a></li>
           <li data-reviews-nav hidden><a href="../#reviews">Reviews</a></li>
           <li data-deals-nav hidden><a href="../#deals">Deals</a></li>
           <li><a href="../#visit">Visit</a></li>
+          <li class="nav-cta"><a href="../order/">Order Meat</a></li>
         </ul>
       </nav>
     </div>
   </header>
 
   <main id="main">
-    <section class="page-hero" aria-labelledby="page-title">
+    <section class="page-hero order-hero" aria-labelledby="page-title">
       <div class="container">
         <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../">Home</a><span aria-hidden="true">/</span><span aria-current="page">Order meat</span></nav>
         <h1 id="page-title">Order halal meat</h1>
-        <p class="page-lede">Pick your meat and cuts, then send us your pickup order by WhatsApp or text. We'll text you back with your ready time, final total, and a payment link.</p>
+        <p class="page-lede">Choose your meat and how you want it cut. We'll have it ready for pickup at our Torrance store.</p>
+        <ul class="order-badges">
+          <li><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 3l7 7-9 9-7-7z"/><path d="M5 12l-2 2 7 7 2-2"/><circle cx="16" cy="8" r="1.2"/></svg>Cut to order</li>
+          <li><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 9v11h14V9"/><path d="M10 20v-6h4v6"/></svg>Pickup in Torrance</li>
+          <li><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></svg>Pay by text link</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="order-steps" aria-label="How ordering works">
+      <div class="container">
+        <ol class="order-steps-list">
+          <li><span class="order-steps-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg></span><strong>Pick your meat</strong><span>Choose cuts, weight, and packing.</span></li>
+          <li><span class="order-steps-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg></span><strong>Send your order</strong><span>By WhatsApp or text, in one tap.</span></li>
+          <li><span class="order-steps-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><strong>We text you back</strong><span>Ready time, final total, and a payment link.</span></li>
+        </ol>
       </div>
     </section>
 

@@ -68,14 +68,26 @@
         <span class="nav-toggle-label">Menu</span>
       </button>
       <nav id="site-nav" class="site-nav" aria-label="Main">
-        <ul>
+        <ul class="nav-list">
           <li><a href="../#home">Home</a></li>
+          <li class="has-sub">
+            <button class="nav-sub-toggle" type="button" aria-expanded="false" aria-controls="nav-shop">Shop <svg class="nav-chev" aria-hidden="true" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+            <ul class="nav-sub" id="nav-shop">
+              <li><a class="nav-sub-feature" href="../order/"><strong>Order meat online</strong><span>Choose your cuts, pick up at the store</span></a></li>
+              <li><a href="../groceries/#produce">Fresh produce</a></li>
+              <li><a href="../groceries/#snacks">Snacks &amp; chai</a></li>
+              <li><a href="../groceries/#pantry">Pantry staples</a></li>
+              <li><a href="../groceries/#sri-lankan">Sri Lankan groceries</a></li>
+              <li><a href="../groceries/#treats">Halal treats</a></li>
+              <li><a href="../groceries/" aria-current="page">All groceries →</a></li>
+            </ul>
+          </li>
           <li><a href="../#meat">Meat Counter</a></li>
           <li><a href="../#samosas">Samosas &amp; Chai</a></li>
-          <li><a href="./" aria-current="page">Groceries</a></li>
           <li data-reviews-nav hidden><a href="../#reviews">Reviews</a></li>
           <li data-deals-nav hidden><a href="../#deals">Deals</a></li>
           <li><a href="../#visit">Visit</a></li>
+          <li class="nav-cta"><a href="../order/">Order Meat</a></li>
         </ul>
       </nav>
     </div>
