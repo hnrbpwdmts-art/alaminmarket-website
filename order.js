@@ -141,7 +141,7 @@
     function draw() {
       body.textContent = "";
       if (item.note) body.appendChild(el("p", "order-item-note", item.note));
-      if (item.days && item.days.length) body.appendChild(el("p", "order-item-days", "Available: " + item.days.join(", ")));
+      if (item.days && item.days.length) body.appendChild(el("p", "order-item-days", "Available " + item.days.map(function (d) { return ({Sun:"Sunday",Mon:"Monday",Tue:"Tuesday",Wed:"Wednesday",Thu:"Thursday",Fri:"Friday",Sat:"Saturday"})[d] || d; }).join(" and ") + " only"));
       (item.choices || []).forEach(function (q) {
         var opts = optionsFor(item, q, picked);
         if (picked[q] && opts.indexOf(picked[q]) === -1) delete picked[q];
