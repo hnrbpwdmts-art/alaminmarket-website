@@ -42,7 +42,7 @@ window.MEAT_MENU = {
   },
 
   delivery: {
-    enabled: true,
+    enabled: false,          // true = offer delivery (turn on once delivery is ready)
     times: ["12–3 PM", "3–6 PM", "6–8 PM"],
     /* Shown until online delivery quotes are set up. */
     note: "We'll text you the delivery fee together with your total."

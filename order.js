@@ -357,7 +357,9 @@
       if (t.custom) lines.push("   Special cut: " + t.custom);
     });
     lines.push("");
-    if (total > 0) lines.push("Estimated total: " + (allPriced ? "" : "at least ") + money(total) + (isDel ? " + delivery" : "") + " (final price by weight)");
+    var byWeight = state.cart.some(function (l) { return priceUnit(findItem(l.id)) === "lb"; });
+    if (total > 0) lines.push((byWeight ? "Estimated total: " : "Total: ") + (allPriced ? "" : "at least ") + money(total) +
+      (isDel ? " + delivery" : "") + (byWeight ? " (final price by weight)" : ""));
     var notes = $("order-notes").value.trim();
     if (notes) lines.push("Notes: " + notes);
     return lines.join("\n");
