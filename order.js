@@ -125,6 +125,7 @@
     var step = item.step || 1, min = item.min || step;
     function draw() {
       body.textContent = "";
+      if (item.note) body.appendChild(el("p", "order-item-note", item.note));
       if (item.days && item.days.length) body.appendChild(el("p", "order-item-days", "Available: " + item.days.join(", ")));
       (item.choices || []).forEach(function (q) {
         var opts = optionsFor(item, q, picked);

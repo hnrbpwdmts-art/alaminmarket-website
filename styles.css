@@ -499,3 +499,4 @@ a { color: var(--green); }
 .order-qty-label { display: flex; flex-direction: column; gap: 8px; }
 .order-unit-toggle .order-opt { padding: 7px 14px; font-size: .92rem; }
 .order-qty-row { align-items: flex-end; }
+.order-item-note { color: var(--muted); font-size: .95rem; margin: 12px 0 0; }

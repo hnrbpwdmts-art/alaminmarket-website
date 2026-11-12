@@ -5,6 +5,7 @@
 
    Each item:
      name:     what the customer sees, e.g. "Whole Chicken"
+     note:     optional short line shown when the item is opened, e.g. "Skinless"
      price:    price, e.g. 4.99. Use null to show "Price coming soon".
      priceUnit: what the price is for: "lb" or "each"
      unit:     how customers choose the amount: "lb" (by weight) or
@@ -100,6 +101,45 @@ window.MEAT_MENU = {
           combos: [
             { "Skin": ["With skin", "Without skin"], "Pieces": ["Whole", "2 pieces"], "BBQ cut": ["Yes", "No"] },
             { "Skin": ["With skin", "Without skin"], "Pieces": ["3 pieces", "4 pieces"], "BBQ cut": ["No"] }
+          ]
+        },
+        {
+          id: "chicken-breast",
+          name: "Boneless Chicken Breast",
+          note: "Skinless. Sold by weight.",
+          price: 4.99,
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          choices: ["Cut"],
+          combos: [
+            { "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)", "Extra small (about ¼ in, taco cut)"] }
+          ]
+        },
+        {
+          id: "chicken-breast-hand",
+          name: "Boneless Chicken Breast (Hand Slaughtered)",
+          note: "Skinless. Sold by weight.",
+          price: 5.99,
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          choices: ["Cut"],
+          combos: [
+            { "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)", "Extra small (about ¼ in, taco cut)"] }
+          ]
+        },
+        {
+          id: "chicken-thigh",
+          name: "Boneless Chicken Thigh",
+          note: "Skinless. Sold by weight.",
+          price: 3.99,
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          choices: ["Cut"],
+          combos: [
+            { "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)", "Extra small (about ¼ in, taco cut)"] }
           ]
         }
       ]
