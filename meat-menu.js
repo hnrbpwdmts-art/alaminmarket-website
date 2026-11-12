@@ -141,6 +141,19 @@ window.MEAT_MENU = {
           combos: [
             { "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)", "Extra small (about ¼ in, taco cut)"] }
           ]
+        },
+        {
+          id: "drumsticks",
+          name: "Chicken Drumsticks",
+          note: "Sold by weight. Choose No BBQ cut to get them as is.",
+          price: 1.99,
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          choices: ["Skin", "BBQ cut"],
+          combos: [
+            { "Skin": ["With skin", "Without skin"], "BBQ cut": ["Yes", "No"] }
+          ]
         }
       ]
     }
