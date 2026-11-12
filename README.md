@@ -65,3 +65,9 @@ Everyday use (works from your phone in the Google Sheets app):
 - Groceries page tabs and products are listed under `showcases` in site-config.js.
 - Square photos about 600x600 work best for galleries; keep each photo under ~150 KB.
 - Videos: short, muted clips (under ~15 seconds, under ~1 MB) in the `videos` folder.
+
+## Search engines (SEO)
+- Store details, hours and links are also written directly into index.html and
+  groceries/index.html (and the business info block in index.html's <head>) so
+  Google can read them. If the address, phone, or hours change, update
+  site-config.js AND ask Claude to refresh those two files.

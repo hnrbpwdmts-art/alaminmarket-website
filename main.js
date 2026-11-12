@@ -100,6 +100,7 @@
     var bar = document.getElementById("grocery-tabs");
     var panels = document.getElementById("grocery-panels");
     if (!bar || !panels) return;
+    panels.innerHTML = ""; // replace the plain product list with the tabbed version
     var items = (S.showcases || []).filter(function (sc) { return sc && sc.id && sc.title; });
     var tabs = [];
 
@@ -513,27 +514,5 @@
     if (e.key === "Escape" && nav.classList.contains("is-open")) { setMenu(false); toggle.focus(); }
   });
 
-  // Local business structured data for search engines
-  var ld = {
-    "@context": "https://schema.org",
-    "@type": "GroceryStore",
-    name: store.name,
-    logo: "https://alaminmarket.com/images/logo.png",
-    image: "https://alaminmarket.com/images/share-cover.jpg",
-    url: "https://alaminmarket.com/",
-    telephone: store.phoneLink.replace("tel:", ""),
-    openingHours: store.hoursForGoogle || undefined,
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: store.street,
-      addressLocality: store.city,
-      addressRegion: store.state,
-      postalCode: store.zip,
-      addressCountry: "US"
-    }
-  };
-  var s = document.createElement("script");
-  s.type = "application/ld+json";
-  s.textContent = JSON.stringify(ld);
-  document.head.appendChild(s);
+  // Structured data for search engines is written directly in index.html
 })();
