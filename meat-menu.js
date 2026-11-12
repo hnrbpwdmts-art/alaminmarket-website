@@ -329,6 +329,55 @@ window.MEAT_MENU = {
           ]
         }
       ]
+    },
+    {
+      id: "veal",
+      name: "Veal",
+      note: "Fresh veal is available Friday and Saturday only.",
+      items: [
+        {
+          id: "veal-bone-in",
+          name: "Fresh Veal (Mixed, Bone-in)",
+          note: "Mixed bone-in cuts, sold by weight.",
+          price: 8.99,
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          days: ["Fri", "Sat"],
+          choices: ["Cut"],
+          combos: [
+            { "Cut": ["As is (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)"] }
+          ]
+        },
+        {
+          id: "veal-boneless",
+          name: "Fresh Veal (Boneless)",
+          note: "Sold by weight.",
+          price: 10.99,
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          days: ["Fri", "Sat"],
+          choices: ["Cut"],
+          combos: [
+            { "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)"] }
+          ]
+        },
+        {
+          id: "veal-ground",
+          name: "Fresh Ground Veal",
+          note: "Sold by weight.",
+          price: 10.99,
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          days: ["Fri", "Sat"],
+          choices: ["Cut"],
+          combos: [
+            { "Cut": ["Ground (thick)", "Ground (fine)", "Ground (very fine)"] }
+          ]
+        }
+      ]
     }
   ]
 };
