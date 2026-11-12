@@ -494,3 +494,5 @@ a { color: var(--green); }
   .order-summary { position: sticky; top: calc(var(--header-h) + 16px); }
 }
 .order-section button.btn, .order-done button.btn { font-family: var(--sans); cursor: pointer; }
+.order-custom { margin: 16px 0 0; font-size: .92rem; }
+.order-line-custom { font-style: italic; }

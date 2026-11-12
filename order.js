@@ -22,9 +22,16 @@
     return e;
   }
   function money(n) { return "$" + n.toFixed(2); }
-  function fmtQty(q, unit) {
+  function fmtQty(q, unit, item) {
     var n = (Math.round(q * 100) / 100).toString();
-    return unit === "lb" ? n + " lb" : n;
+    if (unit === "lb") return n + " lb";
+    var names = item && item.countName;
+    return names ? n + " " + (q === 1 ? names[0] : names[1]) : n;
+  }
+  function priceUnit(item) { return item.priceUnit || item.unit; }
+  function priceLabel(item) {
+    if (item.price == null) return "Price coming soon";
+    return money(item.price) + (priceUnit(item) === "lb" ? " / lb" : " each");
   }
   function findItem(id) {
     for (var c = 0; c < M.categories.length; c++) {
@@ -99,8 +106,7 @@
     var head = el("button", "order-item-head");
     head.type = "button"; head.setAttribute("aria-expanded", "false");
     head.appendChild(el("span", "order-item-name", item.name));
-    head.appendChild(el("span", "order-item-price",
-      item.price != null ? money(item.price) + (item.unit === "lb" ? " / lb" : " each") : "Price coming soon"));
+    head.appendChild(el("span", "order-item-price", priceLabel(item)));
     var body = el("div", "order-item-body"); body.hidden = true;
     head.addEventListener("click", function () {
       var open = body.hidden;
@@ -113,7 +119,7 @@
   }
 
   function buildPicker(item, body) {
-    var picked = {}, qty = item.min || 1;
+    var picked = {}, qty = item.min || 1, custom = "";
     var step = item.step || 1, min = item.min || step;
     function draw() {
       body.textContent = "";
@@ -146,19 +152,29 @@
       qrow.appendChild(el("p", "order-q-label", item.unit === "lb" ? "Weight" : "How many"));
       var stepper = el("div", "order-stepper");
       var minus = el("button", "order-step-btn", "−"); minus.type = "button"; minus.setAttribute("aria-label", "Less");
-      var val = el("span", "order-step-val", fmtQty(qty, item.unit)); val.setAttribute("aria-live", "polite");
+      var val = el("span", "order-step-val", fmtQty(qty, item.unit, item)); val.setAttribute("aria-live", "polite");
       var plus = el("button", "order-step-btn", "+"); plus.type = "button"; plus.setAttribute("aria-label", "More");
-      minus.addEventListener("click", function () { qty = Math.max(min, Math.round((qty - step) * 100) / 100); val.textContent = fmtQty(qty, item.unit); });
-      plus.addEventListener("click", function () { qty = Math.round((qty + step) * 100) / 100; val.textContent = fmtQty(qty, item.unit); });
+      minus.addEventListener("click", function () { qty = Math.max(min, Math.round((qty - step) * 100) / 100); val.textContent = fmtQty(qty, item.unit, item); });
+      plus.addEventListener("click", function () { qty = Math.round((qty + step) * 100) / 100; val.textContent = fmtQty(qty, item.unit, item); });
       stepper.appendChild(minus); stepper.appendChild(val); stepper.appendChild(plus);
       qrow.appendChild(stepper);
       body.appendChild(qrow);
+
+      // Free-text special cutting request, at the end of every item
+      var cl = el("label", "order-field order-custom");
+      cl.appendChild(document.createTextNode("Want it cut a different way? (optional)"));
+      var ct = document.createElement("textarea");
+      ct.rows = 2; ct.maxLength = 200; ct.value = custom;
+      ct.placeholder = "Example: 10 pieces, curry size, keep the neck";
+      ct.addEventListener("input", function () { custom = ct.value; });
+      cl.appendChild(ct);
+      body.appendChild(cl);
 
       var ready = (item.choices || []).every(function (q) { return picked[q]; });
       var add = el("button", "btn btn-primary order-add", ready ? "Add to order" : "Choose " + firstMissing().toLowerCase());
       add.type = "button"; add.disabled = !ready;
       add.addEventListener("click", function () {
-        state.cart.push({ id: item.id, picks: Object.assign({}, picked), qty: qty });
+        state.cart.push({ id: item.id, picks: Object.assign({}, picked), qty: qty, custom: custom.trim() });
         save(); renderCart();
         add.textContent = "Added ✓";
         setTimeout(function () { body.hidden = true; body.previousSibling.setAttribute("aria-expanded", "false"); }, 700);
@@ -180,9 +196,14 @@
       var v = l.picks[q];
       return q === "BBQ cut" ? (v === "Yes" ? "BBQ cut" : "no BBQ cut") : v;
     });
-    return { item: item, desc: parts.join(", ") };
+    return { item: item, desc: parts.join(", "), custom: l.custom || "" };
   }
-  function lineCost(l) { var it = findItem(l.id); return it && it.price != null ? it.price * l.qty : null; }
+  function lineCost(l) {
+    var it = findItem(l.id);
+    if (!it || it.price == null) return null;
+    if (priceUnit(it) === "lb" && it.unit !== "lb") return it.avgWeight ? it.price * it.avgWeight * l.qty : null;
+    return it.price * l.qty;
+  }
 
   function renderCart() {
     cartEl.textContent = "";
@@ -197,10 +218,11 @@
       if (cost == null) allPriced = false; else total += cost;
       var li = el("li", "order-line");
       var info = el("div", "order-line-info");
-      info.appendChild(el("span", "order-line-name", fmtQty(l.qty, t.item.unit) + (t.item.unit === "lb" ? " " : " × ") + t.item.name));
+      info.appendChild(el("span", "order-line-name", t.item.unit === "lb" ? fmtQty(l.qty, "lb") + " " + t.item.name : l.qty + " × " + t.item.name));
       info.appendChild(el("span", "order-line-desc", t.desc));
+      if (t.custom) info.appendChild(el("span", "order-line-desc order-line-custom", "Special cut: " + t.custom));
       li.appendChild(info);
-      li.appendChild(el("span", "order-line-cost", cost != null ? money(cost) : ""));
+      li.appendChild(el("span", "order-line-cost", cost != null ? money(cost) : (t.item.price != null ? priceLabel(t.item) : "")));
       var rm = el("button", "order-line-rm", "Remove"); rm.type = "button";
       rm.setAttribute("aria-label", "Remove " + t.item.name);
       rm.addEventListener("click", function () { state.cart.splice(i, 1); save(); renderCart(); });
@@ -241,7 +263,15 @@
     var note = $("order-delivery-note");
     note.hidden = !(isDel && M.delivery.note);
     note.textContent = (M.delivery && M.delivery.note) || "";
-    var times = (isDel ? M.delivery.times : M.pickup.times) || [];
+    var times = ((isDel ? M.delivery.times : M.pickup.times) || []).filter(function (t) {
+      // For today, hide time windows that have already ended
+      if ($("order-day").selectedIndex !== 0 || !/^Today/.test($("order-day").value)) return true;
+      var m = t.match(/(\d{1,2})(?::(\d\d))?\s*(AM|PM)\s*$/i);
+      if (!m) return true;
+      var h = (+m[1] % 12) + (/pm/i.test(m[3]) ? 12 : 0);
+      var now = new Date();
+      return h * 60 + (+m[2] || 0) - 60 > now.getHours() * 60 + now.getMinutes();
+    });
     var sel = $("order-time"), prev = sel.value;
     sel.textContent = "";
     times.forEach(function (t) { var o = el("option", null, t); o.value = t; sel.appendChild(o); });
@@ -266,6 +296,8 @@
     }
     if (!sel.options.length) { var none = el("option", null, "No day has all items. Remove one to continue."); none.value = ""; sel.appendChild(none); }
     if ([].some.call(sel.options, function (o) { return o.value === prev; })) sel.value = prev;
+    updateMode();
+    if (!$("order-time").options.length && sel.options.length > 1) { sel.selectedIndex = 1; updateMode(); }
   }
 
   // ---------- send ----------
@@ -298,8 +330,9 @@
     state.cart.forEach(function (l, i) {
       var t = lineText(l), cost = lineCost(l);
       if (cost == null) allPriced = false; else total += cost;
-      lines.push((i + 1) + ") " + t.item.name + ": " + t.desc + " | " + (t.item.unit === "lb" ? fmtQty(l.qty, "lb") : "Qty " + l.qty) +
-        (cost != null ? " | about " + money(cost) : ""));
+      lines.push((i + 1) + ") " + t.item.name + ": " + t.desc + " | " + (t.item.unit === "lb" ? fmtQty(l.qty, "lb") : "Qty " + fmtQty(l.qty, "each", t.item)) +
+        (cost != null ? " | about " + money(cost) : (t.item.price != null ? " | " + priceLabel(t.item) : "")));
+      if (t.custom) lines.push("   Special cut: " + t.custom);
     });
     lines.push("");
     if (allPriced) lines.push("Estimated total: " + money(total) + (isDel ? " + delivery" : "") + " (final price by weight)");
@@ -335,6 +368,7 @@
   $("order-name").value = state.name || "";
   $("order-phone").value = state.phone || "";
   $("order-address").value = state.address || "";
+  $("order-day").addEventListener("change", updateMode);
   $("send-whatsapp").addEventListener("click", function () { send("whatsapp"); });
   $("send-text").addEventListener("click", function () { send("text"); });
   renderCats(); renderItems(); renderModes(); renderCart();

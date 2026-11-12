@@ -5,8 +5,14 @@
 
    Each item:
      name:     what the customer sees, e.g. "Whole Chicken"
-     price:    price per unit, e.g. 4.99. Use null to show "Price coming soon".
-     unit:     "lb" (sold by weight) or "each" (sold per piece/bird)
+     price:    price, e.g. 4.99. Use null to show "Price coming soon".
+     priceUnit: what the price is for: "lb" or "each"
+     unit:     how customers choose the amount: "lb" (by weight) or
+               "each" (by count, e.g. number of chickens)
+     countName: for "each" items, e.g. ["chicken", "chickens"]
+     avgWeight: for items priced per lb but ordered by count: the average
+               weight of one, in lb, used for the estimated total.
+               Leave it out to show "priced by weight" instead.
      min, step: smallest amount and how much each + / - press adds
      days:     days it can be picked up or delivered, e.g. ["Sat", "Sun"].
                Leave it out to allow every day.
@@ -49,8 +55,24 @@ window.MEAT_MENU = {
         {
           id: "whole-chicken",
           name: "Whole Chicken",
-          price: null,
+          price: 3.49,
+          priceUnit: "lb",
           unit: "each",
+          countName: ["chicken", "chickens"],
+          min: 1, step: 1,
+          choices: ["Skin", "Pieces", "BBQ cut"],
+          combos: [
+            { "Skin": ["With skin", "Without skin"], "Pieces": ["2 pieces", "4 pieces", "6 pieces", "8 pieces"], "BBQ cut": ["Yes", "No"] },
+            { "Skin": ["With skin", "Without skin"], "Pieces": ["12 pieces", "14 pieces", "16 pieces", "18 pieces", "20 pieces"], "BBQ cut": ["No"] }
+          ]
+        },
+        {
+          id: "whole-chicken-hand",
+          name: "Whole Chicken (Hand Slaughtered)",
+          price: 3.99,
+          priceUnit: "lb",
+          unit: "each",
+          countName: ["chicken", "chickens"],
           min: 1, step: 1,
           choices: ["Skin", "Pieces", "BBQ cut"],
           combos: [
@@ -60,14 +82,15 @@ window.MEAT_MENU = {
         },
         {
           id: "leg-quarter",
-          name: "Leg Quarter",
-          price: null,
+          name: "Chicken Leg Quarter",
+          price: 1.49,
+          priceUnit: "lb",
           unit: "lb",
           min: 1, step: 1,
-          choices: ["Skin", "Cut"],
+          choices: ["Skin", "Pieces", "BBQ cut"],
           combos: [
-            { "Skin": ["With skin"], "Cut": ["Whole, BBQ cut", "2 pieces, BBQ cut", "2 pieces, no BBQ cut"] },
-            { "Skin": ["Without skin"], "Cut": ["Whole, cleaned", "Whole, BBQ cut", "2 pieces", "2 pieces, BBQ cut", "3 pieces", "4 pieces"] }
+            { "Skin": ["With skin", "Without skin"], "Pieces": ["Whole", "2 pieces"], "BBQ cut": ["Yes", "No"] },
+            { "Skin": ["With skin", "Without skin"], "Pieces": ["3 pieces", "4 pieces"], "BBQ cut": ["No"] }
           ]
         }
       ]
