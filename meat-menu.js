@@ -9,6 +9,8 @@
      priceUnit: what the price is for: "lb" or "each"
      unit:     how customers choose the amount: "lb" (by weight) or
                "each" (by count, e.g. number of chickens)
+     units:    to let customers choose, list both, e.g. ["lb", "each"]
+               (the first one is selected to start)
      countName: for "each" items, e.g. ["chicken", "chickens"]
      avgWeight: for items priced per lb but ordered by count: the average
                weight of one, in lb, used for the estimated total.
@@ -17,6 +19,7 @@
      days:     days it can be picked up or delivered, e.g. ["Sat", "Sun"].
                Leave it out to allow every day.
      choices:  the questions asked, in order, e.g. ["Skin", "Pieces"]
+     Every item should offer an uncut option, e.g. "Whole (no cutting)".
      combos:   which answers go together. Each block allows every mix of
                the answers listed in it. Only combinations listed in a
                block can be ordered.
@@ -59,9 +62,11 @@ window.MEAT_MENU = {
           priceUnit: "lb",
           unit: "each",
           countName: ["chicken", "chickens"],
+          avgWeight: 3,
           min: 1, step: 1,
           choices: ["Skin", "Pieces", "BBQ cut"],
           combos: [
+            { "Skin": ["With skin", "Without skin"], "Pieces": ["Whole (no cutting)"], "BBQ cut": ["No"] },
             { "Skin": ["With skin", "Without skin"], "Pieces": ["2 pieces", "4 pieces", "6 pieces", "8 pieces"], "BBQ cut": ["Yes", "No"] },
             { "Skin": ["With skin", "Without skin"], "Pieces": ["12 pieces", "14 pieces", "16 pieces", "18 pieces", "20 pieces"], "BBQ cut": ["No"] }
           ]
@@ -73,9 +78,11 @@ window.MEAT_MENU = {
           priceUnit: "lb",
           unit: "each",
           countName: ["chicken", "chickens"],
+          avgWeight: 3,
           min: 1, step: 1,
           choices: ["Skin", "Pieces", "BBQ cut"],
           combos: [
+            { "Skin": ["With skin", "Without skin"], "Pieces": ["Whole (no cutting)"], "BBQ cut": ["No"] },
             { "Skin": ["With skin", "Without skin"], "Pieces": ["2 pieces", "4 pieces", "6 pieces", "8 pieces"], "BBQ cut": ["Yes", "No"] },
             { "Skin": ["With skin", "Without skin"], "Pieces": ["12 pieces", "14 pieces", "16 pieces", "18 pieces", "20 pieces"], "BBQ cut": ["No"] }
           ]
@@ -86,6 +93,8 @@ window.MEAT_MENU = {
           price: 1.49,
           priceUnit: "lb",
           unit: "lb",
+          units: ["lb", "each"],
+          countName: ["leg quarter", "leg quarters"],
           min: 1, step: 1,
           choices: ["Skin", "Pieces", "BBQ cut"],
           combos: [

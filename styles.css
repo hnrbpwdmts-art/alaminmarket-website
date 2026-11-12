@@ -496,3 +496,6 @@ a { color: var(--green); }
 .order-section button.btn, .order-done button.btn { font-family: var(--sans); cursor: pointer; }
 .order-custom { margin: 16px 0 0; font-size: .92rem; }
 .order-line-custom { font-style: italic; }
+.order-qty-label { display: flex; flex-direction: column; gap: 8px; }
+.order-unit-toggle .order-opt { padding: 7px 14px; font-size: .92rem; }
+.order-qty-row { align-items: flex-end; }

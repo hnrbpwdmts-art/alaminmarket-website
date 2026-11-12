@@ -120,6 +120,8 @@
 
   function buildPicker(item, body) {
     var picked = {}, qty = item.min || 1, custom = "";
+    var units = item.units && item.units.length ? item.units : [item.unit];
+    var unit = units[0];
     var step = item.step || 1, min = item.min || step;
     function draw() {
       body.textContent = "";
@@ -128,6 +130,8 @@
         var opts = optionsFor(item, q, picked);
         if (picked[q] && opts.indexOf(picked[q]) === -1) delete picked[q];
         if (opts.length === 1) picked[q] = opts[0];
+        // Only one possible answer (and it's not the first question): no need to ask
+        if (opts.length === 1 && (item.choices || []).indexOf(q) > 0) return;
         var group = el("div", "order-q");
         group.appendChild(el("p", "order-q-label", q));
         var row = el("div", "order-opts");
@@ -149,13 +153,25 @@
       });
       // quantity
       var qrow = el("div", "order-qty-row");
-      qrow.appendChild(el("p", "order-q-label", item.unit === "lb" ? "Weight" : "How many"));
+      var qlab = el("div", "order-qty-label");
+      qlab.appendChild(el("p", "order-q-label", units.length > 1 ? "Order by" : (unit === "lb" ? "Weight" : "How many")));
+      if (units.length > 1) {
+        var ut = el("div", "order-opts order-unit-toggle");
+        units.forEach(function (u) {
+          var b = el("button", "order-opt", u === "lb" ? "Pounds" : "Quantity");
+          b.type = "button"; b.setAttribute("aria-pressed", u === unit ? "true" : "false");
+          b.addEventListener("click", function () { unit = u; draw(); });
+          ut.appendChild(b);
+        });
+        qlab.appendChild(ut);
+      }
+      qrow.appendChild(qlab);
       var stepper = el("div", "order-stepper");
       var minus = el("button", "order-step-btn", "−"); minus.type = "button"; minus.setAttribute("aria-label", "Less");
-      var val = el("span", "order-step-val", fmtQty(qty, item.unit, item)); val.setAttribute("aria-live", "polite");
+      var val = el("span", "order-step-val", unit === "lb" ? fmtQty(qty, "lb") : String(qty)); val.setAttribute("aria-live", "polite");
       var plus = el("button", "order-step-btn", "+"); plus.type = "button"; plus.setAttribute("aria-label", "More");
-      minus.addEventListener("click", function () { qty = Math.max(min, Math.round((qty - step) * 100) / 100); val.textContent = fmtQty(qty, item.unit, item); });
-      plus.addEventListener("click", function () { qty = Math.round((qty + step) * 100) / 100; val.textContent = fmtQty(qty, item.unit, item); });
+      minus.addEventListener("click", function () { qty = Math.max(min, Math.round((qty - step) * 100) / 100); val.textContent = unit === "lb" ? fmtQty(qty, "lb") : String(qty); });
+      plus.addEventListener("click", function () { qty = Math.round((qty + step) * 100) / 100; val.textContent = unit === "lb" ? fmtQty(qty, "lb") : String(qty); });
       stepper.appendChild(minus); stepper.appendChild(val); stepper.appendChild(plus);
       qrow.appendChild(stepper);
       body.appendChild(qrow);
@@ -174,7 +190,7 @@
       var add = el("button", "btn btn-primary order-add", ready ? "Add to order" : "Choose " + firstMissing().toLowerCase());
       add.type = "button"; add.disabled = !ready;
       add.addEventListener("click", function () {
-        state.cart.push({ id: item.id, picks: Object.assign({}, picked), qty: qty, custom: custom.trim() });
+        state.cart.push({ id: item.id, picks: Object.assign({}, picked), qty: qty, unit: unit, custom: custom.trim() });
         save(); renderCart();
         add.textContent = "Added ✓";
         setTimeout(function () { body.hidden = true; body.previousSibling.setAttribute("aria-expanded", "false"); }, 700);
@@ -192,16 +208,21 @@
   // ---------- cart ----------
   function lineText(l) {
     var item = findItem(l.id);
-    var parts = (item.choices || []).map(function (q) {
+    var parts = [];
+    (item.choices || []).forEach(function (q) {
       var v = l.picks[q];
-      return q === "BBQ cut" ? (v === "Yes" ? "BBQ cut" : "no BBQ cut") : v;
+      if (q === "BBQ cut") {
+        if (v === "Yes") parts.push("BBQ cut");
+        else if (optionsFor(item, q, l.picks).length > 1) parts.push("no BBQ cut");
+      } else parts.push(v);
     });
     return { item: item, desc: parts.join(", "), custom: l.custom || "" };
   }
+  function lineUnit(l) { var it = findItem(l.id); return l.unit || it.unit; }
   function lineCost(l) {
     var it = findItem(l.id);
     if (!it || it.price == null) return null;
-    if (priceUnit(it) === "lb" && it.unit !== "lb") return it.avgWeight ? it.price * it.avgWeight * l.qty : null;
+    if (priceUnit(it) === "lb" && lineUnit(l) !== "lb") return it.avgWeight ? it.price * it.avgWeight * l.qty : null;
     return it.price * l.qty;
   }
 
@@ -218,7 +239,7 @@
       if (cost == null) allPriced = false; else total += cost;
       var li = el("li", "order-line");
       var info = el("div", "order-line-info");
-      info.appendChild(el("span", "order-line-name", t.item.unit === "lb" ? fmtQty(l.qty, "lb") + " " + t.item.name : l.qty + " × " + t.item.name));
+      info.appendChild(el("span", "order-line-name", lineUnit(l) === "lb" ? fmtQty(l.qty, "lb") + " " + t.item.name : l.qty + " × " + t.item.name));
       info.appendChild(el("span", "order-line-desc", t.desc));
       if (t.custom) info.appendChild(el("span", "order-line-desc order-line-custom", "Special cut: " + t.custom));
       li.appendChild(info);
@@ -232,7 +253,7 @@
     cartEl.appendChild(ul);
     var tot = el("p", "order-total");
     tot.appendChild(el("span", null, "Estimated total"));
-    tot.appendChild(el("strong", null, allPriced ? money(total) : "Sent by text"));
+    tot.appendChild(el("strong", null, allPriced ? money(total) : total > 0 ? "From " + money(total) : "Sent by text"));
     cartEl.appendChild(tot);
     form.hidden = false;
     renderDays();
@@ -330,12 +351,12 @@
     state.cart.forEach(function (l, i) {
       var t = lineText(l), cost = lineCost(l);
       if (cost == null) allPriced = false; else total += cost;
-      lines.push((i + 1) + ") " + t.item.name + ": " + t.desc + " | " + (t.item.unit === "lb" ? fmtQty(l.qty, "lb") : "Qty " + fmtQty(l.qty, "each", t.item)) +
+      lines.push((i + 1) + ") " + t.item.name + ": " + t.desc + " | " + (lineUnit(l) === "lb" ? fmtQty(l.qty, "lb") : "Qty " + fmtQty(l.qty, "each", t.item)) +
         (cost != null ? " | about " + money(cost) : (t.item.price != null ? " | " + priceLabel(t.item) : "")));
       if (t.custom) lines.push("   Special cut: " + t.custom);
     });
     lines.push("");
-    if (allPriced) lines.push("Estimated total: " + money(total) + (isDel ? " + delivery" : "") + " (final price by weight)");
+    if (total > 0) lines.push("Estimated total: " + (allPriced ? "" : "at least ") + money(total) + (isDel ? " + delivery" : "") + " (final price by weight)");
     var notes = $("order-notes").value.trim();
     if (notes) lines.push("Notes: " + notes);
     return lines.join("\n");
