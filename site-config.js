@@ -26,19 +26,14 @@ window.SITE = {
     directionsLink:
       "https://www.google.com/maps/dir/?api=1&destination=18220+Prairie+Ave%2C+Torrance%2C+CA+90504",
 
-    /* Store hours, shown in the "Visit the Market" section.
-       "note" is optional and shows in smaller text under that row. */
-    hours: [
-      { days: "Monday – Thursday", time: "10:00 AM – 8:00 PM" },
-      { days: "Friday", time: "10:00 AM – 8:00 PM", note: "Closed 12:15 – 1:15 PM for Friday prayer" },
-      { days: "Saturday – Sunday", time: "10:00 AM – 8:00 PM" }
-    ],
+    /* Store hours. Shown under the top buttons, in "Visit the Market",
+       and in the footer. Change the wording here and it updates everywhere. */
+    hoursSummary: "Open daily 10 AM–8 PM",
+    fridayNote: "Closed Fridays 12:15–1:15 PM for prayer",
 
     /* The same hours in a format Google reads (24-hour clock).
        Update these too if your hours change. */
-    hoursForGoogle: ["Mo-Th 10:00-20:00", "Fr 10:00-12:15", "Fr 13:15-20:00", "Sa-Su 10:00-20:00"],
-
-    footerHours: "Open daily 10 AM – 8 PM"
+    hoursForGoogle: ["Mo-Th 10:00-20:00", "Fr 10:00-12:15", "Fr 13:15-20:00", "Sa-Su 10:00-20:00"]
   },
 
   /* ---------- Social media ----------
@@ -54,7 +49,8 @@ window.SITE = {
     general: "Hi Super Al-Amin!",
     meatCounter: "Hi Super Al-Amin! Which halal meat cuts do you have available today?",
     samosas: "Hi Super Al-Amin! Do you have samosas, patties, or chai available today?",
-    signup: "Hi Super Al-Amin! I just signed up for WhatsApp updates."
+    signup: "Hi Super Al-Amin! I just signed up for WhatsApp updates.",
+    grocery: "Hi Super Al-Amin! Do you have ___ in stock today?"
   },
 
   /* ---------- Photos ----------
@@ -63,12 +59,16 @@ window.SITE = {
      Always update "alt" to describe what is actually in the photo.   */
   photos: {
     hero: {
-      src: "images/store-produce-shelf.jpg",
-      alt: "Fresh vegetables and herbs in red baskets at Super Al-Amin's produce case"
+      src: "images/hero-goat-chops.jpg",
+      alt: "Freshly cut baby goat chops at the Super Al-Amin meat counter"
     },
     meat: {
-      src: "images/goat-chops.jpg",
-      alt: "Freshly cut baby goat chops at the Super Al-Amin meat counter"
+      src: "images/meat-bandsaw-chops.jpg",
+      alt: "Baby goat chops being cut on the band saw at the meat counter"
+    },
+    produceCase: {
+      src: "images/store-produce-shelf.jpg",
+      alt: "Fresh vegetables and herbs in red baskets at Super Al-Amin's produce case"
     },
     samosas: {
       src: "images/samosas-poster.jpg",
@@ -89,11 +89,15 @@ window.SITE = {
   /* ---------- "From our shelves" photo galleries (Groceries section) ----------
      Each gallery has a title, a short line of text, and a list of items.
      To add a product: put the photo in the images folder and copy one line.
+     "featured" = how many items show before the "See all" button (leave it
+     out to show everything). "seeAllLabel" is the button text.
      A gallery can also have a "video" (and "poster" image) instead of items. */
   showcases: [
     {
       title: "Fresh fruit & vegetables",
       text: "Seasonal favorites arrive throughout the year. Ask us what's in this week.",
+      featured: 5,
+      seeAllLabel: "See all produce",
       items: [
         { name: "Pomegranates",           image: "images/produce/pomegranates.jpg",    alt: "A box of fresh pomegranates" },
         { name: "Mangoes",                image: "images/produce/mangoes.jpg",         alt: "Boxes of ripe mangoes" },
@@ -107,8 +111,10 @@ window.SITE = {
       ]
     },
     {
-      title: "Exotic Pakistani snacks",
-      text: "Crunchy nimco, puffs, and chai-time favorites.",
+      title: "Pakistani snacks & chai-time favorites",
+      text: "Crunchy nimco, puffs, and something for every cup of chai.",
+      featured: 5,
+      seeAllLabel: "See all snacks",
       items: [
         { name: "Mix Nimco",                  image: "images/snacks/snack-mix-nimco.jpg",                 alt: "Nimco's Mix Nimco" },
         { name: "Chana Chilli",               image: "images/snacks/snack-chana-chilli.jpg",              alt: "Nimco's Chana Chilli" },
@@ -121,8 +127,14 @@ window.SITE = {
         { name: "Potato Crinkles",            image: "images/snacks/snack-potato-crinkles.jpg",           alt: "Nimco's spicy Potato Crinkles" },
         { name: "Spicy Potato Sticks",        image: "images/snacks/snack-spicy-potato-sticks.jpg",       alt: "Nimco's Spicy Potato Sticks" },
         { name: "Black Pepper Potato Sticks", image: "images/snacks/snack-black-pepper-potato-sticks.jpg", alt: "Nimco's Black Pepper Potato Sticks" },
-        { name: "Salty Potato Sticks",        image: "images/snacks/snack-salty-potato-sticks.jpg",       alt: "Nimco's Salty Potato Sticks" },
-        { name: "Bake Parlor macaroni",       image: "images/snacks/bake-parlor-macaroni.jpg",            alt: "Bake Parlor macaroni boxes on a store rack" }
+        { name: "Salty Potato Sticks",        image: "images/snacks/snack-salty-potato-sticks.jpg",       alt: "Nimco's Salty Potato Sticks" }
+      ]
+    },
+    {
+      title: "Pantry staples",
+      text: "Everyday cooking basics from brands you know from home.",
+      items: [
+        { name: "Bake Parlor macaroni", image: "images/snacks/bake-parlor-macaroni.jpg", alt: "Bake Parlor macaroni boxes on a store rack" }
       ]
     },
     {
