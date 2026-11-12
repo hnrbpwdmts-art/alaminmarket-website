@@ -217,6 +217,19 @@ window.MEAT_MENU = {
           combos: [
             { "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)", "Slices (1 in)", "Slices (½ in)"] }
           ]
+        },
+        {
+          id: "lamb-shank",
+          name: "Lamb Shank",
+          note: "Cut on the band saw. Sold by weight.",
+          price: 6.99,
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          choices: ["Cut"],
+          combos: [
+            { "Cut": ["Whole (no cutting)", "Large pieces (each shank cut in 2)", "Medium pieces (each shank cut in 3)", "Small pieces (each shank cut in 4)"] }
+          ]
         }
       ]
     }
