@@ -267,6 +267,19 @@ window.MEAT_MENU = {
           ]
         },
         {
+          id: "beef-shank-boneless",
+          name: "Boneless Beef Shank (for Nihari)",
+          note: "Already cleaned. Sold by weight.",
+          price: 9.99,
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          choices: ["Cut"],
+          combos: [
+            { "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)"] }
+          ]
+        },
+        {
           id: "beef-feet",
           name: "Beef Feet",
           note: "Priced by weight. Each foot is about 4 lb.",
