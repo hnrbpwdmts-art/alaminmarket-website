@@ -29,9 +29,23 @@
     return names ? n + " " + (q === 1 ? names[0] : names[1]) : n;
   }
   function priceUnit(item) { return item.priceUnit || item.unit; }
-  function priceLabel(item) {
-    if (item.price == null) return "Price coming soon";
-    return money(item.price) + (priceUnit(item) === "lb" ? " / lb" : " each");
+  // Price can depend on one of the choices, e.g. beef with fat vs. without fat
+  function itemPrice(item, picks) {
+    if (item.prices && item.priceChoice) {
+      var v = picks && picks[item.priceChoice];
+      return v != null && item.prices[v] != null ? item.prices[v] : null;
+    }
+    return item.price;
+  }
+  function priceLabel(item, picks) {
+    var per = priceUnit(item) === "lb" ? " / lb" : " each";
+    var p = itemPrice(item, picks);
+    if (p != null) return money(p) + per;
+    if (item.prices) {
+      var all = Object.keys(item.prices).map(function (k) { return item.prices[k]; });
+      return money(Math.min.apply(null, all)) + "–" + money(Math.max.apply(null, all)) + per;
+    }
+    return "Price coming soon";
   }
   function findItem(id) {
     for (var c = 0; c < M.categories.length; c++) {
@@ -138,7 +152,10 @@
         group.appendChild(el("p", "order-q-label", q));
         var row = el("div", "order-opts");
         opts.forEach(function (v) {
-          var b = el("button", "order-opt", v);
+          var label = v;
+          if (item.prices && item.priceChoice === q && item.prices[v] != null)
+            label += " · " + money(item.prices[v]) + (priceUnit(item) === "lb" ? "/lb" : "");
+          var b = el("button", "order-opt", label);
           b.type = "button";
           b.setAttribute("aria-pressed", picked[q] === v ? "true" : "false");
           if (opts.length === 1) b.disabled = true;
@@ -223,9 +240,10 @@
   function lineUnit(l) { var it = findItem(l.id); return l.unit || it.unit; }
   function lineCost(l) {
     var it = findItem(l.id);
-    if (!it || it.price == null) return null;
-    if (priceUnit(it) === "lb" && lineUnit(l) !== "lb") return it.avgWeight ? it.price * it.avgWeight * l.qty : null;
-    return it.price * l.qty;
+    var price = it && itemPrice(it, l.picks);
+    if (price == null) return null;
+    if (priceUnit(it) === "lb" && lineUnit(l) !== "lb") return it.avgWeight ? price * it.avgWeight * l.qty : null;
+    return price * l.qty;
   }
 
   function renderCart() {
@@ -245,7 +263,7 @@
       info.appendChild(el("span", "order-line-desc", t.desc));
       if (t.custom) info.appendChild(el("span", "order-line-desc order-line-custom", "Special cut: " + t.custom));
       li.appendChild(info);
-      li.appendChild(el("span", "order-line-cost", cost != null ? money(cost) : (t.item.price != null ? priceLabel(t.item) : "")));
+      li.appendChild(el("span", "order-line-cost", cost != null ? money(cost) : (itemPrice(t.item, l.picks) != null ? priceLabel(t.item, l.picks) : "")));
       var rm = el("button", "order-line-rm", "Remove"); rm.type = "button";
       rm.setAttribute("aria-label", "Remove " + t.item.name);
       rm.addEventListener("click", function () { state.cart.splice(i, 1); save(); renderCart(); });
@@ -354,7 +372,7 @@
       var t = lineText(l), cost = lineCost(l);
       if (cost == null) allPriced = false; else total += cost;
       lines.push((i + 1) + ") " + t.item.name + ": " + t.desc + " | " + (lineUnit(l) === "lb" ? fmtQty(l.qty, "lb") : "Qty " + fmtQty(l.qty, "each", t.item)) +
-        (cost != null ? " | about " + money(cost) : (t.item.price != null ? " | " + priceLabel(t.item) : "")));
+        (cost != null ? " | about " + money(cost) : (itemPrice(t.item, l.picks) != null ? " | " + priceLabel(t.item, l.picks) : "")));
       if (t.custom) lines.push("   Special cut: " + t.custom);
     });
     lines.push("");
