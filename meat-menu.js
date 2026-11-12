@@ -89,6 +89,22 @@ window.MEAT_MENU = {
           ]
         },
         {
+          id: "rooster",
+          name: "Rooster",
+          note: "Priced per bird.",
+          price: 21.99,
+          priceUnit: "each",
+          unit: "each",
+          countName: ["rooster", "roosters"],
+          min: 1, step: 1,
+          choices: ["Skin", "Pieces", "BBQ cut"],
+          combos: [
+            { "Skin": ["With skin", "Without skin"], "Pieces": ["Whole (no cutting)"], "BBQ cut": ["No"] },
+            { "Skin": ["With skin", "Without skin"], "Pieces": ["2 pieces", "4 pieces", "6 pieces", "8 pieces"], "BBQ cut": ["Yes", "No"] },
+            { "Skin": ["With skin", "Without skin"], "Pieces": ["12 pieces", "14 pieces", "16 pieces", "18 pieces", "20 pieces"], "BBQ cut": ["No"] }
+          ]
+        },
+        {
           id: "leg-quarter",
           name: "Chicken Leg Quarter",
           price: 1.49,
