@@ -256,10 +256,21 @@ a { color: var(--green); }
 .visit-value { font-family: var(--serif); font-size: 1.25rem; font-weight: 700; color: var(--green-dark); line-height: 1.25; }
 .visit-action { font-size: .92rem; color: var(--green); font-weight: 600; }
 
-.hours { margin-top: 28px; }
-.hours dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 20px; margin: 0; }
-.hours dt { font-weight: 700; }
-.hours dd { margin: 0; }
+.hours {
+  margin-top: 14px; background: var(--paper); border: 1px solid var(--cream-2); border-radius: var(--radius);
+  padding: 18px; box-shadow: 0 2px 8px rgba(20,55,38,.06);
+}
+.hours-head { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.hours-head h3 { margin: 0; }
+.hours-head .visit-icon { grid-row: auto; flex: none; }
+.hours dl { margin: 0; }
+.hours-row {
+  display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 2px 16px;
+  padding: 10px 0; border-top: 1px solid var(--cream-2);
+}
+.hours dt { font-weight: 700; color: var(--green-dark); }
+.hours dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.hours-note { display: block; font-size: .88rem; color: var(--red); font-weight: 600; }
 
 /* Footer */
 .site-footer { background: var(--green-dark); color: var(--cream); padding: 28px 0; font-size: .95rem; }
@@ -291,6 +302,10 @@ a { color: var(--green); }
   .btn-row .btn { min-height: 48px; padding: 10px 14px; font-size: 1rem; gap: 8px; }
   .btn-row .btn svg { width: 19px; height: 19px; }
 }
+@media (max-width: 479px) {
+  .hours-row { display: block; }
+  .hours dd { text-align: left; }
+}
 @media (min-width: 360px) and (max-width: 479px) {
   .btn-row { grid-template-columns: 1fr 1fr; gap: 10px; }
   .btn-row .btn { padding: 10px 8px; font-size: .95rem; }
@@ -310,6 +325,8 @@ a { color: var(--green); }
   .deals-list { grid-template-columns: repeat(2, 1fr); }
   .visit-card { grid-template-columns: 1fr; text-align: left; align-content: start; }
   .visit-icon { grid-row: auto; margin-bottom: 10px; }
+  .hours-head .visit-icon { margin-bottom: 0; }
+  .hours { max-width: 560px; }
 }
 
 /* ---------- Desktop ---------- */

@@ -29,7 +29,8 @@
     name: store.name,
     address: address,
     phone: store.phoneDisplay,
-    whatsapp: store.whatsappDisplay
+    whatsapp: store.whatsappDisplay,
+    footerHours: store.footerHours || ""
   };
   document.querySelectorAll("[data-text]").forEach(function (el) {
     el.textContent = texts[el.dataset.text] || "";
@@ -65,12 +66,21 @@
   if (store.hours && store.hours.length) {
     var dl = document.getElementById("hours-list");
     store.hours.forEach(function (row) {
+      var div = document.createElement("div");
+      div.className = "hours-row";
       var dt = document.createElement("dt");
       dt.textContent = row.days;
       var dd = document.createElement("dd");
       dd.textContent = row.time;
-      dl.appendChild(dt);
-      dl.appendChild(dd);
+      if (row.note) {
+        var n = document.createElement("span");
+        n.className = "hours-note";
+        n.textContent = row.note;
+        dd.appendChild(n);
+      }
+      div.appendChild(dt);
+      div.appendChild(dd);
+      dl.appendChild(div);
     });
     document.getElementById("hours").hidden = false;
   }
@@ -369,6 +379,7 @@
     "@type": "GroceryStore",
     name: store.name,
     telephone: store.phoneLink.replace("tel:", ""),
+    openingHours: store.hoursForGoogle || undefined,
     address: {
       "@type": "PostalAddress",
       streetAddress: store.street,

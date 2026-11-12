@@ -26,13 +26,19 @@ window.SITE = {
     directionsLink:
       "https://www.google.com/maps/dir/?api=1&destination=18220+Prairie+Ave%2C+Torrance%2C+CA+90504",
 
-    /* Store hours: left empty on purpose until confirmed.
-       To publish hours later, fill in lines like this:
-       hours: [
-         { days: "Monday – Friday", time: "9:00 AM – 9:00 PM" },
-         { days: "Saturday – Sunday", time: "9:00 AM – 10:00 PM" }
-       ],                                                          */
-    hours: []
+    /* Store hours, shown in the "Visit the Market" section.
+       "note" is optional and shows in smaller text under that row. */
+    hours: [
+      { days: "Monday – Thursday", time: "10:00 AM – 8:00 PM" },
+      { days: "Friday", time: "10:00 AM – 8:00 PM", note: "Closed 12:15 – 1:15 PM for Friday prayer" },
+      { days: "Saturday – Sunday", time: "10:00 AM – 8:00 PM" }
+    ],
+
+    /* The same hours in a format Google reads (24-hour clock).
+       Update these too if your hours change. */
+    hoursForGoogle: ["Mo-Th 10:00-20:00", "Fr 10:00-12:15", "Fr 13:15-20:00", "Sa-Su 10:00-20:00"],
+
+    footerHours: "Open daily 10 AM – 8 PM"
   },
 
   /* ---------- Prefilled WhatsApp messages (customers can edit before sending) ---------- */

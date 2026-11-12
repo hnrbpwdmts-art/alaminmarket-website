@@ -219,7 +219,10 @@
           </a>
         </div>
         <div id="hours" class="hours" hidden>
-          <h3>Store hours</h3>
+          <div class="hours-head">
+            <span class="visit-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg></span>
+            <h3>Store hours</h3>
+          </div>
           <dl id="hours-list"></dl>
         </div>
       </div>
@@ -230,6 +233,7 @@
     <div class="container footer-inner">
       <p class="footer-name" data-text="name"></p>
       <p><span data-text="address"></span></p>
+      <p data-text="footerHours"></p>
       <p class="footer-copy">© <span id="year"></span> <span data-text="name"></span></p>
     </div>
   </footer>
