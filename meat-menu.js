@@ -308,6 +308,27 @@ window.MEAT_MENU = {
           ]
         }
       ]
+    },
+    {
+      id: "goat",
+      name: "Goat",
+      note: "Fresh baby goat is available Friday and Saturday only.",
+      items: [
+        {
+          id: "baby-goat-mix",
+          name: "Fresh Baby Goat (Mixed)",
+          note: "Mixed cuts, sold by weight.",
+          price: 13.99,
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          days: ["Fri", "Sat"],
+          choices: ["Cut"],
+          combos: [
+            { "Cut": ["As is (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)"] }
+          ]
+        }
+      ]
     }
   ]
 };
