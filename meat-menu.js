@@ -170,6 +170,19 @@ window.MEAT_MENU = {
           combos: [
             { "Skin": ["With skin", "Without skin"], "BBQ cut": ["Yes", "No"] }
           ]
+        },
+        {
+          id: "wings",
+          name: "Chicken Wings",
+          note: "With skin. Sold by weight.",
+          price: 3.99,
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          choices: ["Cut"],
+          combos: [
+            { "Cut": ["Whole (no cutting)", "Split in two"] }
+          ]
         }
       ]
     }
