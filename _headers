@@ -1,0 +1,5 @@
+# Cloudflare Pages: make sure visitors always get the latest text, settings, and layout
+/*.js
+  Cache-Control: public, max-age=0, must-revalidate
+/*.css
+  Cache-Control: public, max-age=0, must-revalidate
