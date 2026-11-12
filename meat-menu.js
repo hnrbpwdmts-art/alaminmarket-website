@@ -252,6 +252,21 @@ window.MEAT_MENU = {
           combos: [
             { "Fat": ["With fat", "Without fat"], "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)", "Extra small (about ¼ in, taco cut)", "Ground (thick)", "Ground (fine)", "Ground (very fine)"] }
           ]
+        },
+        {
+          id: "beef-feet",
+          name: "Beef Feet",
+          note: "Priced by weight. Each foot is about 4 lb.",
+          price: 5.99,
+          priceUnit: "lb",
+          unit: "each",
+          countName: ["foot", "feet"],
+          avgWeight: 4,
+          min: 1, step: 1,
+          choices: ["Cut"],
+          combos: [
+            { "Cut": ["Whole (no cutting)", "Sliced (about 1½ in)", "Sliced and split in the middle"] }
+          ]
         }
       ]
     }
