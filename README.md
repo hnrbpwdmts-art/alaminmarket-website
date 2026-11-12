@@ -54,3 +54,8 @@ Everyday use (works from your phone in the Google Sheets app):
 - Sign-ups appear in Netlify > Forms > whatsapp-signup. Download them as CSV anytime.
 - To get an email for each sign-up: Forms > Form notifications > Add notification > Email.
 - Only message people who signed up, and stop messaging anyone who asks.
+
+## Photos and videos
+- Gallery photos ("From our shelves") are listed under `showcases` in site-config.js.
+- Square photos about 600x600 work best for galleries; keep each photo under ~150 KB.
+- Videos: short, muted clips (under ~15 seconds, under ~1 MB) in the `videos` folder.

@@ -63,27 +63,85 @@ window.SITE = {
      Always update "alt" to describe what is actually in the photo.   */
   photos: {
     hero: {
-      src: "images/hero-market.svg",
-      alt: "Fresh produce, spices, and pantry staples on market shelves"
+      src: "images/store-produce-shelf.jpg",
+      alt: "Fresh vegetables and herbs in red baskets at Super Al-Amin's produce case"
     },
     meat: {
-      src: "images/meat-counter.svg",
-      alt: "Fresh cuts of halal meat at the butcher counter"
+      src: "images/goat-chops.jpg",
+      alt: "Freshly cut baby goat chops at the Super Al-Amin meat counter"
     },
     samosas: {
-      src: "images/samosas-patties.svg",
-      alt: "Golden samosas and patties with a cup of chai"
+      src: "images/samosas-poster.jpg",
+      video: "videos/samosas.mp4",   // leave "" to show only the photo
+      alt: "Trays of fresh samosas made at Super Al-Amin"
     }
   },
 
   /* ---------- Grocery categories (shown as a grid) ---------- */
   groceryCategories: [
-    { name: "Rice & Atta",      image: "images/rice-atta.svg",   alt: "Bags of basmati rice and atta flour" },
-    { name: "Lentils & Beans",  image: "images/lentils.svg",     alt: "Bowls of colorful lentils and beans" },
-    { name: "Spices & Masalas", image: "images/spices.svg",      alt: "Ground spices and masala blends" },
-    { name: "Snacks & Tea",     image: "images/snacks-tea.svg",  alt: "A cup of chai with South Asian snacks" },
-    { name: "Fresh Produce",    image: "images/produce.svg",     alt: "Fresh vegetables, chilies, and herbs" }
+    { name: "Rice & Atta",      image: "images/rice-atta.svg",          alt: "Bags of basmati rice and atta flour" },
+    { name: "Lentils & Beans",  image: "images/lentils.svg",            alt: "Bowls of colorful lentils and beans" },
+    { name: "Spices & Masalas", image: "images/spices-photo.jpg",       alt: "Shelves of Sri Lankan curry powders, masalas, and pickles at Super Al-Amin" },
+    { name: "Snacks & Tea",     image: "images/snacks-tea-photo.jpg",   alt: "A bag of Nimco's Mix Nimco snack" },
+    { name: "Fresh Produce",    image: "images/produce-photo.jpg",      alt: "A box of fresh pomegranates" }
   ],
+
+  /* ---------- "From our shelves" photo galleries (Groceries section) ----------
+     Each gallery has a title, a short line of text, and a list of items.
+     To add a product: put the photo in the images folder and copy one line.
+     A gallery can also have a "video" (and "poster" image) instead of items. */
+  showcases: [
+    {
+      title: "Fresh fruit & vegetables",
+      text: "Seasonal favorites arrive throughout the year. Ask us what's in this week.",
+      items: [
+        { name: "Pomegranates",           image: "images/produce/pomegranates.jpg",    alt: "A box of fresh pomegranates" },
+        { name: "Mangoes",                image: "images/produce/mangoes.jpg",         alt: "Boxes of ripe mangoes" },
+        { name: "Fresh dates",            image: "images/produce/fresh-dates.jpg",     alt: "A bunch of fresh yellow dates" },
+        { name: "Figs",                   image: "images/produce/figs.jpg",            alt: "A tray of fresh figs" },
+        { name: "Guava",                  image: "images/produce/guava.jpg",           alt: "A box of fresh guavas" },
+        { name: "Young coconut",          image: "images/produce/young-coconut.jpg",   alt: "A wrapped young coconut" },
+        { name: "Karela (bitter gourd)",  image: "images/produce/karela.jpg",          alt: "A basket of karela" },
+        { name: "Green chickpeas",        image: "images/produce/green-chickpeas.jpg", alt: "A tray of fresh green chickpeas" },
+        { name: "Betel leaves (paan)",    image: "images/produce/betel-leaves.jpg",    alt: "A box of fresh betel leaves" }
+      ]
+    },
+    {
+      title: "Exotic Pakistani snacks",
+      text: "Crunchy nimco, puffs, and chai-time favorites.",
+      items: [
+        { name: "Mix Nimco",                  image: "images/snacks/snack-mix-nimco.jpg",                 alt: "Nimco's Mix Nimco" },
+        { name: "Chana Chilli",               image: "images/snacks/snack-chana-chilli.jpg",              alt: "Nimco's Chana Chilli" },
+        { name: "Dal Moong",                  image: "images/snacks/snack-dal-moong.jpg",                 alt: "Nimco's Dal Moong" },
+        { name: "Namak Paray",                image: "images/snacks/snack-namak-paray.jpg",               alt: "Nimco's Namak Paray" },
+        { name: "Tea Puri",                   image: "images/snacks/snack-tea-puri.jpg",                  alt: "Nimco's Tea Puri" },
+        { name: "Chilli Ringz",               image: "images/snacks/snack-chilli-ringz.jpg",              alt: "Nimco's Chilli Ringz" },
+        { name: "Masala Puffs",               image: "images/snacks/snack-masala-puffs.jpg",              alt: "Nimco's Masala Puffs" },
+        { name: "Salty Puffs",                image: "images/snacks/snack-salty-puffs.jpg",               alt: "Nimco's Salty Puffs" },
+        { name: "Potato Crinkles",            image: "images/snacks/snack-potato-crinkles.jpg",           alt: "Nimco's spicy Potato Crinkles" },
+        { name: "Spicy Potato Sticks",        image: "images/snacks/snack-spicy-potato-sticks.jpg",       alt: "Nimco's Spicy Potato Sticks" },
+        { name: "Black Pepper Potato Sticks", image: "images/snacks/snack-black-pepper-potato-sticks.jpg", alt: "Nimco's Black Pepper Potato Sticks" },
+        { name: "Salty Potato Sticks",        image: "images/snacks/snack-salty-potato-sticks.jpg",       alt: "Nimco's Salty Potato Sticks" },
+        { name: "Bake Parlor macaroni",       image: "images/snacks/bake-parlor-macaroni.jpg",            alt: "Bake Parlor macaroni boxes on a store rack" }
+      ]
+    },
+    {
+      title: "Authentic Sri Lankan groceries",
+      text: "Curry powders, masalas, pickles, biscuits, and more, all in one aisle.",
+      video: "videos/sri-lankan-aisle.mp4",
+      poster: "images/sri-lankan-aisle.jpg",
+      alt: "A walk down Super Al-Amin's Sri Lankan grocery aisle"
+    },
+    {
+      title: "Halal treats",
+      text: "Grab-and-go snacks at the counter.",
+      items: [
+        { name: "Halal beef sticks",   image: "images/treats/halal-beef-sticks.jpg", alt: "Boxes of Sharifa halal beef sticks, original and jalapeño" },
+        { name: "Dubai chocolate bar", image: "images/treats/dubai-chocolate.jpg",   alt: "A box of Dubai milk chocolate flavor bars" }
+      ]
+    }
+  ],
+
 
   /* ---------- What's New & Deals ---------- */
   dealsSection: {

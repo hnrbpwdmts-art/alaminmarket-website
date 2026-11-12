@@ -44,6 +44,32 @@
     img.alt = p.alt;
   });
 
+  // Videos (muted, looping; play only while on screen; respect reduced-motion)
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var videoObserver = ("IntersectionObserver" in window) ? new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      var v = e.target;
+      if (e.isIntersecting) { if (v.preload === "none") v.preload = "auto"; var pr = v.play(); if (pr && pr.catch) pr.catch(function () {}); }
+      else v.pause();
+    });
+  }, { threshold: 0.25 }) : null;
+  function setupVideo(v, src, poster, label) {
+    v.src = src;
+    if (poster) v.poster = poster;
+    v.setAttribute("aria-label", label || "");
+    v.muted = true;
+    if (reduceMotion) { v.controls = true; return; }
+    if (videoObserver) videoObserver.observe(v); else v.autoplay = true;
+  }
+  document.querySelectorAll("video[data-video]").forEach(function (v) {
+    var p = S.photos[v.dataset.video];
+    if (!p || !p.video) return;
+    var img = v.parentNode.querySelector("img");
+    v.hidden = false;
+    if (img) img.hidden = true;
+    setupVideo(v, p.video, p.src, p.alt);
+  });
+
   // Grocery grid
   var grid = document.getElementById("grocery-grid");
   (S.groceryCategories || []).forEach(function (cat) {
@@ -61,6 +87,45 @@
     li.appendChild(h);
     grid.appendChild(li);
   });
+
+  // "From our shelves" galleries
+  (function showcases() {
+    var wrap = document.getElementById("showcases");
+    (S.showcases || []).forEach(function (sc, i) {
+      if (!sc || !sc.title) return;
+      var sec = document.createElement("div");
+      sec.className = "showcase";
+      var id = "showcase-" + i;
+      var h = document.createElement("h3"); h.id = id; h.textContent = sc.title; sec.appendChild(h);
+      if (sc.text) { var p = document.createElement("p"); p.className = "showcase-text"; p.textContent = sc.text; sec.appendChild(p); }
+      if (sc.video) {
+        var fig = document.createElement("figure"); fig.className = "showcase-video";
+        var v = document.createElement("video"); v.loop = true; v.playsInline = true; v.preload = "none";
+        v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
+        fig.appendChild(v); sec.appendChild(fig);
+        setupVideo(v, sc.video, sc.poster, sc.alt);
+      }
+      if (sc.items && sc.items.length) {
+        var ul = document.createElement("ul"); ul.className = "showcase-row";
+        ul.setAttribute("aria-labelledby", id);
+        ul.tabIndex = 0;
+        sc.items.forEach(function (it) {
+          var li = document.createElement("li"); li.className = "showcase-item";
+          var img = document.createElement("img"); img.src = it.image; img.alt = it.alt || it.name || "";
+          img.loading = "lazy"; img.width = 300; img.height = 300; img.decoding = "async";
+          var cap = document.createElement("span"); cap.textContent = it.name || "";
+          li.appendChild(img); li.appendChild(cap); ul.appendChild(li);
+        });
+        sec.appendChild(ul);
+        if (sc.items.length > 2) {
+          var hint = document.createElement("p"); hint.className = "showcase-hint"; hint.setAttribute("aria-hidden", "true");
+          hint.textContent = "Swipe for more →"; sec.appendChild(hint);
+        }
+      }
+      if (sc.video) sec.classList.add("showcase-has-video");
+      wrap.appendChild(sec);
+    });
+  })();
 
   // Hours (only shown once provided)
   if (store.hours && store.hours.length) {
@@ -404,6 +469,9 @@
     "@context": "https://schema.org",
     "@type": "GroceryStore",
     name: store.name,
+    logo: "https://alaminmarket.com/images/logo.png",
+    image: "https://alaminmarket.com/images/share-cover.jpg",
+    url: "https://alaminmarket.com/",
     telephone: store.phoneLink.replace("tel:", ""),
     openingHours: store.hoursForGoogle || undefined,
     address: {
