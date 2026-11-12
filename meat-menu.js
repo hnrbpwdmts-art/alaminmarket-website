@@ -232,6 +232,19 @@ window.MEAT_MENU = {
           combos: [
             { "Cut": ["Whole (no cutting)", "Large pieces (each shank cut in 2)", "Medium pieces (each shank cut in 3)", "Small pieces (each shank cut in 4)"] }
           ]
+        },
+        {
+          id: "lamb-feet",
+          name: "Lamb Feet",
+          note: "Sold by weight.",
+          price: 4.99,
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          choices: ["Type", "Cut"],
+          combos: [
+            { "Type": ["Brown", "White"], "Cut": ["Whole (no cutting)", "2 pieces", "3 pieces", "4 pieces"] }
+          ]
         }
       ]
     },
