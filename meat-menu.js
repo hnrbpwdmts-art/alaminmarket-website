@@ -293,6 +293,19 @@ window.MEAT_MENU = {
           combos: [
             { "Cut": ["Whole (no cutting)", "Sliced (about 1½ in)", "Sliced and split in the middle"] }
           ]
+        },
+        {
+          id: "beef-bones",
+          name: "Beef Bones",
+          note: "Cut on the band saw. Sold by weight.",
+          price: 3.99,
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          choices: ["Cut"],
+          combos: [
+            { "Cut": ["Whole (no cutting)", "Large pieces", "Medium pieces", "Small pieces"] }
+          ]
         }
       ]
     }
