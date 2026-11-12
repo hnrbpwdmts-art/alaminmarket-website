@@ -9,6 +9,8 @@
      note:     optional short line shown when the item is opened, e.g. "Skinless"
      price:    price, e.g. 4.99. Use null to show "Price coming soon".
      priceUnit: what the price is for: "lb" or "each"
+     priceChoice, prices: when the price depends on a choice, e.g.
+               priceChoice: "Fat", prices: { "With fat": 6.99, "Without fat": 7.99 }
      unit:     how customers choose the amount: "lb" (by weight) or
                "each" (by count, e.g. number of chickens)
      units:    to let customers choose, list both, e.g. ["lb", "each"]
@@ -229,6 +231,26 @@ window.MEAT_MENU = {
           choices: ["Cut"],
           combos: [
             { "Cut": ["Whole (no cutting)", "Large pieces (each shank cut in 2)", "Medium pieces (each shank cut in 3)", "Small pieces (each shank cut in 4)"] }
+          ]
+        }
+      ]
+    },
+    {
+      id: "beef",
+      name: "Beef",
+      items: [
+        {
+          id: "beef-boneless",
+          name: "Boneless Beef",
+          note: "Boneless only. Sold by weight.",
+          priceChoice: "Fat",
+          prices: { "With fat": 6.99, "Without fat": 7.99 },
+          priceUnit: "lb",
+          unit: "lb",
+          min: 1, step: 1,
+          choices: ["Fat", "Cut"],
+          combos: [
+            { "Fat": ["With fat", "Without fat"], "Cut": ["Whole (no cutting)", "Large pieces (about 3 in)", "Medium pieces (about 2 in)", "Small pieces (about 1 in)", "Very small pieces (about ½ in)", "Extra small (about ¼ in, taco cut)", "Ground (thick)", "Ground (fine)", "Ground (very fine)"] }
           ]
         }
       ]
