@@ -595,3 +595,11 @@ a { color: var(--green); }
   .order-hero-badge { width: 132px; height: 132px; top: 10px; }
   .order-hero h1, .order-hero .page-lede { padding-right: 150px; }
 }
+
+/* Choice layouts */
+.order-opts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.order-opts-grid .order-opt { border-radius: 12px; text-align: left; padding: 10px 12px; line-height: 1.25; }
+.order-opts-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; }
+.order-opts-tiles .order-opt { border-radius: 12px; padding: 10px 4px; text-align: center; }
+.order-q-sublabel { margin: 12px 0 8px; font-size: .82rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+@media (min-width: 640px) { .order-opts-grid { grid-template-columns: repeat(3, 1fr); } }

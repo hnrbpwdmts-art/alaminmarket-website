@@ -22,7 +22,7 @@
      min, step: smallest amount and how much each + / - press adds
      days:     days it can be picked up or delivered, e.g. ["Sat", "Sun"].
                Leave it out to allow every day.
-     choices:  the questions asked, in order, e.g. ["Skin", "Pieces"]
+     choices:  the questions asked, in order, e.g. ["Skin", "Cut"]
      Every item should offer an uncut option, e.g. "Whole (no cutting)".
      combos:   which answers go together. Each block allows every mix of
                the answers listed in it. Only combinations listed in a
@@ -62,7 +62,7 @@ window.MEAT_MENU = {
 
   /* Packing choices offered on every item (customers pick one).
      An item can have its own "packing" list instead, and "packingSkip"
-     to offer only the first packing choice for an answer, e.g. { "Pieces": "Whole (no cutting)" }. */
+     to offer only the first packing choice for an answer, e.g. { "Cut": "Whole (no cutting)" }. */
   packing: ["All in one bag", "1 lb packs", "2 lb packs", "3 lb packs", "5 lb packs", "Other size (write below)"],
 
   daysAhead: 7,              // how many days ahead customers can choose
@@ -82,13 +82,13 @@ window.MEAT_MENU = {
           countName: ["chicken", "chickens"],
           avgWeight: 3,
           packing: ["1 whole chicken per bag", "½ chicken per bag"],
-          packingSkip: { "Pieces": "Whole (no cutting)" },
+          packingSkip: { "Cut": "Whole (no cutting)" },
           min: 1, step: 1,
-          choices: ["Skin", "Pieces", "BBQ cut"],
+          choices: ["Skin", "Cut", "BBQ cut"],
           combos: [
-            { "Skin": ["With skin", "Without skin"], "Pieces": ["Whole (no cutting)"], "BBQ cut": ["No"] },
-            { "Skin": ["With skin", "Without skin"], "Pieces": ["2 pieces", "4 pieces", "6 pieces", "8 pieces"], "BBQ cut": ["Yes", "No"] },
-            { "Skin": ["With skin", "Without skin"], "Pieces": ["12 pieces", "14 pieces", "16 pieces", "18 pieces", "20 pieces"], "BBQ cut": ["No"] }
+            { "Skin": ["With skin", "Without skin"], "Cut": ["Whole (no cutting)"], "BBQ cut": ["No"] },
+            { "Skin": ["With skin", "Without skin"], "Cut": ["2 pieces", "4 pieces", "6 pieces", "8 pieces"], "BBQ cut": ["Yes", "No"] },
+            { "Skin": ["With skin", "Without skin"], "Cut": ["12 pieces", "14 pieces", "16 pieces", "18 pieces", "20 pieces"], "BBQ cut": ["No"] }
           ]
         },
         {
@@ -100,13 +100,13 @@ window.MEAT_MENU = {
           countName: ["chicken", "chickens"],
           avgWeight: 3,
           packing: ["1 whole chicken per bag", "½ chicken per bag"],
-          packingSkip: { "Pieces": "Whole (no cutting)" },
+          packingSkip: { "Cut": "Whole (no cutting)" },
           min: 1, step: 1,
-          choices: ["Skin", "Pieces", "BBQ cut"],
+          choices: ["Skin", "Cut", "BBQ cut"],
           combos: [
-            { "Skin": ["With skin", "Without skin"], "Pieces": ["Whole (no cutting)"], "BBQ cut": ["No"] },
-            { "Skin": ["With skin", "Without skin"], "Pieces": ["2 pieces", "4 pieces", "6 pieces", "8 pieces"], "BBQ cut": ["Yes", "No"] },
-            { "Skin": ["With skin", "Without skin"], "Pieces": ["12 pieces", "14 pieces", "16 pieces", "18 pieces", "20 pieces"], "BBQ cut": ["No"] }
+            { "Skin": ["With skin", "Without skin"], "Cut": ["Whole (no cutting)"], "BBQ cut": ["No"] },
+            { "Skin": ["With skin", "Without skin"], "Cut": ["2 pieces", "4 pieces", "6 pieces", "8 pieces"], "BBQ cut": ["Yes", "No"] },
+            { "Skin": ["With skin", "Without skin"], "Cut": ["12 pieces", "14 pieces", "16 pieces", "18 pieces", "20 pieces"], "BBQ cut": ["No"] }
           ]
         },
         {
@@ -118,13 +118,13 @@ window.MEAT_MENU = {
           unit: "each",
           countName: ["rooster", "roosters"],
           packing: ["1 whole rooster per bag", "½ rooster per bag"],
-          packingSkip: { "Pieces": "Whole (no cutting)" },
+          packingSkip: { "Cut": "Whole (no cutting)" },
           min: 1, step: 1,
-          choices: ["Skin", "Pieces", "BBQ cut"],
+          choices: ["Skin", "Cut", "BBQ cut"],
           combos: [
-            { "Skin": ["With skin", "Without skin"], "Pieces": ["Whole (no cutting)"], "BBQ cut": ["No"] },
-            { "Skin": ["With skin", "Without skin"], "Pieces": ["2 pieces", "4 pieces", "6 pieces", "8 pieces"], "BBQ cut": ["Yes", "No"] },
-            { "Skin": ["With skin", "Without skin"], "Pieces": ["12 pieces", "14 pieces", "16 pieces", "18 pieces", "20 pieces"], "BBQ cut": ["No"] }
+            { "Skin": ["With skin", "Without skin"], "Cut": ["Whole (no cutting)"], "BBQ cut": ["No"] },
+            { "Skin": ["With skin", "Without skin"], "Cut": ["2 pieces", "4 pieces", "6 pieces", "8 pieces"], "BBQ cut": ["Yes", "No"] },
+            { "Skin": ["With skin", "Without skin"], "Cut": ["12 pieces", "14 pieces", "16 pieces", "18 pieces", "20 pieces"], "BBQ cut": ["No"] }
           ]
         },
         {
@@ -136,10 +136,10 @@ window.MEAT_MENU = {
           units: ["lb", "each"],
           countName: ["leg quarter", "leg quarters"],
           min: 1, step: 1,
-          choices: ["Skin", "Pieces", "BBQ cut"],
+          choices: ["Skin", "Cut", "BBQ cut"],
           combos: [
-            { "Skin": ["With skin", "Without skin"], "Pieces": ["Whole", "2 pieces"], "BBQ cut": ["Yes", "No"] },
-            { "Skin": ["With skin", "Without skin"], "Pieces": ["3 pieces", "4 pieces"], "BBQ cut": ["No"] }
+            { "Skin": ["With skin", "Without skin"], "Cut": ["Whole", "2 pieces"], "BBQ cut": ["Yes", "No"] },
+            { "Skin": ["With skin", "Without skin"], "Cut": ["3 pieces", "4 pieces"], "BBQ cut": ["No"] }
           ]
         },
         {

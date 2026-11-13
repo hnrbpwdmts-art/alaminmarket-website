@@ -95,7 +95,10 @@
     var saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
     if (saved && Array.isArray(saved.cart)) {
       state = Object.assign(state, saved);
-      state.cart = saved.cart.filter(function (l) { return findItem(l.id); });
+      state.cart = saved.cart.filter(function (l) {
+        var it = findItem(l.id);
+        return it && l.picks && (it.choices || []).every(function (q) { return l.picks[q]; });
+      });
     }
   } catch (e) { /* storage unavailable */ }
   function save() {
@@ -155,18 +158,6 @@
     return card;
   }
 
-  // Questions with many answers use a drop-down instead of buttons
-  var LONG_LIST = 5;
-  function selectFor(label, opts, current, onChange) {
-    var sel = document.createElement("select");
-    sel.className = "order-select";
-    sel.setAttribute("aria-label", label);
-    if (!current) { var ph = el("option", null, "Choose " + label.toLowerCase() + "…"); ph.value = ""; ph.disabled = true; ph.selected = true; sel.appendChild(ph); }
-    opts.forEach(function (v) { var o = el("option", null, v); o.value = v; if (v === current) o.selected = true; sel.appendChild(o); });
-    sel.addEventListener("change", function () { onChange(sel.value); });
-    return sel;
-  }
-
   function buildPicker(item, body) {
     var picked = {}, qty = item.min || 1, custom = "";
     var units = item.units && item.units.length ? item.units : [item.unit];
@@ -184,19 +175,19 @@
         if (opts.length === 1 && (item.choices || []).indexOf(q) > 0) return;
         var group = el("div", "order-q");
         group.appendChild(el("p", "order-q-label", q));
-        if (opts.length > LONG_LIST) {
-          group.appendChild(selectFor(q, opts, picked[q], function (v) {
-            picked[q] = v;
-            var qs = item.choices, i = qs.indexOf(q);
-            for (var k = i + 1; k < qs.length; k++) delete picked[qs[k]];
-            draw();
-          }));
-          body.appendChild(group);
-          return;
+        // Layout: piece counts as small tiles, long lists in a neat grid,
+        // grinds grouped under "Ground"
+        var isCount = opts.every(function (v) { return /^(\d+ pieces|Whole.*)$/.test(v); }) && opts.some(function (v) { return /^\d+ pieces$/.test(v); });
+        var ground = opts.filter(function (v) { return /^Ground \(/.test(v); });
+        var main = opts.filter(function (v) { return ground.indexOf(v) === -1; });
+        var row = el("div", "order-opts" + (isCount ? " order-opts-tiles" : main.length > 4 ? " order-opts-grid" : ""));
+        var groundRow = null;
+        if (ground.length) {
+          groundRow = el("div", "order-opts order-opts-grid");
         }
-        var row = el("div", "order-opts");
         opts.forEach(function (v) {
-          var label = v;
+          var label = isCount ? v.replace(/^(\d+) pieces$/, "$1 pcs").replace(/^Whole.*$/, "Whole") :
+            ground.indexOf(v) > -1 ? v.replace(/^Ground \((.*)\)$/, function (m, g) { return g.charAt(0).toUpperCase() + g.slice(1); }) : v;
           if (item.prices && item.priceChoice === q && item.prices[v] != null)
             label += " · " + money(item.prices[v]) + (priceUnit(item) === "lb" ? "/lb" : "");
           var b = el("button", "order-opt", label);
@@ -209,9 +200,14 @@
             for (var k = i + 1; k < qs.length; k++) delete picked[qs[k]];
             draw();
           });
-          row.appendChild(b);
+          if (isCount && /^Whole/.test(v)) b.title = v;
+          (ground.indexOf(v) > -1 ? groundRow : row).appendChild(b);
         });
-        group.appendChild(row);
+        if (row.children.length) group.appendChild(row);
+        if (groundRow) {
+          group.appendChild(el("p", "order-q-sublabel", "Ground"));
+          group.appendChild(groundRow);
+        }
         body.appendChild(group);
       });
       // quantity
@@ -250,11 +246,7 @@
         if (packs.indexOf(picked.Packing) === -1) picked.Packing = packs[0];
         var pg = el("div", "order-q");
         pg.appendChild(el("p", "order-q-label", "Packing" + (item.packing ? "" : " (smallest pack is 1 lb)")));
-        if (packs.length > LONG_LIST) {
-          pg.appendChild(selectFor("Packing", packs, picked.Packing, function (v) { picked.Packing = v; draw(); }));
-          body.appendChild(pg);
-        } else {
-        var prow = el("div", "order-opts");
+        var prow = el("div", "order-opts" + (packs.length > 4 ? " order-opts-grid" : ""));
         packs.forEach(function (v) {
           var b = el("button", "order-opt", v); b.type = "button";
           b.setAttribute("aria-pressed", picked.Packing === v ? "true" : "false");
@@ -263,7 +255,6 @@
           prow.appendChild(b);
         });
         pg.appendChild(prow); body.appendChild(pg);
-        }
       } else delete picked.Packing;
 
       // Free-text special cutting request, at the end of every item
