@@ -42,7 +42,7 @@ window.MEAT_MENU = {
   /* Every order sent is also saved to your Google Sheet. Paste the web app
      link from the setup guide (backend/README.md) between the quotes.
      Leave "" to turn saving off. */
-  orderLogUrl: "",          // order numbers look like A1112-482
+  orderLogUrl: "https://script.google.com/macros/s/AKfycby6T80ltjKTV6QB8qJdACKgMUqqd8JmxJ3Dn1SM1lIZ0UjAnUIwPqDmZDysoaJ-v14r/exec",          // order numbers look like A1112-482
 
   pickup: {
     enabled: true,
