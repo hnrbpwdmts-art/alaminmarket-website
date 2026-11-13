@@ -369,6 +369,7 @@
       fs.appendChild(lab);
     });
     fs.hidden = modes.length < 2;
+    $("order-step3-title").textContent = modes.length < 2 ? (modes[0].id === "pickup" ? "Pickup details" : "Delivery details") : "Pickup or delivery";
     updateMode();
   }
   function updateMode() {
@@ -599,5 +600,7 @@
   $("order-day").addEventListener("change", updateMode);
   $("send-whatsapp").addEventListener("click", function () { send("whatsapp"); });
   $("send-text").addEventListener("click", function () { send("text"); });
+  // Computers usually can't send text messages, so only offer WhatsApp there
+  if (!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) && !("ontouchstart" in window)) $("send-text").hidden = true;
   renderCats(); renderItems(); renderModes(); renderCart();
 })();
