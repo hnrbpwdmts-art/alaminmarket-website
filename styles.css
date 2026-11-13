@@ -582,3 +582,16 @@ a { color: var(--green); }
 .order-quote-btn { width: 100%; margin: 2px 0 10px; min-height: 46px; border: 1.5px solid var(--green); cursor: pointer; font-family: var(--sans); }
 .order-quote { margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; background: var(--paper); font-weight: 700; color: var(--green-dark); }
 .order-quote.is-error { color: var(--red); }
+
+/* Halal badge */
+.meat-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.halal-badge { width: 84px; height: 84px; flex: none; filter: drop-shadow(0 4px 10px rgba(20,55,38,.18)); }
+.order-hero .container { position: relative; }
+.order-hero-badge { position: absolute; right: 20px; top: 34px; width: 76px; height: 76px; }
+.order-hero h1, .order-hero .page-lede { padding-right: 84px; }
+.footer-halal { font-weight: 700; color: #ffd36b; }
+@media (min-width: 760px) {
+  .halal-badge { width: 104px; height: 104px; }
+  .order-hero-badge { width: 132px; height: 132px; top: 10px; }
+  .order-hero h1, .order-hero .page-lede { padding-right: 150px; }
+}
