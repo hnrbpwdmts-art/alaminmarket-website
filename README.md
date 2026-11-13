@@ -72,3 +72,9 @@ Everyday use (works from your phone in the Google Sheets app):
   groceries/index.html (and the business info block in index.html's <head>) so
   Google can read them. If the address, phone, or hours change, update
   site-config.js AND ask Claude to refresh those two files.
+
+## After changing styles.css or any .js file
+Browsers keep these files for a while. All pages link them with a version number,
+for example `styles.css?v=20261113`. When you change one of these files, change the
+number in every .html file (any new number works, e.g. today's date) so visitors get
+the new version right away.

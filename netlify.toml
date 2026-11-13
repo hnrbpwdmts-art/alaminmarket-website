@@ -1,9 +1,0 @@
-# Make sure visitors always get the latest text, settings, and layout
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-[[headers]]
-  for = "/*.css"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
