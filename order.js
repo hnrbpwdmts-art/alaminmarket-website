@@ -404,7 +404,7 @@
       if (!need.every(function (days) { return days.indexOf(dn) > -1; })) continue;
       var label = (i === 0 ? "Today, " : i === 1 ? "Tomorrow, " : "") +
         d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-      var o = el("option", null, label); o.value = label; sel.appendChild(o);
+      var o = el("option", null, label); o.value = label; o.setAttribute("data-date", isoDate(d)); sel.appendChild(o);
     }
     if (!sel.options.length) { var none = el("option", null, "No day has all items. Remove one to continue."); none.value = ""; sel.appendChild(none); }
     if ([].some.call(sel.options, function (o) { return o.value === prev; })) sel.value = prev;
@@ -459,9 +459,56 @@
     var num = orderNumber(), msg = buildMessage(num), url;
     if (channel === "whatsapp") url = "https://wa.me/" + S.store.whatsappNumber + "?text=" + encodeURIComponent(msg);
     else url = "sms:+" + (M.textNumber || S.store.whatsappNumber) + "?&body=" + encodeURIComponent(msg);
+    logOrder(num, channel);
     window.location.href = url;
     showDone(num, channel);
   }
+  // Save a copy of the order to the store's Google Sheet (see backend/README.md)
+  function logOrder(num, channel) {
+    if (!M.orderLogUrl) return;
+    var src = "";
+    try { src = sessionStorage.getItem("alamin-source") || ""; } catch (e) { /* ignore */ }
+    var total = 0, allPriced = true;
+    var items = state.cart.map(function (l) {
+      var t = lineText(l), cost = lineCost(l), cat = "";
+      M.categories.forEach(function (c) { (c.items || []).forEach(function (it) { if (it.id === l.id) cat = c.name; }); });
+      if (cost == null) allPriced = false; else total += cost;
+      return {
+        category: cat, item: t.item.name, choices: t.desc, special: t.custom,
+        qty: l.qty, unit: lineUnit(l) === "lb" ? "lb" : "count",
+        price: itemPrice(t.item, l.picks), priceUnit: priceUnit(t.item),
+        estimate: cost != null ? Math.round(cost * 100) / 100 : ""
+      };
+    });
+    var data = {
+      version: 1,
+      orderNumber: num,
+      sentAt: new Date().toISOString(),
+      channel: channel === "whatsapp" ? "WhatsApp" : "Text",
+      mode: state.mode,
+      day: $("order-day").value,
+      date: ($("order-day").selectedOptions[0] || {}).getAttribute ? $("order-day").selectedOptions[0].getAttribute("data-date") : "",
+      time: $("order-time").value,
+      name: state.name,
+      phone: state.phone,
+      address: state.mode === "delivery" ? state.address : "",
+      notes: $("order-notes").value.trim(),
+      marketingOptIn: $("order-optin").checked,
+      optInText: $("order-optin").checked ? $("order-optin").parentNode.textContent.replace(/\s+/g, " ").trim() : "",
+      estimatedTotal: total ? Math.round(total * 100) / 100 : "",
+      allPriced: allPriced,
+      itemCount: items.length,
+      items: items,
+      source: src,
+      device: /Mobi|Android|iPhone/i.test(navigator.userAgent) ? "Phone" : "Computer"
+    };
+    var body = JSON.stringify(data);
+    try {
+      if (navigator.sendBeacon && navigator.sendBeacon(M.orderLogUrl, new Blob([body], { type: "text/plain" }))) return;
+    } catch (e) { /* fall through */ }
+    try { fetch(M.orderLogUrl, { method: "POST", mode: "no-cors", keepalive: true, headers: { "Content-Type": "text/plain" }, body: body }); } catch (e) { /* ignore */ }
+  }
+
   function showDone(num, channel) {
     doneEl.textContent = "";
     doneEl.appendChild(el("h2", null, "Almost done!"));

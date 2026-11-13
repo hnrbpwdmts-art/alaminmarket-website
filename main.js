@@ -524,6 +524,16 @@
     } else { load(); }
   })();
 
+  // Remember where this visit came from (Google, Instagram, etc.) for order stats
+  try {
+    if (!sessionStorage.getItem("alamin-source")) {
+      var qp = new URLSearchParams(location.search), ref = document.referrer, src = "";
+      if (qp.get("utm_source")) src = qp.get("utm_source");
+      else if (ref && new URL(ref).hostname !== location.hostname) src = new URL(ref).hostname.replace(/^www\./, "");
+      sessionStorage.setItem("alamin-source", src || "direct");
+    }
+  } catch (e) { /* ignore */ }
+
   // Footer year
   document.getElementById("year").textContent = new Date().getFullYear();
 

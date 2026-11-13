@@ -37,7 +37,12 @@ window.MEAT_MENU = {
 
   /* Orders sent by WhatsApp go to the WhatsApp number in site-config.js. */
 
-  orderPrefix: "A",          // order numbers look like A1112-482
+  orderPrefix: "A",
+
+  /* Every order sent is also saved to your Google Sheet. Paste the web app
+     link from the setup guide (backend/README.md) between the quotes.
+     Leave "" to turn saving off. */
+  orderLogUrl: "",          // order numbers look like A1112-482
 
   pickup: {
     enabled: true,

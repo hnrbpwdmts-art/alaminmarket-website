@@ -103,6 +103,7 @@
             <label class="order-field" id="order-address-wrap" hidden>Delivery address<textarea id="order-address" rows="2" autocomplete="street-address" placeholder="Street, city, ZIP"></textarea></label>
             <p class="order-delivery-note" id="order-delivery-note" hidden></p>
             <label class="order-field">Notes (optional)<textarea id="order-notes" rows="2" placeholder="Anything we should know about your cuts"></textarea></label>
+            <label class="order-optin"><input type="checkbox" id="order-optin"> <span>Yes, text me deals and new arrivals from Super Al-Amin. A few messages a month at most. Message and data rates may apply. Reply STOP anytime to stop. <em>(Optional, not needed to order.)</em></span></label>
             <p class="order-error" id="order-error" role="alert" hidden></p>
 
             <h2 class="order-step-title"><span class="order-step-num">4</span> Send your order</h2>
@@ -111,6 +112,7 @@
               <button type="button" class="btn btn-primary" id="send-text">Send by text</button>
             </div>
             <p class="order-fineprint">Your order isn't placed until you press send in WhatsApp or Messages. Meat is priced by weight, so your final total may be a little different from the estimate.</p>
+            <p class="order-fineprint order-privacy">When you send an order, we save a copy of it (your name, phone number, and what you ordered) to prepare your order, contact you about it, and understand what our customers buy. We never sell your information. <a href="../privacy/">Privacy notice</a></p>
           </form>
 
           <div id="order-done" class="order-done" hidden></div>
@@ -125,6 +127,7 @@
       <p><a class="footer-address" href="https://www.google.com/maps/dir/?api=1&amp;destination=18220+Prairie+Ave%2C+Torrance%2C+CA+90504" data-link="directions" data-text="address" target="_blank" rel="noopener">18220 Prairie Ave, Torrance, CA 90504</a></p>
       <p><span data-text="hoursSummary">Open daily 10 AM–8 PM</span><br><span class="footer-prayer" data-text="fridayNote">Closed Fridays 12:15–1:15 PM for prayer</span></p>
       <ul class="footer-social" id="footer-social" aria-label="Social media"></ul>
+      <p class="footer-links"><a href="../privacy/">Privacy notice</a></p>
       <p class="footer-copy">© <span id="year">2026</span> <span data-text="name">Super Al-Amin Halal Market</span></p>
     </div>
   </footer>
