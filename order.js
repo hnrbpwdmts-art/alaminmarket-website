@@ -89,23 +89,41 @@
   }
 
   // ---------- saved state ----------
-  var state = { cart: [], mode: "pickup", name: "", phone: "", address: "" };
+  var state = { cart: [], mode: "pickup", name: "", phone: "", address: "", addr: {} };
+  var quote = null;           // live delivery price from Uber: { fee, minutes, quoteId } or { error }
   try {
     var saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
     if (saved && Array.isArray(saved.cart)) {
       state = Object.assign(state, saved);
-      state.cart = saved.cart.filter(function (l) { return findItem(l.id); });
+      state.cart = saved.cart.filter(function (l) {
+        var it = findItem(l.id);
+        return it && l.picks && (it.choices || []).every(function (q) { return l.picks[q]; });
+      });
     }
   } catch (e) { /* storage unavailable */ }
   function save() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify({ cart: state.cart, mode: state.mode, name: state.name, phone: state.phone, address: state.address })); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ cart: state.cart, mode: state.mode, name: state.name, phone: state.phone, addr: state.addr })); } catch (e) { /* ignore */ }
+  }
+
+  // ---------- category icons (simple line drawings) ----------
+  var ICONS = {
+    chicken: '<ellipse cx="15" cy="9" rx="6" ry="5" transform="rotate(-45 15 9)"/><path d="M11.5 12.5L6 18"/><circle cx="4.6" cy="17.6" r="1.6"/><circle cx="6.4" cy="19.4" r="1.6"/>',
+    lamb: '<circle cx="9" cy="15" r="5.5"/><circle cx="9" cy="15" r="2"/><path d="M13 11l6.5-6.5"/><circle cx="20" cy="3.6" r="1.3"/><circle cx="20.6" cy="5.8" r="1.3"/>',
+    beef: '<path d="M3.5 12.5C3.5 7.5 8 4.5 13 4.5c4.5 0 7.5 2.7 7.5 6.2 0 2.6-1.8 3.8-3.6 4.8-1.9 1-2.4 4-6.4 4C6.2 19.5 3.5 16.6 3.5 12.5z"/><circle cx="14" cy="10" r="2.2"/>',
+    goat: '<path d="M8 7C6.5 4.5 4 4 2.5 5.5c2 .2 3.3 1.5 4 3.5"/><path d="M16 7c1.5-2.5 4-3 5.5-1.5-2 .2-3.3 1.5-4 3.5"/><path d="M7 10c0-2.4 2.2-3.6 5-3.6s5 1.2 5 3.6v4.5c0 3-2.2 5.5-5 5.5s-5-2.5-5-5.5z"/><path d="M10 12h.01M14 12h.01"/><path d="M11 20.5c.3 1 .6 1.5 1 1.5s.7-.5 1-1.5"/>',
+    veal: '<path d="M5 10c0-3 3-5 7-5s7 2 7 5v3c0 4-3 7-7 7s-7-3-7-7z"/><path d="M5 10L2.5 8.5M19 10l2.5-1.5"/><path d="M9.5 15.5c1.5 1 3.5 1 5 0"/><path d="M9.5 11h.01M14.5 11h.01"/>'
+  };
+  function icon(id) {
+    return ICONS[id] ? '<svg aria-hidden="true" viewBox="0 0 24 24">' + ICONS[id] + "</svg>" : "";
   }
 
   // ---------- menu ----------
   var activeCat = 0, catTabs = [];
   function renderCats() {
     M.categories.forEach(function (cat, i) {
-      var b = el("button", "order-cat", cat.name);
+      var b = el("button", "order-cat");
+      b.innerHTML = icon(cat.id);
+      b.appendChild(el("span", null, cat.name));
       b.type = "button"; b.setAttribute("role", "tab");
       b.addEventListener("click", function () { activeCat = i; updateCats(); renderItems(); });
       catsEl.appendChild(b); catTabs.push(b);
@@ -157,9 +175,19 @@
         if (opts.length === 1 && (item.choices || []).indexOf(q) > 0) return;
         var group = el("div", "order-q");
         group.appendChild(el("p", "order-q-label", q));
-        var row = el("div", "order-opts");
+        // Layout: piece counts as small tiles, long lists in a neat grid,
+        // grinds grouped under "Ground"
+        var isCount = opts.every(function (v) { return /^(\d+ pieces|Whole.*)$/.test(v); }) && opts.some(function (v) { return /^\d+ pieces$/.test(v); });
+        var ground = opts.filter(function (v) { return /^Ground \(/.test(v); });
+        var main = opts.filter(function (v) { return ground.indexOf(v) === -1; });
+        var row = el("div", "order-opts" + (isCount ? " order-opts-tiles" : main.length > 4 ? " order-opts-grid" : ""));
+        var groundRow = null;
+        if (ground.length) {
+          groundRow = el("div", "order-opts order-opts-grid");
+        }
         opts.forEach(function (v) {
-          var label = v;
+          var label = isCount ? v.replace(/^(\d+) pieces$/, "$1 pcs").replace(/^Whole.*$/, "Whole") :
+            ground.indexOf(v) > -1 ? v.replace(/^Ground \((.*)\)$/, function (m, g) { return g.charAt(0).toUpperCase() + g.slice(1); }) : v;
           if (item.prices && item.priceChoice === q && item.prices[v] != null)
             label += " · " + money(item.prices[v]) + (priceUnit(item) === "lb" ? "/lb" : "");
           var b = el("button", "order-opt", label);
@@ -172,28 +200,16 @@
             for (var k = i + 1; k < qs.length; k++) delete picked[qs[k]];
             draw();
           });
-          row.appendChild(b);
+          if (isCount && /^Whole/.test(v)) b.title = v;
+          (ground.indexOf(v) > -1 ? groundRow : row).appendChild(b);
         });
-        group.appendChild(row);
+        if (row.children.length) group.appendChild(row);
+        if (groundRow) {
+          group.appendChild(el("p", "order-q-sublabel", "Ground"));
+          group.appendChild(groundRow);
+        }
         body.appendChild(group);
       });
-      // packing
-      var packs = packingFor(item, picked);
-      if (packs.length) {
-        if (packs.indexOf(picked.Packing) === -1) picked.Packing = packs[0];
-        var pg = el("div", "order-q");
-        pg.appendChild(el("p", "order-q-label", "Packing" + (item.packing ? "" : " (smallest pack is 1 lb)")));
-        var prow = el("div", "order-opts");
-        packs.forEach(function (v) {
-          var b = el("button", "order-opt", v); b.type = "button";
-          b.setAttribute("aria-pressed", picked.Packing === v ? "true" : "false");
-          if (packs.length === 1) b.disabled = true;
-          b.addEventListener("click", function () { picked.Packing = v; draw(); });
-          prow.appendChild(b);
-        });
-        pg.appendChild(prow); body.appendChild(pg);
-      } else delete picked.Packing;
-
       // quantity
       var qrow = el("div", "order-qty-row");
       var qlab = el("div", "order-qty-label");
@@ -213,11 +229,33 @@
       var minus = el("button", "order-step-btn", "−"); minus.type = "button"; minus.setAttribute("aria-label", "Less");
       var val = el("span", "order-step-val", unit === "lb" ? fmtQty(qty, "lb") : String(qty)); val.setAttribute("aria-live", "polite");
       var plus = el("button", "order-step-btn", "+"); plus.type = "button"; plus.setAttribute("aria-label", "More");
-      minus.addEventListener("click", function () { qty = Math.max(min, Math.round((qty - step) * 100) / 100); val.textContent = unit === "lb" ? fmtQty(qty, "lb") : String(qty); });
-      plus.addEventListener("click", function () { qty = Math.round((qty + step) * 100) / 100; val.textContent = unit === "lb" ? fmtQty(qty, "lb") : String(qty); });
+      minus.addEventListener("click", function () { qty = Math.max(min, Math.round((qty - step) * 100) / 100); draw(); });
+      plus.addEventListener("click", function () { qty = Math.round((qty + step) * 100) / 100; draw(); });
       stepper.appendChild(minus); stepper.appendChild(val); stepper.appendChild(plus);
       qrow.appendChild(stepper);
       body.appendChild(qrow);
+
+
+      // packing: pack sizes bigger than the order are not offered
+      var orderLb = unit === "lb" ? qty : (item.avgWeight ? qty * item.avgWeight : null);
+      var packs = packingFor(item, picked).filter(function (v) {
+        var m = v.match(/^(\d+(?:\.\d+)?) lb packs/);
+        return !m || orderLb == null || +m[1] < orderLb;
+      });
+      if (packs.length) {
+        if (packs.indexOf(picked.Packing) === -1) picked.Packing = packs[0];
+        var pg = el("div", "order-q");
+        pg.appendChild(el("p", "order-q-label", "Packing" + (item.packing ? "" : " (smallest pack is 1 lb)")));
+        var prow = el("div", "order-opts" + (packs.length > 4 ? " order-opts-grid" : ""));
+        packs.forEach(function (v) {
+          var b = el("button", "order-opt", v); b.type = "button";
+          b.setAttribute("aria-pressed", picked.Packing === v ? "true" : "false");
+          if (packs.length === 1) b.disabled = true;
+          b.addEventListener("click", function () { picked.Packing = v; draw(); });
+          prow.appendChild(b);
+        });
+        pg.appendChild(prow); body.appendChild(pg);
+      } else delete picked.Packing;
 
       // Free-text special cutting request, at the end of every item
       var cl = el("label", "order-field order-custom");
@@ -302,6 +340,7 @@
     cartEl.appendChild(tot);
     form.hidden = false;
     renderDays();
+    renderTotals();
   }
 
   // ---------- pickup / delivery ----------
@@ -321,14 +360,19 @@
       fs.appendChild(lab);
     });
     fs.hidden = modes.length < 2;
+    $("order-step3-title").textContent = modes.length < 2 ? (modes[0].id === "pickup" ? "Pickup details" : "Delivery details") : "Pickup or delivery";
     updateMode();
   }
   function updateMode() {
     var isDel = state.mode === "delivery";
     $("order-address-wrap").hidden = !isDel;
-    var note = $("order-delivery-note");
-    note.hidden = !(isDel && M.delivery.note);
-    note.textContent = (M.delivery && M.delivery.note) || "";
+    var note = $("order-delivery-note"), parts = [];
+    if (M.delivery && M.delivery.minimumOrder) parts.push("Delivery minimum: " + money(M.delivery.minimumOrder) + " of meat.");
+    if (M.delivery && M.delivery.quoteUrl) parts.push("Delivered by Uber. Enter your address to see the delivery price.");
+    else if (M.delivery && M.delivery.note) parts.push(M.delivery.note);
+    note.textContent = parts.join(" ");
+    note.hidden = !isDel || !parts.length;
+    renderTotals();
     var times = ((isDel ? M.delivery.times : M.pickup.times) || []).filter(function (t) {
       // For today, hide time windows that have already ended
       if ($("order-day").selectedIndex !== 0 || !/^Today/.test($("order-day").value)) return true;
@@ -358,12 +402,62 @@
       if (!need.every(function (days) { return days.indexOf(dn) > -1; })) continue;
       var label = (i === 0 ? "Today, " : i === 1 ? "Tomorrow, " : "") +
         d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-      var o = el("option", null, label); o.value = label; sel.appendChild(o);
+      var o = el("option", null, label); o.value = label; o.setAttribute("data-date", isoDate(d)); sel.appendChild(o);
     }
     if (!sel.options.length) { var none = el("option", null, "No day has all items. Remove one to continue."); none.value = ""; sel.appendChild(none); }
     if ([].some.call(sel.options, function (o) { return o.value === prev; })) sel.value = prev;
     updateMode();
     if (!$("order-time").options.length && sel.options.length > 1) { sel.selectedIndex = 1; updateMode(); }
+  }
+
+  // ---------- delivery price ----------
+  function readAddr() {
+    state.addr = { street: $("addr-street").value.trim(), unit: $("addr-unit").value.trim(),
+      city: $("addr-city").value.trim(), zip: $("addr-zip").value.trim() };
+    var a = state.addr;
+    state.address = a.street ? a.street + (a.unit ? ", " + a.unit : "") + ", " + a.city + ", CA " + a.zip : "";
+    return a;
+  }
+  function addrComplete(a) { return a.street.length >= 4 && a.city.length >= 2 && /^\d{5}$/.test(a.zip); }
+  function subtotal() {
+    var t = 0; state.cart.forEach(function (l) { var c = lineCost(l); if (c != null) t += c; }); return t;
+  }
+  function showQuote(text, isError) {
+    var q = $("order-quote"); q.hidden = !text; q.textContent = text || "";
+    q.classList.toggle("is-error", !!isError);
+  }
+  function clearQuote() { quote = null; showQuote(""); renderTotals(); }
+  function getQuote() {
+    var a = readAddr(); save();
+    if (!addrComplete(a)) { showQuote("Please enter your street, city, and 5-digit ZIP code.", true); return; }
+    if (!M.delivery.quoteUrl) { quote = { error: "off" }; showQuote(M.delivery.note); return; }
+    showQuote("Checking delivery price…");
+    fetch(M.delivery.quoteUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(a) })
+      .then(function (r) { return r.json().catch(function () { return { ok: false, error: "unavailable" }; }); })
+      .then(function (d) {
+        if (d && d.ok) {
+          quote = { fee: d.fee, minutes: d.minutes, quoteId: d.quoteId };
+          showQuote("Delivery: " + money(d.fee) + (d.minutes ? " · about " + d.minutes + " min once your order is ready" : ""));
+        } else if (d && (d.error === "outside_area" || d.error === "undeliverable")) {
+          quote = { error: d.error };
+          showQuote("Sorry, we can't deliver to this address. Please choose pickup, or message us.", true);
+        } else {
+          quote = { error: "unavailable" };
+          showQuote("We couldn't get a live delivery price right now. " + M.delivery.note);
+        }
+        renderTotals();
+      })
+      .catch(function () { quote = { error: "unavailable" }; showQuote("We couldn't get a live delivery price right now. " + M.delivery.note); renderTotals(); });
+  }
+  // Delivery fee line under the order total
+  function renderTotals() {
+    var old = cartEl.querySelector(".order-total-delivery");
+    if (old) old.remove();
+    if (state.mode !== "delivery" || !quote || quote.fee == null || !state.cart.length) return;
+    var row = el("p", "order-total order-total-delivery");
+    row.appendChild(el("span", null, "Delivery (Uber)"));
+    row.appendChild(el("strong", null, money(quote.fee)));
+    cartEl.appendChild(row);
   }
 
   // ---------- send ----------
@@ -376,12 +470,17 @@
     var err = "";
     state.name = $("order-name").value.trim();
     state.phone = $("order-phone").value.trim();
-    state.address = $("order-address").value.trim();
+    var a = readAddr();
     save();
     if (!$("order-day").value) err = "Please pick a day.";
     else if (!state.name) err = "Please enter your name.";
     else if (state.phone.replace(/\D/g, "").length < 10) err = "Please enter a phone number we can text.";
-    else if (state.mode === "delivery" && state.address.length < 8) err = "Please enter your delivery address.";
+    else if (state.mode === "delivery" && !addrComplete(a)) err = "Please enter your delivery street, city, and ZIP code.";
+    else if (state.mode === "delivery" && M.delivery.minimumOrder && subtotal() < M.delivery.minimumOrder)
+      err = "Delivery orders need at least " + money(M.delivery.minimumOrder) + " of meat. Add more, or choose pickup.";
+    else if (state.mode === "delivery" && M.delivery.quoteUrl && !quote) err = "Please tap \"Get delivery price\" first.";
+    else if (state.mode === "delivery" && quote && (quote.error === "outside_area" || quote.error === "undeliverable"))
+      err = "We can't deliver to this address. Please choose pickup.";
     var e = $("order-error"); e.hidden = !err; e.textContent = err;
     return !err;
   }
@@ -402,8 +501,10 @@
     });
     lines.push("");
     var byWeight = state.cart.some(function (l) { return priceUnit(findItem(l.id)) === "lb"; });
-    if (total > 0) lines.push((byWeight ? "Estimated total: " : "Total: ") + (allPriced ? "" : "at least ") + money(total) +
-      (isDel ? " + delivery" : "") + (byWeight ? " (final price by weight)" : ""));
+    var fee = isDel && quote && quote.fee != null ? quote.fee : null;
+    if (fee != null) lines.push("Delivery fee (Uber quote): " + money(fee) + (quote.quoteId ? " [" + quote.quoteId + "]" : ""));
+    if (total > 0) lines.push((byWeight ? "Estimated total: " : "Total: ") + (allPriced ? "" : "at least ") + money(total + (fee || 0)) +
+      (isDel ? (fee != null ? " incl. delivery" : " + delivery") : "") + (byWeight ? " (final price by weight)" : ""));
     var notes = $("order-notes").value.trim();
     if (notes) lines.push("Notes: " + notes);
     return lines.join("\n");
@@ -413,9 +514,56 @@
     var num = orderNumber(), msg = buildMessage(num), url;
     if (channel === "whatsapp") url = "https://wa.me/" + S.store.whatsappNumber + "?text=" + encodeURIComponent(msg);
     else url = "sms:+" + (M.textNumber || S.store.whatsappNumber) + "?&body=" + encodeURIComponent(msg);
+    logOrder(num, channel);
     window.location.href = url;
     showDone(num, channel);
   }
+  // Save a copy of the order to the store's Google Sheet (see backend/README.md)
+  function logOrder(num, channel) {
+    if (!M.orderLogUrl) return;
+    var src = "";
+    try { src = sessionStorage.getItem("alamin-source") || ""; } catch (e) { /* ignore */ }
+    var total = 0, allPriced = true;
+    var items = state.cart.map(function (l) {
+      var t = lineText(l), cost = lineCost(l), cat = "";
+      M.categories.forEach(function (c) { (c.items || []).forEach(function (it) { if (it.id === l.id) cat = c.name; }); });
+      if (cost == null) allPriced = false; else total += cost;
+      return {
+        category: cat, item: t.item.name, choices: t.desc, special: t.custom,
+        qty: l.qty, unit: lineUnit(l) === "lb" ? "lb" : "count",
+        price: itemPrice(t.item, l.picks), priceUnit: priceUnit(t.item),
+        estimate: cost != null ? Math.round(cost * 100) / 100 : ""
+      };
+    });
+    var data = {
+      version: 1,
+      orderNumber: num,
+      sentAt: new Date().toISOString(),
+      channel: channel === "whatsapp" ? "WhatsApp" : "Text",
+      mode: state.mode,
+      day: $("order-day").value,
+      date: ($("order-day").selectedOptions[0] || {}).getAttribute ? $("order-day").selectedOptions[0].getAttribute("data-date") : "",
+      time: $("order-time").value,
+      name: state.name,
+      phone: state.phone,
+      address: state.mode === "delivery" ? state.address + (quote && quote.fee != null ? " (Uber fee " + money(quote.fee) + ")" : "") : "",
+      notes: $("order-notes").value.trim(),
+      marketingOptIn: $("order-optin").checked,
+      optInText: $("order-optin").checked ? $("order-optin").parentNode.textContent.replace(/\s+/g, " ").trim() : "",
+      estimatedTotal: total ? Math.round(total * 100) / 100 : "",
+      allPriced: allPriced,
+      itemCount: items.length,
+      items: items,
+      source: src,
+      device: /Mobi|Android|iPhone/i.test(navigator.userAgent) ? "Phone" : "Computer"
+    };
+    var body = JSON.stringify(data);
+    try {
+      if (navigator.sendBeacon && navigator.sendBeacon(M.orderLogUrl, new Blob([body], { type: "text/plain" }))) return;
+    } catch (e) { /* fall through */ }
+    try { fetch(M.orderLogUrl, { method: "POST", mode: "no-cors", keepalive: true, headers: { "Content-Type": "text/plain" }, body: body }); } catch (e) { /* ignore */ }
+  }
+
   function showDone(num, channel) {
     doneEl.textContent = "";
     doneEl.appendChild(el("h2", null, "Almost done!"));
@@ -435,9 +583,15 @@
   // ---------- start ----------
   $("order-name").value = state.name || "";
   $("order-phone").value = state.phone || "";
-  $("order-address").value = state.address || "";
+  var sa = state.addr || {};
+  $("addr-street").value = sa.street || ""; $("addr-unit").value = sa.unit || "";
+  $("addr-city").value = sa.city || ""; $("addr-zip").value = sa.zip || "";
+  ["addr-street", "addr-unit", "addr-city", "addr-zip"].forEach(function (id) { $(id).addEventListener("input", clearQuote); });
+  $("get-quote").addEventListener("click", getQuote);
   $("order-day").addEventListener("change", updateMode);
   $("send-whatsapp").addEventListener("click", function () { send("whatsapp"); });
   $("send-text").addEventListener("click", function () { send("text"); });
+  // Computers usually can't send text messages, so only offer WhatsApp there
+  if (!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) && !("ontouchstart" in window)) $("send-text").hidden = true;
   renderCats(); renderItems(); renderModes(); renderCart();
 })();

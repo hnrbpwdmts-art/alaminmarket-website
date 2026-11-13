@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Order Halal Meat for Pickup or Delivery | Super Al-Amin</title>
-  <meta name="description" content="Order fresh halal meat from Super Al-Amin Halal Market in Torrance, CA, for pickup or delivery. Choose your cuts and send your order by WhatsApp or text.">
+  <title>Order Halal Meat Online | Super Al-Amin, Torrance</title>
+  <meta name="description" content="Order halal chicken, beef, lamb, baby goat, and veal from Super Al-Amin Halal Market in Torrance, CA. Choose your cuts and packing, and send your order by WhatsApp or text.">
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#1d4a34">
   <link rel="icon" href="../images/favicon.png" type="image/png">
@@ -27,25 +27,54 @@
         <span class="nav-toggle-label">Menu</span>
       </button>
       <nav id="site-nav" class="site-nav" aria-label="Main">
-        <ul>
+        <ul class="nav-list">
           <li><a href="../#home">Home</a></li>
+          <li class="has-sub">
+            <button class="nav-sub-toggle" type="button" aria-expanded="false" aria-controls="nav-shop">Shop <svg class="nav-chev" aria-hidden="true" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+            <ul class="nav-sub" id="nav-shop">
+              <li><a class="nav-sub-feature" href="../order/" aria-current="page"><strong>Order meat online</strong><span>Choose your cuts, pick up at the store</span></a></li>
+              <li><a href="../groceries/#produce">Fresh produce</a></li>
+              <li><a href="../groceries/#snacks">Snacks &amp; chai</a></li>
+              <li><a href="../groceries/#pantry">Pantry staples</a></li>
+              <li><a href="../groceries/#sri-lankan">Sri Lankan groceries</a></li>
+              <li><a href="../groceries/#treats">Halal treats</a></li>
+              <li><a href="../groceries/">All groceries →</a></li>
+            </ul>
+          </li>
           <li><a href="../#meat">Meat Counter</a></li>
           <li><a href="../#samosas">Samosas &amp; Chai</a></li>
-          <li><a href="../groceries/">Groceries</a></li>
           <li data-reviews-nav hidden><a href="../#reviews">Reviews</a></li>
           <li data-deals-nav hidden><a href="../#deals">Deals</a></li>
           <li><a href="../#visit">Visit</a></li>
+          <li class="nav-cta"><a href="../order/">Order Meat</a></li>
         </ul>
       </nav>
     </div>
   </header>
 
   <main id="main">
-    <section class="page-hero" aria-labelledby="page-title">
+    <section class="page-hero order-hero" aria-labelledby="page-title">
       <div class="container">
         <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../">Home</a><span aria-hidden="true">/</span><span aria-current="page">Order meat</span></nav>
+        <img class="halal-badge order-hero-badge" src="../images/halal-badge.svg" alt="100% halal meat from certified halal suppliers" width="120" height="120">
         <h1 id="page-title">Order halal meat</h1>
-        <p class="page-lede">Pick your meat and cuts, then send us your pickup order by WhatsApp or text. We'll text you back with your ready time, final total, and a payment link.</p>
+        <p class="page-lede">Choose your meat and how you want it cut. We'll have it ready for pickup at our Torrance store.</p>
+        <ul class="order-badges">
+          <li><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>Certified halal suppliers</li>
+          <li><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 3l7 7-9 9-7-7z"/><path d="M5 12l-2 2 7 7 2-2"/><circle cx="16" cy="8" r="1.2"/></svg>Cut to order</li>
+          <li><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 9v11h14V9"/><path d="M10 20v-6h4v6"/></svg>Pickup in Torrance</li>
+          <li><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></svg>Pay by text link</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="order-steps" aria-label="How ordering works">
+      <div class="container">
+        <ol class="order-steps-list">
+          <li><span class="order-steps-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg></span><strong>Pick your meat</strong><span>Choose cuts, weight, and packing.</span></li>
+          <li><span class="order-steps-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg></span><strong>Send your order</strong><span>By WhatsApp or text, in one tap.</span></li>
+          <li><span class="order-steps-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><strong>We text you back</strong><span>Ready time, final total, and a payment link.</span></li>
+        </ol>
       </div>
     </section>
 
@@ -63,7 +92,7 @@
           <div id="order-cart" class="order-cart"><p class="order-empty">Nothing added yet.</p></div>
 
           <form id="order-form" class="order-form" novalidate hidden>
-            <h2 class="order-step-title"><span class="order-step-num">3</span> Pickup or delivery</h2>
+            <h2 class="order-step-title"><span class="order-step-num">3</span> <span id="order-step3-title">Pickup or delivery</span></h2>
             <fieldset class="order-choice" id="order-mode">
               <legend class="visually-hidden">Pickup or delivery</legend>
             </fieldset>
@@ -73,9 +102,19 @@
             </div>
             <label class="order-field">Your name<input id="order-name" type="text" autocomplete="name" required></label>
             <label class="order-field">Phone number<input id="order-phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="(310) 555-0123" required></label>
-            <label class="order-field" id="order-address-wrap" hidden>Delivery address<textarea id="order-address" rows="2" autocomplete="street-address" placeholder="Street, city, ZIP"></textarea></label>
+            <div id="order-address-wrap" class="order-address" hidden>
+              <label class="order-field">Street address<input id="addr-street" type="text" autocomplete="address-line1" placeholder="123 Main St"></label>
+              <div class="order-field-row">
+                <label class="order-field">Apt / unit (optional)<input id="addr-unit" type="text" autocomplete="address-line2"></label>
+                <label class="order-field">ZIP code<input id="addr-zip" type="text" inputmode="numeric" maxlength="5" autocomplete="postal-code" placeholder="90504"></label>
+              </div>
+              <label class="order-field">City<input id="addr-city" type="text" autocomplete="address-level2" placeholder="Torrance"></label>
+              <button type="button" class="btn btn-cream order-quote-btn" id="get-quote">Get delivery price</button>
+              <p class="order-quote" id="order-quote" role="status" hidden></p>
+            </div>
             <p class="order-delivery-note" id="order-delivery-note" hidden></p>
             <label class="order-field">Notes (optional)<textarea id="order-notes" rows="2" placeholder="Anything we should know about your cuts"></textarea></label>
+            <label class="order-optin"><input type="checkbox" id="order-optin"> <span>Yes, text me deals and new arrivals from Super Al-Amin. A few messages a month at most. Message and data rates may apply. Reply STOP anytime to stop. <em>(Optional, not needed to order.)</em></span></label>
             <p class="order-error" id="order-error" role="alert" hidden></p>
 
             <h2 class="order-step-title"><span class="order-step-num">4</span> Send your order</h2>
@@ -84,6 +123,7 @@
               <button type="button" class="btn btn-primary" id="send-text">Send by text</button>
             </div>
             <p class="order-fineprint">Your order isn't placed until you press send in WhatsApp or Messages. Meat is priced by weight, so your final total may be a little different from the estimate.</p>
+            <p class="order-fineprint order-privacy">When you send an order, we save a copy of it (your name, phone number, and what you ordered) to prepare your order, contact you about it, and understand what our customers buy. We never sell your information. <a href="../privacy/">Privacy notice</a></p>
           </form>
 
           <div id="order-done" class="order-done" hidden></div>
@@ -97,7 +137,9 @@
       <p class="footer-name" data-text="name">Super Al-Amin Halal Market</p>
       <p><a class="footer-address" href="https://www.google.com/maps/dir/?api=1&amp;destination=18220+Prairie+Ave%2C+Torrance%2C+CA+90504" data-link="directions" data-text="address" target="_blank" rel="noopener">18220 Prairie Ave, Torrance, CA 90504</a></p>
       <p><span data-text="hoursSummary">Open daily 10 AM–8 PM</span><br><span class="footer-prayer" data-text="fridayNote">Closed Fridays 12:15–1:15 PM for prayer</span></p>
+      <p class="footer-halal">100% halal meat from certified halal suppliers</p>
       <ul class="footer-social" id="footer-social" aria-label="Social media"></ul>
+      <p class="footer-links"><a href="../privacy/">Privacy notice</a></p>
       <p class="footer-copy">© <span id="year">2026</span> <span data-text="name">Super Al-Amin Halal Market</span></p>
     </div>
   </footer>
