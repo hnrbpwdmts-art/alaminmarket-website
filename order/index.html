@@ -100,7 +100,16 @@
             </div>
             <label class="order-field">Your name<input id="order-name" type="text" autocomplete="name" required></label>
             <label class="order-field">Phone number<input id="order-phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="(310) 555-0123" required></label>
-            <label class="order-field" id="order-address-wrap" hidden>Delivery address<textarea id="order-address" rows="2" autocomplete="street-address" placeholder="Street, city, ZIP"></textarea></label>
+            <div id="order-address-wrap" class="order-address" hidden>
+              <label class="order-field">Street address<input id="addr-street" type="text" autocomplete="address-line1" placeholder="123 Main St"></label>
+              <div class="order-field-row">
+                <label class="order-field">Apt / unit (optional)<input id="addr-unit" type="text" autocomplete="address-line2"></label>
+                <label class="order-field">ZIP code<input id="addr-zip" type="text" inputmode="numeric" maxlength="5" autocomplete="postal-code" placeholder="90504"></label>
+              </div>
+              <label class="order-field">City<input id="addr-city" type="text" autocomplete="address-level2" placeholder="Torrance"></label>
+              <button type="button" class="btn btn-cream order-quote-btn" id="get-quote">Get delivery price</button>
+              <p class="order-quote" id="order-quote" role="status" hidden></p>
+            </div>
             <p class="order-delivery-note" id="order-delivery-note" hidden></p>
             <label class="order-field">Notes (optional)<textarea id="order-notes" rows="2" placeholder="Anything we should know about your cuts"></textarea></label>
             <label class="order-optin"><input type="checkbox" id="order-optin"> <span>Yes, text me deals and new arrivals from Super Al-Amin. A few messages a month at most. Message and data rates may apply. Reply STOP anytime to stop. <em>(Optional, not needed to order.)</em></span></label>

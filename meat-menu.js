@@ -52,8 +52,12 @@ window.MEAT_MENU = {
   delivery: {
     enabled: false,          // true = offer delivery (turn on once delivery is ready)
     times: ["12–3 PM", "3–6 PM", "6–8 PM"],
-    /* Shown until online delivery quotes are set up. */
-    note: "We'll text you the delivery fee together with your total."
+    /* Shown when a live delivery price isn't available. */
+    note: "We'll text you the delivery fee together with your total.",
+    /* Live delivery prices from Uber Direct (works once the site is on
+       Cloudflare and the Uber keys are added there). Leave "" to turn off. */
+    quoteUrl: "/api/delivery-quote",
+    minimumOrder: 40          // smallest estimated order for delivery, in dollars
   },
 
   /* Packing choices offered on every item (customers pick one).

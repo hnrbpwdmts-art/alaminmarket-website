@@ -89,7 +89,8 @@
   }
 
   // ---------- saved state ----------
-  var state = { cart: [], mode: "pickup", name: "", phone: "", address: "" };
+  var state = { cart: [], mode: "pickup", name: "", phone: "", address: "", addr: {} };
+  var quote = null;           // live delivery price from Uber: { fee, minutes, quoteId } or { error }
   try {
     var saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
     if (saved && Array.isArray(saved.cart)) {
@@ -98,7 +99,7 @@
     }
   } catch (e) { /* storage unavailable */ }
   function save() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify({ cart: state.cart, mode: state.mode, name: state.name, phone: state.phone, address: state.address })); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ cart: state.cart, mode: state.mode, name: state.name, phone: state.phone, addr: state.addr })); } catch (e) { /* ignore */ }
   }
 
   // ---------- category icons (simple line drawings) ----------
@@ -348,6 +349,7 @@
     cartEl.appendChild(tot);
     form.hidden = false;
     renderDays();
+    renderTotals();
   }
 
   // ---------- pickup / delivery ----------
@@ -372,9 +374,13 @@
   function updateMode() {
     var isDel = state.mode === "delivery";
     $("order-address-wrap").hidden = !isDel;
-    var note = $("order-delivery-note");
-    note.hidden = !(isDel && M.delivery.note);
-    note.textContent = (M.delivery && M.delivery.note) || "";
+    var note = $("order-delivery-note"), parts = [];
+    if (M.delivery && M.delivery.minimumOrder) parts.push("Delivery minimum: " + money(M.delivery.minimumOrder) + " of meat.");
+    if (M.delivery && M.delivery.quoteUrl) parts.push("Delivered by Uber. Enter your address to see the delivery price.");
+    else if (M.delivery && M.delivery.note) parts.push(M.delivery.note);
+    note.textContent = parts.join(" ");
+    note.hidden = !isDel || !parts.length;
+    renderTotals();
     var times = ((isDel ? M.delivery.times : M.pickup.times) || []).filter(function (t) {
       // For today, hide time windows that have already ended
       if ($("order-day").selectedIndex !== 0 || !/^Today/.test($("order-day").value)) return true;
@@ -412,6 +418,56 @@
     if (!$("order-time").options.length && sel.options.length > 1) { sel.selectedIndex = 1; updateMode(); }
   }
 
+  // ---------- delivery price ----------
+  function readAddr() {
+    state.addr = { street: $("addr-street").value.trim(), unit: $("addr-unit").value.trim(),
+      city: $("addr-city").value.trim(), zip: $("addr-zip").value.trim() };
+    var a = state.addr;
+    state.address = a.street ? a.street + (a.unit ? ", " + a.unit : "") + ", " + a.city + ", CA " + a.zip : "";
+    return a;
+  }
+  function addrComplete(a) { return a.street.length >= 4 && a.city.length >= 2 && /^\d{5}$/.test(a.zip); }
+  function subtotal() {
+    var t = 0; state.cart.forEach(function (l) { var c = lineCost(l); if (c != null) t += c; }); return t;
+  }
+  function showQuote(text, isError) {
+    var q = $("order-quote"); q.hidden = !text; q.textContent = text || "";
+    q.classList.toggle("is-error", !!isError);
+  }
+  function clearQuote() { quote = null; showQuote(""); renderTotals(); }
+  function getQuote() {
+    var a = readAddr(); save();
+    if (!addrComplete(a)) { showQuote("Please enter your street, city, and 5-digit ZIP code.", true); return; }
+    if (!M.delivery.quoteUrl) { quote = { error: "off" }; showQuote(M.delivery.note); return; }
+    showQuote("Checking delivery price…");
+    fetch(M.delivery.quoteUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(a) })
+      .then(function (r) { return r.json().catch(function () { return { ok: false, error: "unavailable" }; }); })
+      .then(function (d) {
+        if (d && d.ok) {
+          quote = { fee: d.fee, minutes: d.minutes, quoteId: d.quoteId };
+          showQuote("Delivery: " + money(d.fee) + (d.minutes ? " · about " + d.minutes + " min once your order is ready" : ""));
+        } else if (d && (d.error === "outside_area" || d.error === "undeliverable")) {
+          quote = { error: d.error };
+          showQuote("Sorry, we can't deliver to this address. Please choose pickup, or message us.", true);
+        } else {
+          quote = { error: "unavailable" };
+          showQuote("We couldn't get a live delivery price right now. " + M.delivery.note);
+        }
+        renderTotals();
+      })
+      .catch(function () { quote = { error: "unavailable" }; showQuote("We couldn't get a live delivery price right now. " + M.delivery.note); renderTotals(); });
+  }
+  // Delivery fee line under the order total
+  function renderTotals() {
+    var old = cartEl.querySelector(".order-total-delivery");
+    if (old) old.remove();
+    if (state.mode !== "delivery" || !quote || quote.fee == null || !state.cart.length) return;
+    var row = el("p", "order-total order-total-delivery");
+    row.appendChild(el("span", null, "Delivery (Uber)"));
+    row.appendChild(el("strong", null, money(quote.fee)));
+    cartEl.appendChild(row);
+  }
+
   // ---------- send ----------
   function orderNumber() {
     var d = new Date();
@@ -422,12 +478,17 @@
     var err = "";
     state.name = $("order-name").value.trim();
     state.phone = $("order-phone").value.trim();
-    state.address = $("order-address").value.trim();
+    var a = readAddr();
     save();
     if (!$("order-day").value) err = "Please pick a day.";
     else if (!state.name) err = "Please enter your name.";
     else if (state.phone.replace(/\D/g, "").length < 10) err = "Please enter a phone number we can text.";
-    else if (state.mode === "delivery" && state.address.length < 8) err = "Please enter your delivery address.";
+    else if (state.mode === "delivery" && !addrComplete(a)) err = "Please enter your delivery street, city, and ZIP code.";
+    else if (state.mode === "delivery" && M.delivery.minimumOrder && subtotal() < M.delivery.minimumOrder)
+      err = "Delivery orders need at least " + money(M.delivery.minimumOrder) + " of meat. Add more, or choose pickup.";
+    else if (state.mode === "delivery" && M.delivery.quoteUrl && !quote) err = "Please tap \"Get delivery price\" first.";
+    else if (state.mode === "delivery" && quote && (quote.error === "outside_area" || quote.error === "undeliverable"))
+      err = "We can't deliver to this address. Please choose pickup.";
     var e = $("order-error"); e.hidden = !err; e.textContent = err;
     return !err;
   }
@@ -448,8 +509,10 @@
     });
     lines.push("");
     var byWeight = state.cart.some(function (l) { return priceUnit(findItem(l.id)) === "lb"; });
-    if (total > 0) lines.push((byWeight ? "Estimated total: " : "Total: ") + (allPriced ? "" : "at least ") + money(total) +
-      (isDel ? " + delivery" : "") + (byWeight ? " (final price by weight)" : ""));
+    var fee = isDel && quote && quote.fee != null ? quote.fee : null;
+    if (fee != null) lines.push("Delivery fee (Uber quote): " + money(fee) + (quote.quoteId ? " [" + quote.quoteId + "]" : ""));
+    if (total > 0) lines.push((byWeight ? "Estimated total: " : "Total: ") + (allPriced ? "" : "at least ") + money(total + (fee || 0)) +
+      (isDel ? (fee != null ? " incl. delivery" : " + delivery") : "") + (byWeight ? " (final price by weight)" : ""));
     var notes = $("order-notes").value.trim();
     if (notes) lines.push("Notes: " + notes);
     return lines.join("\n");
@@ -491,7 +554,7 @@
       time: $("order-time").value,
       name: state.name,
       phone: state.phone,
-      address: state.mode === "delivery" ? state.address : "",
+      address: state.mode === "delivery" ? state.address + (quote && quote.fee != null ? " (Uber fee " + money(quote.fee) + ")" : "") : "",
       notes: $("order-notes").value.trim(),
       marketingOptIn: $("order-optin").checked,
       optInText: $("order-optin").checked ? $("order-optin").parentNode.textContent.replace(/\s+/g, " ").trim() : "",
@@ -528,7 +591,11 @@
   // ---------- start ----------
   $("order-name").value = state.name || "";
   $("order-phone").value = state.phone || "";
-  $("order-address").value = state.address || "";
+  var sa = state.addr || {};
+  $("addr-street").value = sa.street || ""; $("addr-unit").value = sa.unit || "";
+  $("addr-city").value = sa.city || ""; $("addr-zip").value = sa.zip || "";
+  ["addr-street", "addr-unit", "addr-city", "addr-zip"].forEach(function (id) { $(id).addEventListener("input", clearQuote); });
+  $("get-quote").addEventListener("click", getQuote);
   $("order-day").addEventListener("change", updateMode);
   $("send-whatsapp").addEventListener("click", function () { send("whatsapp"); });
   $("send-text").addEventListener("click", function () { send("text"); });
