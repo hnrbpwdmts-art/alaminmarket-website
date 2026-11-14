@@ -1074,3 +1074,14 @@ body.sheet-open { overflow: hidden; }
   .order-item.is-open .order-item-name { font-size: 1.05rem; }
   .order-item.is-open .order-item-body { padding-top: 8px; }
 }
+
+/* Review: confirm the phone number */
+.rv-phone-check { margin: 16px 0 10px; padding: 14px 16px; border-radius: 14px; background: #fff; border: 2px solid var(--cream-2); text-align: center; }
+.rv-phone-check.is-ok { border-color: var(--green); background: #f3f8f4; }
+.rv-phone-check.is-invalid { border-color: var(--red); background: #fdecea; }
+.rv-phone-big { font: 700 1.6rem var(--serif); color: var(--green-dark); margin: 2px 0 10px; letter-spacing: .02em; }
+.rv-phone-ok { display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; cursor: pointer; padding: 6px 0; }
+.rv-phone-ok input { width: 24px; height: 24px; accent-color: var(--green); flex: none; }
+.rv-phone-change { display: inline-block; margin-top: 4px; }
+.done-safety { margin: 4px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--cream); font-size: .95rem; color: var(--ink); }
+.rv-phone-ok { justify-content: flex-start; text-align: left; max-width: 320px; margin: 0 auto; }
