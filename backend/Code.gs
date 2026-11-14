@@ -3,11 +3,17 @@
  * Setup steps are in backend/README.md. Paste this whole file into
  * Extensions > Apps Script in your orders Google Sheet.
  *
+ * Orders placed with the website's "Submit order" button are also emailed
+ * to NOTIFY_EMAIL below.
+ *
  * Tabs created automatically:
  *   Orders     one row per order
  *   Items      one row per item (best for "what sells" research)
  *   Customers  one row per phone number: first/last order, order count, opt-in
  */
+
+// Website orders are emailed here. Separate several addresses with commas.
+var NOTIFY_EMAIL = "Muhammad@alaminmarket.com";
 
 var ORDER_HEADERS = ["Sent at", "Order #", "Channel", "Pickup/Delivery", "Pickup date", "Time", "Name", "Phone",
   "Address", "Items", "Item count", "Estimated total", "All items priced", "Notes",
@@ -44,12 +50,43 @@ function doPost(e) {
     });
 
     if (phone) updateCustomer(sheet(ss, "Customers", CUSTOMER_HEADERS), phone, d, when);
+
+    // Email alert for orders submitted on the website (not WhatsApp or text,
+    // which already arrive on the store phone)
+    if (d.notify && d.channel === "Website" && NOTIFY_EMAIL) {
+      try { emailOrder(d, phone); return reply("ok emailed"); }
+      catch (mailErr) { return reply("ok email-failed"); }
+    }
     return reply("ok");
   } catch (err) {
     return reply("error");
   } finally {
     lock.releaseLock();
   }
+}
+
+function emailOrder(d, phone) {
+  var digits = phone.replace(/\D/g, "");
+  var name = String(d.name || "").slice(0, 80);
+  var subject = "New website order " + d.orderNumber + " – " + name + " (" +
+    (d.mode === "delivery" ? "Delivery" : "Pickup") + " " + (d.day || "") + ", " + (d.time || "") + ")";
+  var body = String(d.message || "").slice(0, 6000);
+  var links = phone ? '<p style="font-size:16px">Contact ' + esc(name) + ': ' +
+    '<a href="tel:' + phone + '">Call</a> &nbsp;·&nbsp; ' +
+    '<a href="sms:' + phone + '">Text</a> &nbsp;·&nbsp; ' +
+    '<a href="https://wa.me/' + digits + '">WhatsApp</a></p>' : "";
+  MailApp.sendEmail({
+    to: NOTIFY_EMAIL,
+    subject: subject,
+    body: body + (phone ? "\n\nCustomer phone: " + phone : ""),
+    htmlBody: links + '<pre style="font-family:inherit;font-size:15px;white-space:pre-wrap">' + esc(body) + "</pre>" +
+      '<p style="color:#666;font-size:13px">Saved to the Orders tab of your order sheet.</p>',
+    name: "Super Al-Amin Website"
+  });
+}
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 // A quick check that the link works: opening it in a browser shows this.

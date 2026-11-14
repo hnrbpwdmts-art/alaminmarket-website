@@ -42,6 +42,10 @@ window.MEAT_MENU = {
   /* Every order sent is also saved to your Google Sheet. Paste the web app
      link from the setup guide (backend/README.md) between the quotes.
      Leave "" to turn saving off. */
+  /* Orders from the "Submit order" button go here (saved to the sheet and
+     emailed to the store). Don't change unless told to. */
+  submitUrl: "/api/order",
+
   orderLogUrl: "https://script.google.com/macros/s/AKfycby6T80ltjKTV6QB8qJdACKgMUqqd8JmxJ3Dn1SM1lIZ0UjAnUIwPqDmZDysoaJ-v14r/exec",
 
   pickup: {
@@ -50,13 +54,24 @@ window.MEAT_MENU = {
   },
 
   delivery: {
-    enabled: false,          // true = offer delivery (turn on once delivery is ready)
+    enabled: true,           // false = pickup only
     times: ["12–3 PM", "3–6 PM", "6–8 PM"],
     /* Shown when a live delivery price isn't available. */
     note: "We'll text you the delivery fee together with your total.",
+    /* Shown when the address is inside our delivery area but outside the
+       area Uber covers. The order can still be sent. */
+    manualNote: "This address is a little outside our usual delivery area, but we can still deliver to you. Send your order, and someone from our store will contact you with a delivery quote before we confirm it.",
     /* Live delivery prices from Uber Direct (works once the site is on
        Cloudflare and the Uber keys are added there). Leave "" to turn off. */
     quoteUrl: "/api/delivery-quote",
+    /* Address suggestions as the customer types. Leave "" to turn off. */
+    suggestUrl: "/api/address-suggest",
+    /* Shown to customers. The limit itself is set on the server
+       (MAX_DELIVERY_MILES in Cloudflare, default 40). */
+    maxMiles: 40,
+    /* The estimate shown is Uber's price plus this cushion, rounded up to the
+       next dollar, so it's the most a customer would pay for delivery. */
+    cushion: 0,
     minimumOrder: 40          // smallest estimated order for delivery, in dollars
   },
 

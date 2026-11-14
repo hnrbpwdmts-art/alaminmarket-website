@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#1d4a34">
   <link rel="icon" href="../images/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
-  <link rel="stylesheet" href="../styles.css?v=20261113">
+  <link rel="stylesheet" href="../styles.css?v=20261113d">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -72,7 +72,7 @@
       <div class="container">
         <ol class="order-steps-list">
           <li><span class="order-steps-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg></span><strong>Pick your meat</strong><span>Choose cuts, weight, and packing.</span></li>
-          <li><span class="order-steps-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg></span><strong>Send your order</strong><span>By WhatsApp or text, in one tap.</span></li>
+          <li><span class="order-steps-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg></span><strong>Send your order</strong><span>Submit online, or send by WhatsApp or text.</span></li>
           <li><span class="order-steps-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><strong>We text you back</strong><span>Ready time, final total, and a payment link.</span></li>
         </ol>
       </div>
@@ -103,13 +103,16 @@
             <label class="order-field">Your name<input id="order-name" type="text" autocomplete="name" required></label>
             <label class="order-field">Phone number<input id="order-phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="(310) 555-0123" required></label>
             <div id="order-address-wrap" class="order-address" hidden>
-              <label class="order-field">Street address<input id="addr-street" type="text" autocomplete="address-line1" placeholder="123 Main St"></label>
+              <div class="addr-wrap">
+                <label class="order-field">Street address<input id="addr-street" type="text" autocomplete="address-line1" placeholder="Start typing, e.g. 123 Main St"></label>
+                <ul class="addr-suggest" id="addr-suggest" role="listbox" aria-label="Address suggestions" hidden></ul>
+              </div>
               <div class="order-field-row">
                 <label class="order-field">Apt / unit (optional)<input id="addr-unit" type="text" autocomplete="address-line2"></label>
                 <label class="order-field">ZIP code<input id="addr-zip" type="text" inputmode="numeric" maxlength="5" autocomplete="postal-code" placeholder="90504"></label>
               </div>
               <label class="order-field">City<input id="addr-city" type="text" autocomplete="address-level2" placeholder="Torrance"></label>
-              <button type="button" class="btn btn-cream order-quote-btn" id="get-quote">Get delivery price</button>
+              <button type="button" class="btn btn-cream order-quote-btn" id="get-quote">Get delivery estimate</button>
               <p class="order-quote" id="order-quote" role="status" hidden></p>
             </div>
             <p class="order-delivery-note" id="order-delivery-note" hidden></p>
@@ -119,10 +122,15 @@
 
             <h2 class="order-step-title"><span class="order-step-num">4</span> Send your order</h2>
             <div class="order-send">
-              <button type="button" class="btn btn-whatsapp" id="send-whatsapp">Send by WhatsApp</button>
-              <button type="button" class="btn btn-primary" id="send-text">Send by text</button>
+              <button type="button" class="btn btn-primary order-submit" id="send-website">Submit order</button>
+              <p class="order-send-or" id="send-or" hidden><span>or send it from your phone</span></p>
+              <div class="order-send-apps" id="send-apps" hidden>
+                <button type="button" class="btn btn-whatsapp" id="send-whatsapp">WhatsApp</button>
+                <button type="button" class="btn btn-cream" id="send-text">Text message</button>
+              </div>
             </div>
-            <p class="order-fineprint">Your order isn't placed until you press send in WhatsApp or Messages. Meat is priced by weight, so your final total may be a little different from the estimate.</p>
+            <p class="order-hp" aria-hidden="true"><label>Leave this empty<input id="order-website" type="text" tabindex="-1" autocomplete="off"></label></p>
+            <p class="order-fineprint">When you submit, your order goes straight to our meat counter, and we'll text or call you at the number above to confirm it. <span id="apps-fineprint" hidden>If you use WhatsApp or text instead, your order isn't placed until you press send there.</span> Meat is priced by weight, so your final total may be a little different from the estimate.</p>
             <p class="order-fineprint order-privacy">When you send an order, we save a copy of it (your name, phone number, and what you ordered) to prepare your order, contact you about it, and understand what our customers buy. We never sell your information. <a href="../privacy/">Privacy notice</a></p>
           </form>
 
@@ -160,9 +168,9 @@
     </a>
   </nav>
 
-  <script src="../site-config.js?v=20261113"></script>
-  <script src="../meat-menu.js?v=20261113"></script>
-  <script src="../main.js?v=20261113"></script>
-  <script src="../order.js?v=20261113"></script>
+  <script src="../site-config.js?v=20261113d"></script>
+  <script src="../meat-menu.js?v=20261113d"></script>
+  <script src="../main.js?v=20261113d"></script>
+  <script src="../order.js?v=20261113d"></script>
 </body>
 </html>
