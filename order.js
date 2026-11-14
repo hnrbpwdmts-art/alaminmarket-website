@@ -194,7 +194,7 @@
     if (item.days && item.days.length) tags.appendChild(el("span", "order-badge-days", daysShort(item.days)));
     main.appendChild(tags);
     head.appendChild(main);
-    head.appendChild(el("span", "order-item-plus", "+"));
+    var plus = el("span", "order-item-plus"); plus.innerHTML = '<span class="plus-txt">+ Add</span>'; head.appendChild(plus);
     var fav = el("button", "order-fav");
     fav.type = "button"; fav.innerHTML = STAR;
     function syncFav() {
@@ -256,6 +256,29 @@
     card.appendChild(openBtn); card.appendChild(box);
     return card;
   }
+
+  // ---------- shopping-app sheets: item options and the cart slide up from the bottom ----------
+  var backdrop = el("div", "sheet-backdrop"); backdrop.hidden = true;
+  document.body.appendChild(backdrop);
+  function closeItemSheet() {
+    itemsEl.querySelectorAll(".order-item.is-open").forEach(function (c) {
+      c.classList.remove("is-open");
+      c.querySelector(".order-item-body").hidden = true;
+      c.querySelector(".order-item-head").setAttribute("aria-expanded", "false");
+    });
+  }
+  function syncSheets() {
+    var itemOpen = !!itemsEl.querySelector(".order-item.is-open");
+    var cartOpen = document.body.classList.contains("cart-open");
+    backdrop.hidden = !(itemOpen || cartOpen);
+    document.body.classList.toggle("sheet-open", itemOpen || cartOpen);
+    if (typeof updateBar === "function" && typeof bar !== "undefined") updateBar();
+  }
+  function openCartDrawer() { document.body.classList.add("cart-open"); syncSheets(); var c = $("cart-close"); if (c) c.focus({ preventScroll: true }); }
+  function closeCartDrawer() { if (!document.body.classList.contains("cart-open")) return; document.body.classList.remove("cart-open"); syncSheets(); }
+  if ("MutationObserver" in window) new MutationObserver(syncSheets).observe(itemsEl, { attributes: true, attributeFilter: ["class"], subtree: true });
+  backdrop.addEventListener("click", function () { closeItemSheet(); closeCartDrawer(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeItemSheet(); closeCartDrawer(); } });
 
   // Small message at the bottom of the screen ("Added to your order")
   var toastEl = el("div", "order-toast"); toastEl.setAttribute("role", "status"); toastEl.setAttribute("aria-live", "polite");
@@ -447,7 +470,7 @@
   function renderCart() {
     cartEl.textContent = "";
     if (!state.cart.length) {
-      cartEl.appendChild(el("p", "order-empty", "Your order is empty. Choose a meat to get started."));
+      cartEl.appendChild(el("p", "order-empty", "Your cart is empty. Tap + Add on any meat to start."));
       var last = lastOrder();
       if (last) cartEl.appendChild(reorderCard(last));
       form.hidden = true;
@@ -459,6 +482,10 @@
     state.cart.forEach(function (l, i) {
       var t = lineText(l), cost = lineCost(l), isReq = l.id === "request";
       var li = el("li", "order-line");
+      var th = el("span", "order-thumb order-line-thumb");
+      if (t.item.image) { var im = document.createElement("img"); im.src = (document.documentElement.getAttribute("data-root") || "") + t.item.image; im.alt = ""; th.appendChild(im); }
+      else { var cc = categoryOf(l.id); th.innerHTML = isReq ? '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h6"/></svg>' : icon(cc ? cc.id : ""); th.classList.add("order-thumb-icon"); }
+      li.appendChild(th);
       var top = el("div", "order-line-top");
       top.appendChild(el("span", "order-line-name", isReq ? "Item request" : t.item.name));
       top.appendChild(el("span", "order-line-cost", cost != null ? money(cost) : isReq ? "We'll price it" : (itemPrice(t.item, l.picks) != null ? priceLabel(t.item, l.picks) : "")));
@@ -495,12 +522,12 @@
     cartEl.appendChild(ul);
     var T = cartTotals();
     var tot = el("p", "order-total");
-    tot.appendChild(el("span", null, "Estimated total"));
+    tot.appendChild(el("span", null, "Subtotal (estimate)"));
     tot.appendChild(el("strong", null, T.allPriced ? money(T.total) : T.total > 0 ? "From " + money(T.total) : "We'll price it"));
     cartEl.appendChild(tot);
     cartEl.appendChild(el("p", "order-weight-note", "Meat is priced by weight. We'll confirm your final total before you pay."));
-    var next = el("button", "btn btn-primary order-next", "Next: " + (modes.length > 1 ? "pickup or delivery" : "your details") + " ›"); next.type = "button";
-    next.addEventListener("click", function () { setStep(2); });
+    var next = el("button", "btn btn-primary order-next", "Checkout ›"); next.type = "button";
+    next.addEventListener("click", function () { closeCartDrawer(); setStep(2); });
     cartEl.appendChild(next);
     form.hidden = false;
     renderDays();
@@ -511,6 +538,7 @@
 
   // Edit a cart line: open that item's options with the current choices filled in
   function editLine(l, i) {
+    closeCartDrawer();
     var cat = categoryOf(l.id), list = catList();
     var ci = list.indexOf(cat);
     if (ci > -1 && list[activeCat] !== cat && !(list[activeCat] === FAV_CAT && favs.indexOf(l.id) > -1)) { activeCat = ci; updateCats(); renderItems(); }
@@ -558,24 +586,27 @@
     return box;
   }
 
-  // ---------- sticky "View order" bar on phones ----------
+  // ---------- sticky "View cart" bar on phones ----------
+  var CART_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 4h2.5l2.2 10.5a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1L21 8H6.3"/><circle cx="9.5" cy="19.5" r="1.4"/><circle cx="17.5" cy="19.5" r="1.4"/></svg>';
   var bar = el("div", "cart-bar"); bar.hidden = true;
   var barBtn = el("button", "cart-bar-btn"); barBtn.type = "button";
   bar.appendChild(barBtn);
   document.body.appendChild(bar);
   var summaryEl = document.querySelector(".order-summary"), summaryVisible = false;
-  barBtn.addEventListener("click", function () { summaryEl.scrollIntoView({ behavior: "smooth", block: "start" }); });
+  barBtn.addEventListener("click", openCartDrawer);
   if ("IntersectionObserver" in window && summaryEl) {
     new IntersectionObserver(function (es) { summaryVisible = es[0].isIntersecting; updateBar(); }, { rootMargin: "0px 0px -35% 0px" }).observe(summaryEl);
   }
   function updateBar() {
     var T = cartTotals();
-    var show = T.count > 0 && !summaryVisible && curStep === 1 && reviewHidden() && doneEl.hidden;
+    var show = T.count > 0 && !summaryVisible && curStep === 1 && reviewHidden() && doneEl.hidden && !document.body.classList.contains("sheet-open");
     bar.hidden = !show;
     document.body.classList.toggle("has-cart-bar", show);
     barBtn.textContent = "";
-    barBtn.appendChild(el("span", "cart-bar-count", String(T.count)));
-    barBtn.appendChild(el("span", "cart-bar-label", "View order"));
+    var ic = el("span", "cart-bar-icon"); ic.innerHTML = CART_ICON;
+    ic.appendChild(el("span", "cart-bar-count", String(T.count)));
+    barBtn.appendChild(ic);
+    barBtn.appendChild(el("span", "cart-bar-label", "View cart"));
     barBtn.appendChild(el("span", "cart-bar-total", T.allPriced ? money(T.total) : T.total > 0 ? "From " + money(T.total) : ""));
   }
   function reviewHidden() { return typeof reviewEl === "undefined" || reviewEl.hidden; }
@@ -1173,6 +1204,7 @@
   $("order-day").addEventListener("change", updateMode);
   $("send-website").addEventListener("click", submitOrder);
   $("order-back").addEventListener("click", function () { setStep(1); });
+  $("cart-close").addEventListener("click", closeCartDrawer);
   ["order-name", "order-phone", "addr-street", "addr-city", "addr-zip"].forEach(function (id) {
     $(id).addEventListener("input", function () { this.removeAttribute("aria-invalid"); var e = $("order-error"); if (!e.hidden) e.hidden = true; });
   });
