@@ -440,6 +440,7 @@
         var newLine = { uid: line ? line.uid : Math.random().toString(36).slice(2), id: item.id, picks: Object.assign({}, picked), qty: qty, unit: unit, custom: custom.trim() };
         var idx = editing ? state.cart.findIndex(function (l) { return l.uid === line.uid; }) : -1;
         if (idx > -1) state.cart[idx] = newLine; else state.cart.push(newLine);
+        if (idx === -1 && window.alaminTrack) alaminTrack("add_to_cart", { item_name: item.name, item_category: (categoryOf(item.id) || {}).name || "" });
         save(); renderCart();
         toast(editing ? "Item updated" : "Added to your order");
         body.hidden = true; body.parentNode.classList.remove("is-open");
@@ -648,6 +649,7 @@
   var progEl = $("order-progress"), sectionEl = $("order-section"), curStep = 1;
   function setStep(n) {
     var changed = n !== curStep;
+    if (changed && n === 2 && window.alaminTrack) alaminTrack("begin_checkout", { items: state.cart.length });
     curStep = n;
     if (sectionEl) sectionEl.setAttribute("data-step", String(n));
     if (n === 2) { form.hidden = false; cartEl.hidden = false; reviewEl.hidden = true; doneEl.hidden = true; renderMini(); }
@@ -1089,7 +1091,10 @@
     fetch(M.submitUrl || "/api/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
       .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
       .then(function (d) {
-        if (d && d.ok) { markSent(num); reviewEl.hidden = true; showDone(num, "website", isUpdate); return; }
+        if (d && d.ok) {
+          if (window.alaminTrack) alaminTrack(isUpdate ? "order_updated" : "order_submitted", { items: state.cart.length, mode: state.mode });
+          markSent(num); reviewEl.hidden = true; showDone(num, "website", isUpdate); return;
+        }
         throw new Error((d && d.error) || "failed");
       })
       .catch(function (e) {

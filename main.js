@@ -671,3 +671,30 @@
     io.observe(el);
   });
 })();
+
+
+/* Analytics (off unless SITE.analytics.ga4Id is set). Pages call
+   window.alaminTrack("event_name", { ...no personal details... }). */
+(function () {
+  var id = ((window.SITE || {}).analytics || {}).ga4Id;
+  window.alaminTrack = function (name, params) {
+    try { if (window.gtag) window.gtag("event", name, params || {}); } catch (e) { /* never break the page */ }
+  };
+  if (!id || !/^G-[A-Z0-9]+$/.test(id)) return;
+  var s = document.createElement("script");
+  s.async = true; s.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(id);
+  document.head.appendChild(s);
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function () { window.dataLayer.push(arguments); };
+  window.gtag("js", new Date());
+  window.gtag("config", id, { anonymize_ip: true });
+  // Taps on call / WhatsApp / directions links anywhere on the site
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[href]");
+    if (!a) return;
+    var h = a.getAttribute("href") || "";
+    if (/^tel:/.test(h)) window.alaminTrack("phone_click", { link_location: location.pathname });
+    else if (/wa\.me|whatsapp:/.test(h)) window.alaminTrack("whatsapp_click", { link_location: location.pathname });
+    else if (/google\.com\/maps/.test(h)) window.alaminTrack("directions_click", { link_location: location.pathname });
+  }, true);
+})();

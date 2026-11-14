@@ -39,6 +39,14 @@ window.SITE = {
     hoursForGoogle: ["Mo-Th 10:00-20:00", "Fr 10:00-12:15", "Fr 13:15-20:00", "Sa-Su 10:00-20:00"]
   },
 
+  /* ---------- Website analytics (optional) ----------
+     Paste your Google Analytics 4 measurement ID (looks like "G-XXXXXXXXXX")
+     to count visits and order steps. Leave "" to keep analytics off.
+     No names, phone numbers, or addresses are ever sent. */
+  analytics: {
+    ga4Id: ""
+  },
+
   /* ---------- Social media ----------
      Paste the full link to each profile. Leave "" to hide one. */
   social: {
