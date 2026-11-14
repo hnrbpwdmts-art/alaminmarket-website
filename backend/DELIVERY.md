@@ -6,8 +6,17 @@ Direct for a price quote. **No driver is ever booked automatically.** The custom
 rounded up to the next dollar. You then deliver however you like: your own driver,
 combined with other orders, or book Uber yourself.
 
-If Uber can't quote (keys missing, Uber down), the page shows `delivery.note`
-instead ("We'll text you the delivery fee...") and the customer can still order.
+**Delivery area:** within 40 miles of the store (straight-line distance, worked out
+from the address with the free US Census address lookup). Farther addresses are told
+to choose pickup. Change the limit with `MAX_DELIVERY_MILES` in Cloudflare.
+
+If Uber can't quote an address inside the area (outside Uber's own range, Uber down,
+keys missing), the page shows `delivery.note` ("We'll text you the delivery fee...")
+and the customer can still order. Each order shows the distance, e.g. "about 12.4 miles".
+
+**Address suggestions:** as customers type their street, a list of matching addresses
+near the store appears (free OpenStreetMap address search via Photon, no key needed).
+Picking one fills in the city and ZIP and shows the estimate right away.
 
 ## Setup (one time)
 
@@ -21,6 +30,7 @@ instead ("We'll text you the delivery fee...") and the customer can still order.
    - `UBER_CLIENT_SECRET`
    Optional:
    - `STORE_PHONE` = `+13105381188`
+   - `MAX_DELIVERY_MILES` = delivery limit in miles (default 40)
    - `DELIVERY_ZIPS` = ZIP codes you deliver to, separated by spaces, e.g. `90504 90501 90503`
      (leave out to allow anywhere Uber delivers)
 3. After adding or changing secrets, redeploy once: **Deployments**, then the **...**
@@ -36,6 +46,8 @@ instead ("We'll text you the delivery fee...") and the customer can still order.
 ## Settings in meat-menu.js
 
 - `delivery.enabled`: `false` turns delivery off (pickup only).
+- `delivery.maxMiles`: the distance shown to customers (keep it the same as `MAX_DELIVERY_MILES`).
+- `delivery.suggestUrl`: `""` turns address suggestions off.
 - `delivery.cushion`: dollars added on top of Uber's price before rounding up (default 0).
 - `delivery.minimumOrder`: smallest estimated meat total for delivery (default $40).
 - `delivery.times`: delivery time windows.

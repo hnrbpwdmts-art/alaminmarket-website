@@ -371,6 +371,7 @@
     $("order-address-wrap").hidden = !isDel;
     var note = $("order-delivery-note"), parts = [];
     if (M.delivery && M.delivery.minimumOrder) parts.push("Delivery minimum: " + money(M.delivery.minimumOrder) + " of meat.");
+    if (M.delivery && M.delivery.maxMiles) parts.push("We deliver within " + M.delivery.maxMiles + " miles of the store.");
     if (M.delivery && M.delivery.quoteUrl) parts.push("Enter your address to see a delivery estimate.");
     else if (M.delivery && M.delivery.note) parts.push(M.delivery.note);
     note.textContent = parts.join(" ");
@@ -435,28 +436,32 @@
     if (!addrComplete(a)) { showQuote("Please enter your street, city, and 5-digit ZIP code.", true); return; }
     if (!M.delivery.quoteUrl) { quote = { error: "off" }; showQuote(M.delivery.note); return; }
     showQuote("Checking delivery price…");
-    fetch(M.delivery.quoteUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(a) })
+    var body = { street: a.street, unit: a.unit, city: a.city, zip: a.zip };
+    if (state.addrGeo) { body.lat = state.addrGeo.lat; body.lon = state.addrGeo.lon; }
+    fetch(M.delivery.quoteUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       .then(function (r) { return r.json().catch(function () { return { ok: false, error: "unavailable" }; }); })
       .then(function (d) {
         if (d && d.ok) {
           // Show a worst-case estimate: Uber's price plus any cushion, rounded up to the next dollar.
           // We may deliver ourselves or combine orders; the customer never pays more than this.
           var est = Math.ceil((Number(d.fee) || 0) + (Number(M.delivery.cushion) || 0));
-          quote = { fee: est, uberFee: d.fee, minutes: d.minutes, quoteId: d.quoteId };
+          quote = { fee: est, uberFee: d.fee, minutes: d.minutes, quoteId: d.quoteId, miles: d.miles };
           showQuote("Estimated delivery: up to " + money(est) + ". We'll confirm the final delivery cost when we confirm your order.");
-        } else if (d && (d.error === "outside_area" || d.error === "undeliverable")) {
-          quote = { error: d.error };
-          showQuote("Sorry, we can't deliver to this address. Please choose pickup, or message us.", true);
-        } else if (d && d.error === "not_configured") {
-          quote = { error: "off" };
-          showQuote(M.delivery.note);
+        } else if (d && d.error === "outside_area") {
+          quote = { error: "outside_area", miles: d.miles };
+          showQuote("Sorry, " + (d.miles ? "this address is about " + Math.round(d.miles) + " miles away. " : "we don't deliver to this address. ") +
+            "We deliver within " + (d.maxMiles || M.delivery.maxMiles || 40) + " miles of the store. Please choose pickup, or call us.", true);
+        } else if (d && d.error === "address_incomplete") {
+          quote = null;
+          showQuote("Please check your street, city, and 5-digit ZIP code.", true);
         } else {
-          quote = { error: "unavailable" };
-          showQuote("We couldn't get a delivery estimate right now. " + M.delivery.note);
+          // We deliver here, but there's no automatic estimate: the store texts the delivery cost
+          quote = { error: "manual", miles: d && d.miles };
+          showQuote(M.delivery.note);
         }
         renderTotals();
       })
-      .catch(function () { quote = { error: "unavailable" }; showQuote("We couldn't get a delivery estimate right now. " + M.delivery.note); renderTotals(); });
+      .catch(function () { quote = { error: "manual" }; showQuote(M.delivery.note); renderTotals(); });
   }
   // Delivery fee line under the order total
   function renderTotals() {
@@ -488,7 +493,7 @@
     else if (state.mode === "delivery" && M.delivery.minimumOrder && subtotal() < M.delivery.minimumOrder)
       err = "Delivery orders need at least " + money(M.delivery.minimumOrder) + " of meat. Add more, or choose pickup.";
     else if (state.mode === "delivery" && M.delivery.quoteUrl && !quote) err = "Please tap \"Get delivery estimate\" first.";
-    else if (state.mode === "delivery" && quote && (quote.error === "outside_area" || quote.error === "undeliverable"))
+    else if (state.mode === "delivery" && quote && quote.error === "outside_area")
       err = "We can't deliver to this address. Please choose pickup.";
     var e = $("order-error"); e.hidden = !err; e.textContent = err;
     return !err;
@@ -500,6 +505,7 @@
     lines.push("Name: " + state.name);
     lines.push("Phone: " + state.phone);
     if (isDel) lines.push("Address: " + state.address);
+    if (isDel && quote && quote.miles != null) lines.push("Distance: about " + quote.miles + " miles from the store (straight line)");
     lines.push("");
     state.cart.forEach(function (l, i) {
       var t = lineText(l), cost = lineCost(l);
@@ -584,7 +590,8 @@
       time: $("order-time").value,
       name: state.name,
       phone: state.phone,
-      address: state.mode === "delivery" ? state.address + (quote && quote.fee != null ? " (delivery estimate up to " + money(quote.fee) + ")" : "") : "",
+      address: state.mode === "delivery" ? state.address + (quote && quote.miles != null ? " [" + quote.miles + " mi]" : "") +
+        (quote && quote.fee != null ? " (delivery estimate up to " + money(quote.fee) + (quote.uberFee != null ? ", Uber " + money(quote.uberFee) : "") + ")" : "") : "",
       notes: $("order-notes").value.trim(),
       marketingOptIn: $("order-optin").checked,
       optInText: $("order-optin").checked ? $("order-optin").parentNode.textContent.replace(/\s+/g, " ").trim() : "",
@@ -630,13 +637,85 @@
     doneEl.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  // ---------- address suggestions while typing (see functions/api/address-suggest.js) ----------
+  function setupSuggest() {
+    var input = $("addr-street"), list = $("addr-suggest");
+    if (!input || !list || !M.delivery || !M.delivery.suggestUrl) return;
+    var timer = null, items = [], active = -1, lastQ = "", seq = 0;
+    input.setAttribute("role", "combobox");
+    input.setAttribute("aria-autocomplete", "list");
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("aria-controls", "addr-suggest");
+    input.setAttribute("autocomplete", "off");   // our list replaces the browser's own suggestions here
+
+    function close() {
+      list.hidden = true; list.textContent = ""; items = []; active = -1;
+      input.setAttribute("aria-expanded", "false"); input.removeAttribute("aria-activedescendant");
+    }
+    function highlight(i) {
+      active = i;
+      [].forEach.call(list.querySelectorAll('[role="option"]'), function (li, n) {
+        li.setAttribute("aria-selected", n === i ? "true" : "false");
+        if (n === i) { input.setAttribute("aria-activedescendant", li.id); li.scrollIntoView({ block: "nearest" }); }
+      });
+    }
+    function pick(r) {
+      input.value = r.street;
+      if (r.city) $("addr-city").value = r.city;
+      if (r.zip) $("addr-zip").value = r.zip;
+      state.addrGeo = (r.lat != null && r.lon != null) ? { lat: r.lat, lon: r.lon } : null;
+      close(); clearQuote(); readAddr(); save();
+      if (!r.zip) { $("addr-zip").focus(); return; }
+      $("addr-unit").focus();
+      if (addrComplete(state.addr)) getQuote();     // show the estimate right away
+    }
+    function show(results) {
+      list.textContent = ""; items = results; active = -1;
+      if (!results.length) { close(); return; }
+      results.forEach(function (r, i) {
+        var li = el("li", "addr-option");
+        li.id = "addr-opt-" + i; li.setAttribute("role", "option"); li.setAttribute("aria-selected", "false");
+        li.appendChild(el("strong", null, r.street));
+        li.appendChild(el("span", null, [r.city, "CA", r.zip].filter(Boolean).join(", ").replace(", CA,", ", CA")));
+        li.addEventListener("mousedown", function (e) { e.preventDefault(); pick(r); });
+        list.appendChild(li);
+      });
+      var credit = el("li", "addr-credit", "Address search © OpenStreetMap contributors");
+      credit.setAttribute("aria-hidden", "true");
+      list.appendChild(credit);
+      list.hidden = false; input.setAttribute("aria-expanded", "true");
+    }
+    function search() {
+      var q = input.value.trim();
+      if (q.length < 4 || !/\d/.test(q) || q === lastQ) { if (q.length < 4) close(); return; }
+      lastQ = q; var my = ++seq;
+      var city = $("addr-city").value.trim();
+      fetch(M.delivery.suggestUrl + "?q=" + encodeURIComponent(q + (city ? " " + city : "")))
+        .then(function (r) { return r.json(); })
+        .then(function (d) { if (my === seq && document.activeElement === input) show((d && d.results) || []); })
+        .catch(function () { /* suggestions are optional; typing still works */ });
+    }
+    input.addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(search, 300); });
+    input.addEventListener("keydown", function (e) {
+      if (list.hidden || !items.length) return;
+      if (e.key === "ArrowDown") { e.preventDefault(); highlight(active < items.length - 1 ? active + 1 : 0); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); highlight(active > 0 ? active - 1 : items.length - 1); }
+      else if (e.key === "Enter" && active > -1) { e.preventDefault(); pick(items[active]); }
+      else if (e.key === "Escape") { close(); }
+    });
+    input.addEventListener("blur", function () { setTimeout(close, 150); });
+  }
+
   // ---------- start ----------
   $("order-name").value = state.name || "";
   $("order-phone").value = state.phone || "";
   var sa = state.addr || {};
   $("addr-street").value = sa.street || ""; $("addr-unit").value = sa.unit || "";
   $("addr-city").value = sa.city || ""; $("addr-zip").value = sa.zip || "";
-  ["addr-street", "addr-unit", "addr-city", "addr-zip"].forEach(function (id) { $(id).addEventListener("input", clearQuote); });
+  ["addr-street", "addr-unit", "addr-city", "addr-zip"].forEach(function (id) {
+    $(id).addEventListener("input", function () { clearQuote(); if (id !== "addr-unit") state.addrGeo = null; });
+  });
+  setupSuggest();
   $("get-quote").addEventListener("click", getQuote);
   $("order-day").addEventListener("change", updateMode);
   $("send-website").addEventListener("click", submitOrder);

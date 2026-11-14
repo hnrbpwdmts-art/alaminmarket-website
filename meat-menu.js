@@ -61,6 +61,11 @@ window.MEAT_MENU = {
     /* Live delivery prices from Uber Direct (works once the site is on
        Cloudflare and the Uber keys are added there). Leave "" to turn off. */
     quoteUrl: "/api/delivery-quote",
+    /* Address suggestions as the customer types. Leave "" to turn off. */
+    suggestUrl: "/api/address-suggest",
+    /* Shown to customers. The limit itself is set on the server
+       (MAX_DELIVERY_MILES in Cloudflare, default 40). */
+    maxMiles: 40,
     /* The estimate shown is Uber's price plus this cushion, rounded up to the
        next dollar, so it's the most a customer would pay for delivery. */
     cushion: 0,

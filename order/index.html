@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#1d4a34">
   <link rel="icon" href="../images/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
-  <link rel="stylesheet" href="../styles.css?v=20261113b">
+  <link rel="stylesheet" href="../styles.css?v=20261113c">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -103,7 +103,10 @@
             <label class="order-field">Your name<input id="order-name" type="text" autocomplete="name" required></label>
             <label class="order-field">Phone number<input id="order-phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="(310) 555-0123" required></label>
             <div id="order-address-wrap" class="order-address" hidden>
-              <label class="order-field">Street address<input id="addr-street" type="text" autocomplete="address-line1" placeholder="123 Main St"></label>
+              <div class="addr-wrap">
+                <label class="order-field">Street address<input id="addr-street" type="text" autocomplete="address-line1" placeholder="Start typing, e.g. 123 Main St"></label>
+                <ul class="addr-suggest" id="addr-suggest" role="listbox" aria-label="Address suggestions" hidden></ul>
+              </div>
               <div class="order-field-row">
                 <label class="order-field">Apt / unit (optional)<input id="addr-unit" type="text" autocomplete="address-line2"></label>
                 <label class="order-field">ZIP code<input id="addr-zip" type="text" inputmode="numeric" maxlength="5" autocomplete="postal-code" placeholder="90504"></label>
@@ -165,9 +168,9 @@
     </a>
   </nav>
 
-  <script src="../site-config.js?v=20261113b"></script>
-  <script src="../meat-menu.js?v=20261113b"></script>
-  <script src="../main.js?v=20261113b"></script>
-  <script src="../order.js?v=20261113b"></script>
+  <script src="../site-config.js?v=20261113c"></script>
+  <script src="../meat-menu.js?v=20261113c"></script>
+  <script src="../main.js?v=20261113c"></script>
+  <script src="../order.js?v=20261113c"></script>
 </body>
 </html>
