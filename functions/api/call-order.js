@@ -74,7 +74,8 @@ export async function onRequestPost({ request, env }) {
   const time = str(d.time, 40).replace(/\s*[–-]\s*/g, " to ");
   const attempt = Math.max(1, Math.min(20, Number(d.attempt) || 1));
 
-  const intro = (d.update ? "Updated online order" : "New online order") + (attempt > 1 ? ", reminder" : "") + ".";
+  const kind = d.channel === "WhatsApp" ? "WhatsApp order" : d.channel === "Text" ? "text message order" : "online order";
+  const intro = (d.update ? "Updated " : "New ") + kind + (attempt > 1 ? ", reminder" : "") + ".";
   const details = `From ${name}, for ${mode}${day ? " " + day : ""}${time ? ", " + time : ""}. Order number ending in ${spokenEnding(order)}.`;
   const ask = "Press 1 to confirm you got it.";
 

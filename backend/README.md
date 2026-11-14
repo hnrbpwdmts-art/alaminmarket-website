@@ -86,12 +86,12 @@ change the passcode and redeploy.
 
 ## Phone call reminders for new orders (Twilio)
 
-When a website order comes in, the store landline rings and reads the order
+When an order comes in (website, WhatsApp, or text), the store landline rings and reads the order
 out: "New online order from Sara, for pickup today, 12 to 3 PM. Press 1 to
 confirm." If nobody presses 1, it calls again every 5 minutes: 5 tries on the
 landline, then 3 on the backup cell (424) 527-3540. Calls happen only while
 the store is open; a late-night order rings at 10 AM. Marking the order on the
-staff page also stops the calls. Emails, WhatsApp and texts are unchanged.
+staff page also stops the calls. Every order is also emailed to the store as a backup.
 
 1. Twilio (twilio.com): create an account, upgrade it (add a payment method;
    trial accounts play an extra message and can't be used here), and buy a
