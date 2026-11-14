@@ -8,14 +8,15 @@
   <meta name="theme-color" content="#1d4a34">
   <link rel="icon" href="../images/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
-  <link rel="stylesheet" href="../styles.css?v=20261114m">
-  <link rel="stylesheet" href="admin.css?v=20261114m">
+  <link rel="stylesheet" href="../styles.css?v=20261114n">
+  <link rel="stylesheet" href="admin.css?v=20261114n">
 </head>
 <body class="admin-body">
   <header class="adm-top">
     <div class="adm-wrap adm-top-inner">
       <a class="adm-brand" href="../"><img src="../images/logo.png" alt="" width="36" height="36"><span>Orders</span></a>
       <div class="adm-top-actions" id="adm-top-actions" hidden>
+        <button type="button" class="adm-text-btn adm-sound-btn" id="adm-sound" aria-pressed="true">🔔 Alerts on</button>
         <button type="button" class="adm-icon-btn" id="adm-refresh" aria-label="Refresh orders">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>
         </button>
@@ -43,6 +44,11 @@
       <div class="adm-tabs" role="tablist" id="adm-tabs"></div>
       <p class="adm-status-line" id="adm-status-line" aria-live="polite"></p>
       <div class="adm-new" id="adm-new" hidden></div>
+      <div class="adm-alarm" id="adm-alarm" role="alert" hidden>
+        <div class="adm-alarm-text"><strong id="adm-alarm-title">New order!</strong><span id="adm-alarm-sub"></span></div>
+        <button type="button" class="adm-alarm-btn" id="adm-alarm-ok">Got it</button>
+      </div>
+      <button type="button" class="adm-enable" id="adm-enable" hidden>🔔 Tap here to turn on sound alerts for new orders</button>
       <ul class="adm-list" id="adm-list"></ul>
       <p class="adm-empty" id="adm-empty" hidden></p>
     </section>
@@ -69,8 +75,8 @@
 
   <div class="order-toast" id="adm-toast" role="status" aria-live="polite"></div>
 
-  <script src="../site-config.js?v=20261114m"></script>
-  <script src="../meat-menu.js?v=20261114m"></script>
-  <script src="admin.js?v=20261114m"></script>
+  <script src="../site-config.js?v=20261114n"></script>
+  <script src="../meat-menu.js?v=20261114n"></script>
+  <script src="admin.js?v=20261114n"></script>
 </body>
 </html>
