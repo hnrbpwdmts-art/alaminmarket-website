@@ -1227,5 +1227,14 @@
     alt.remove();
     updateSendLabels();
   }
-  renderCats(); renderItems(); renderModes(); renderCart();
+  renderCats();
+  // Links like /order/?cat=goat open that meat's tab
+  try {
+    var wantCat = new URLSearchParams(location.search).get("cat");
+    if (wantCat) {
+      var ci = catList().map(function (c) { return c.id; }).indexOf(wantCat);
+      if (ci > -1) { activeCat = ci; updateCats(); }
+    }
+  } catch (e) { /* old browser: start on the first tab */ }
+  renderItems(); renderModes(); renderCart();
 })();

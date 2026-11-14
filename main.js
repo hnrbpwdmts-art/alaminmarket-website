@@ -569,3 +569,81 @@
 
   // Structured data for search engines is written directly in index.html
 })();
+
+/* Homepage extras: live "Open now" badge and "From $X/lb" prices on the meat cards */
+(function () {
+  var S = window.SITE || {}, store = S.store || {};
+
+  // Open now / Closed now, worked out from hoursForGoogle (e.g. "Mo-Th 10:00-20:00") in store time
+  (function openStatus() {
+    var el = document.getElementById("hero-status");
+    var spec = store.hoursForGoogle;
+    if (!el || !spec || !spec.length) return;
+    var DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+    function mins(t) { var p = t.split(":"); return +p[0] * 60 + +p[1]; }
+    var ranges = {}; // day index -> [[open, close], ...]
+    spec.forEach(function (line) {
+      var m = /^([A-Z][a-z])(?:-([A-Z][a-z]))?\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/.exec(line.trim());
+      if (!m) return;
+      var a = DAYS.indexOf(m[1]), b = m[2] ? DAYS.indexOf(m[2]) : a;
+      if (a < 0 || b < 0) return;
+      for (var d = a; ; d = (d + 1) % 7) { (ranges[d] = ranges[d] || []).push([mins(m[3]), mins(m[4])]); if (d === b) break; }
+    });
+    function fmt(m) {
+      var h = Math.floor(m / 60), mm = m % 60, ap = h >= 12 ? "PM" : "AM", h12 = h % 12 || 12;
+      return h12 + (mm ? ":" + (mm < 10 ? "0" : "") + mm : "") + " " + ap;
+    }
+    function update() {
+      var now;
+      try {
+        var parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", weekday: "short", hour: "numeric", minute: "numeric", hourCycle: "h23" }).formatToParts(new Date());
+        var get = function (t) { return (parts.filter(function (p) { return p.type === t; })[0] || {}).value; };
+        now = { day: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(get("weekday")), min: (+get("hour") % 24) * 60 + +get("minute") };
+      } catch (e) { return; }
+      if (now.day < 0) return;
+      var today = (ranges[now.day] || []).slice().sort(function (x, y) { return x[0] - y[0]; });
+      var open = today.filter(function (r) { return now.min >= r[0] && now.min < r[1]; })[0];
+      var text, cls;
+      if (open) {
+        var closesSoon = open[1] - now.min <= 60;
+        text = (closesSoon ? "Closing soon · until " : "Open now · until ") + fmt(open[1]);
+        cls = closesSoon ? "is-soon" : "is-open";
+      } else {
+        var later = today.filter(function (r) { return r[0] > now.min; })[0];
+        if (later) {
+          var gap = today.some(function (r) { return r[1] <= now.min; });
+          text = (gap && now.day === 5 ? "Closed for Friday prayer · back at " : "Closed now · opens at ") + fmt(later[0]);
+        } else {
+          var nd = (now.day + 1) % 7, next = (ranges[nd] || []).slice().sort(function (x, y) { return x[0] - y[0]; })[0];
+          text = next ? "Closed now · opens tomorrow at " + fmt(next[0]) : "Closed now";
+        }
+        cls = "is-closed";
+      }
+      el.textContent = text;
+      el.className = "hero-status " + cls;
+      el.hidden = false;
+    }
+    update();
+    setInterval(update, 60000);
+  })();
+
+  // "From $1.49/lb" on the homepage meat cards, from the same menu the order page uses
+  (function fromPrices() {
+    var M = window.MEAT_MENU;
+    var cards = document.querySelectorAll("[data-from]");
+    if (!M || !M.categories || !cards.length) return;
+    cards.forEach(function (el) {
+      var cat = M.categories.filter(function (c) { return c.id === el.getAttribute("data-from"); })[0];
+      if (!cat) return;
+      var best = null;
+      (cat.items || []).forEach(function (it) {
+        var p = it.price != null ? it.price : (it.prices ? Math.min.apply(null, Object.keys(it.prices).map(function (k) { return it.prices[k]; })) : null);
+        if (p == null || isNaN(p)) return;
+        var perLb = (it.priceUnit || it.unit) === "lb";
+        // Prefer per-lb prices so the "from" is comparable
+        if (!best || (perLb && !best.perLb) || (perLb === best.perLb && p < best.p)) best = { p: p, perLb: perLb };
+      });
+      if (best) el.textContent = "From $" + best.p.toFixed(2) + (best.perLb ? " / lb" : " each");
+    });
+  })();
+})();
