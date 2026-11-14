@@ -960,7 +960,7 @@
       });
   }
   function updateSendLabels() {
-    $("send-website").textContent = state.sentNum ? "Review my changes" : "Review my order";
+    $("send-website").textContent = isPhone ? (state.sentNum ? "Review & send changes online" : "Review & submit online") : (state.sentNum ? "Review my changes" : "Review my order");
   }
   var submitNum = null;
 
@@ -1181,6 +1181,19 @@
   $("send-text").addEventListener("click", function () { send("text"); });
   // WhatsApp and text links only work well on phones, so offer them there only.
   // Computers (and anyone else) use "Submit order".
-  if (isPhone) { $("send-or").hidden = false; $("send-apps").hidden = false; $("apps-fineprint").hidden = false; }
+  // On phones, WhatsApp and text come first; online submit is the backup.
+  if (isPhone) {
+    var sendBox = $("send-website").parentNode, apps = $("send-apps"), alt = $("send-or");
+    sendBox.classList.add("is-phone");
+    $("send-whatsapp").innerHTML = WA_ICON + '<span>Send on WhatsApp</span>';
+    $("send-text").innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg><span>Send by text message</span>';
+    sendBox.insertBefore(el("p", "order-send-head", "Send your order"), sendBox.firstChild);
+    sendBox.insertBefore(apps, $("send-website"));
+    sendBox.insertBefore($("apps-fineprint"), $("send-website"));
+    sendBox.insertBefore(el("p", "order-send-or", "or"), $("send-website"));
+    $("send-website").classList.remove("btn-primary"); $("send-website").classList.add("btn-outline");
+    alt.remove();
+    updateSendLabels();
+  }
   renderCats(); renderItems(); renderModes(); renderCart();
 })();

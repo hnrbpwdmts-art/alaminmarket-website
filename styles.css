@@ -811,3 +811,15 @@ a { color: var(--green); }
 .order-section:not([data-step="1"]) #cart-title { display: none; }
 .order-section.section { padding-top: 22px; }
 .order-section:not([data-step="1"]) .order-summary { background: transparent; border: 0; box-shadow: none; padding: 0; }
+
+/* Phones: WhatsApp and text first */
+.order-send.is-phone .order-send-head { margin: 4px 0 0; font: 700 1.15rem var(--serif); color: var(--green-dark); }
+.order-send.is-phone .order-send-apps { grid-template-columns: 1fr; gap: 10px; margin: 0; }
+.order-send.is-phone .order-send-apps .btn { min-height: 56px; font-size: 1.1rem; gap: 10px; }
+.order-send.is-phone .order-send-apps svg { width: 24px; height: 24px; flex: none; }
+.order-send.is-phone #send-whatsapp { background: var(--whatsapp); border-color: var(--whatsapp); color: #fff; }
+.order-send.is-phone #send-whatsapp svg { fill: #fff; }
+.order-send.is-phone #send-text { background: var(--green); border-color: var(--green); color: #fff; }
+.order-send.is-phone #send-text svg { fill: none; stroke: #fff; stroke-width: 2; }
+.order-send.is-phone #apps-fineprint { margin: 0; text-align: center; font-size: .86rem; }
+.order-send.is-phone #send-website { border: 2px solid var(--green); color: var(--green-dark); background: #fff; min-height: 50px; }
