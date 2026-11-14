@@ -575,21 +575,71 @@
   var reviewEl = el("div", "order-review"); reviewEl.hidden = true;
   doneEl.parentNode.insertBefore(reviewEl, doneEl);
   function showReview() {
-    var isUpdate = !!state.sentNum, num = currentNum();
+    var isUpdate = !!state.sentNum, num = currentNum(), isDel = state.mode === "delivery";
     reviewEl.textContent = "";
-    reviewEl.appendChild(el("h2", null, isUpdate ? "Check your changes" : "Check your order"));
-    reviewEl.appendChild(el("p", null, isUpdate
-      ? "This replaces order " + num + ". Make sure everything looks right, then send the update."
-      : "Make sure everything looks right, then send it to our meat counter."));
-    var text = buildMessage(num).split("\n").slice(2).join("\n").replace(/\*\* DELIVERY QUOTE NEEDED[^\n]*\n?/, "");
-    reviewEl.appendChild(el("pre", "order-review-text", text));
+
+    var head = el("div", "rv-head");
+    head.appendChild(el("h2", null, isUpdate ? "Review your changes" : "Review your order"));
+    head.appendChild(el("span", "rv-num", "Order " + num));
+    reviewEl.appendChild(head);
+    if (isUpdate) reviewEl.appendChild(el("p", "rv-update", "This will replace the order you sent earlier. Your order number stays the same."));
+
+    // Pickup / delivery details
+    var when = el("div", "rv-card rv-when");
+    when.appendChild(el("p", "rv-label", isDel ? "Delivery" : "Pickup at the store"));
+    when.appendChild(el("p", "rv-strong", $("order-day").value + ", " + $("order-time").value));
+    if (isDel) when.appendChild(el("p", null, state.address));
+    else when.appendChild(el("p", null, S.store.street + ", " + S.store.city + ", " + S.store.state + " " + S.store.zip));
+    when.appendChild(el("p", "rv-muted", state.name + " · " + state.phone));
+    reviewEl.appendChild(when);
+
+    // Items
+    var list = el("ul", "rv-items"), total = 0, allPriced = true, byWeight = false;
+    state.cart.forEach(function (l) {
+      var t = lineText(l), cost = lineCost(l), lb = lineUnit(l) === "lb";
+      if (priceUnit(findItem(l.id)) === "lb") byWeight = true;
+      if (cost == null) allPriced = false; else total += cost;
+      var li = el("li", "rv-item");
+      var left = el("div", "rv-item-main");
+      left.appendChild(el("p", "rv-item-name", t.item.name));
+      if (t.desc) left.appendChild(el("p", "rv-item-opts", t.desc));
+      if (t.custom) left.appendChild(el("p", "rv-item-opts", "Special request: " + t.custom));
+      var right = el("div", "rv-item-side");
+      right.appendChild(el("p", "rv-item-qty", lb ? fmtQty(l.qty, "lb") : fmtQty(l.qty, "each", t.item)));
+      right.appendChild(el("p", "rv-item-price", cost != null ? (priceUnit(t.item) === "lb" ? "about " : "") + money(cost) : "Priced at the store"));
+      li.appendChild(left); li.appendChild(right); list.appendChild(li);
+    });
+    reviewEl.appendChild(list);
+
+    // Totals
+    var tot = el("div", "rv-totals");
+    function row(label, value, cls) { var r = el("p", "rv-row" + (cls ? " " + cls : "")); r.appendChild(el("span", null, label)); r.appendChild(el("strong", null, value)); tot.appendChild(r); }
+    var fee = isDel && quote && quote.fee != null ? quote.fee : null;
+    row(byWeight ? "Estimated meat total" : "Meat total", (allPriced ? "" : "at least ") + money(total));
+    if (isDel) row("Delivery", fee != null ? "up to " + money(fee) : "We'll send you a quote");
+    row(byWeight || isDel ? "Estimated total" : "Total", (allPriced ? "" : "at least ") + money(total + (fee || 0)) + (isDel && fee == null ? " + delivery" : ""), "rv-grand");
+    reviewEl.appendChild(tot);
+
+    // What happens next
+    var next = el("div", "rv-next");
+    next.appendChild(el("h3", null, "What happens next"));
+    var steps = el("ol", "rv-steps");
+    [["We get your order", "It goes straight to our meat counter."],
+     ["We cut and weigh it", "Meat is sold by weight, and every cut is a little different, so your final weight and price may be slightly more or less than the estimate."],
+     ["We text you to confirm", "You'll get your final total" + (isDel ? ", delivery cost," : "") + " and a payment link at " + state.phone + "."],
+     [isDel ? "We deliver it" : "Pick it up", isDel ? "We'll bring it to your door at the time we confirm." : "Come to the counter at your pickup time. Your order will be packed and ready."]
+    ].forEach(function (st) { var li = el("li"); li.appendChild(el("strong", null, st[0])); li.appendChild(el("span", null, st[1])); steps.appendChild(li); });
+    next.appendChild(steps);
+    reviewEl.appendChild(next);
+
     var errBox = el("p", "order-error"); errBox.hidden = true; errBox.setAttribute("role", "alert");
     reviewEl.appendChild(errBox);
     var ok = el("button", "btn btn-primary order-submit", isUpdate ? "Send updated order" : "Send order"); ok.type = "button";
     ok.addEventListener("click", function () { doSubmit(num, isUpdate, ok, errBox); });
-    var edit = el("button", "order-link-btn", "Go back and edit"); edit.type = "button";
+    var edit = el("button", "order-link-btn rv-edit", "Go back and edit"); edit.type = "button";
     edit.addEventListener("click", function () { reviewEl.hidden = true; form.hidden = false; cartEl.hidden = false; form.scrollIntoView({ block: "start" }); });
     reviewEl.appendChild(ok); reviewEl.appendChild(edit);
+    reviewEl.appendChild(el("p", "rv-fine", "No payment now. You'll pay once we confirm your final total."));
     reviewEl.hidden = false; form.hidden = true; cartEl.hidden = true;
     reviewEl.scrollIntoView({ behavior: "smooth", block: "start" });
   }
