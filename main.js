@@ -158,7 +158,9 @@
       var tab = document.createElement("button");
       tab.type = "button"; tab.className = "grocery-tab"; tab.id = "tab-" + sc.id;
       tab.setAttribute("role", "tab"); tab.setAttribute("aria-controls", "panel-" + sc.id);
-      tab.textContent = sc.tab || sc.title;
+      tab.textContent = (sc.tab || sc.title) + " ";
+      var n = (sc.items || []).length;
+      if (n) { var cnt = document.createElement("span"); cnt.className = "grocery-tab-count"; cnt.textContent = n; cnt.setAttribute("aria-label", n + " items"); tab.appendChild(cnt); }
       bar.appendChild(tab);
 
       var panel = document.createElement("section");
