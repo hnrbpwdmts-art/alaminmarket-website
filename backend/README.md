@@ -45,6 +45,11 @@ WhatsApp and text orders aren't emailed, because they already arrive on the stor
 
 Google allows about 100 of these emails a day on a free account.
 
+**Order changes:** customers see a "Check your order" screen before sending. If they
+change an order after sending it (within 12 hours), it's sent again with the same
+order number, the email subject starts with "UPDATED", and the sheet's Channel column
+says "Website (UPDATE)". Use the newest version.
+
 ## Everyday use
 
 - Open the sheet on your phone with the Google Sheets app. New orders appear within

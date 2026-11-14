@@ -38,7 +38,7 @@ function doPost(e) {
     }).join("; ");
 
     sheet(ss, "Orders", ORDER_HEADERS).appendRow([
-      when, d.orderNumber, d.channel, d.mode, d.date || d.day, d.time, safe(d.name), asText(phone),
+      when, d.orderNumber, d.channel + (d.update ? " (UPDATE)" : ""), d.mode, d.date || d.day, d.time, safe(d.name), asText(phone),
       safe(d.address), safe(itemsText), d.itemCount, d.estimatedTotal, d.allPriced ? "Yes" : "No",
       safe(d.notes), d.marketingOptIn ? "Yes" : "No", safe(d.optInText), safe(d.source), d.device
     ]);
@@ -49,7 +49,8 @@ function doPost(e) {
         safe(it.special), it.qty, it.unit, it.price, it.priceUnit, it.estimate]);
     });
 
-    if (phone) updateCustomer(sheet(ss, "Customers", CUSTOMER_HEADERS), phone, d, when);
+    // An update to an order already sent doesn't count as a new order
+    if (phone && !d.update) updateCustomer(sheet(ss, "Customers", CUSTOMER_HEADERS), phone, d, when);
 
     // Email alert for orders submitted on the website (not WhatsApp or text,
     // which already arrive on the store phone)
@@ -68,9 +69,10 @@ function doPost(e) {
 function emailOrder(d, phone) {
   var digits = phone.replace(/\D/g, "");
   var name = String(d.name || "").slice(0, 80);
-  var subject = "New website order " + d.orderNumber + " – " + name + " (" +
+  var subject = (d.update ? "UPDATED website order " : "New website order ") + d.orderNumber + " – " + name + " (" +
     (d.mode === "delivery" ? "Delivery" : "Pickup") + " " + (d.day || "") + ", " + (d.time || "") + ")";
   var body = String(d.message || "").slice(0, 6000);
+  if (d.update) body = "This REPLACES the earlier version of order " + d.orderNumber + ". Use this one.\n\n" + body;
   var links = phone ? '<p style="font-size:16px">Contact ' + esc(name) + ': ' +
     '<a href="tel:' + phone + '">Call</a> &nbsp;·&nbsp; ' +
     '<a href="sms:' + phone + '">Text</a> &nbsp;·&nbsp; ' +

@@ -104,8 +104,11 @@
       });
     }
   } catch (e) { /* storage unavailable */ }
+  // A sent order can be edited for a while; changes go out under the same order number
+  if (state.sentNum && !(state.sentAt > Date.now() - 12 * 3600 * 1000)) { state.sentNum = null; state.sentAt = null; }
   function save() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify({ cart: state.cart, mode: state.mode, name: state.name, phone: state.phone, addr: state.addr })); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ cart: state.cart, mode: state.mode, name: state.name, phone: state.phone, addr: state.addr,
+      sentNum: state.sentNum || null, sentAt: state.sentAt || null })); } catch (e) { /* ignore */ }
   }
 
   // ---------- category icons (simple line drawings) ----------
@@ -523,7 +526,7 @@
   }
   function buildMessage(num) {
     var isDel = state.mode === "delivery", total = 0, allPriced = true;
-    var lines = ["New meat order " + num, ""];
+    var lines = [state.sentNum ? "UPDATED meat order " + num + " (replaces the earlier version)" : "New meat order " + num, ""];
     lines.push((isDel ? "Delivery" : "Pickup") + ": " + $("order-day").value + ", " + $("order-time").value);
     lines.push("Name: " + state.name);
     lines.push("Phone: " + state.phone);
@@ -549,41 +552,73 @@
     if (notes) lines.push("Notes: " + notes);
     return lines.join("\n");
   }
+  function currentNum() { return state.sentNum || submitNum || (submitNum = orderNumber()); }
+  function markSent(num) { state.sentNum = num; state.sentAt = Date.now(); submitNum = null; save(); }
   function send(channel) {
     if (!validate()) return;
-    var num = orderNumber(), msg = buildMessage(num), url;
+    var isUpdate = !!state.sentNum, num = currentNum(), msg = buildMessage(num), url;
     if (channel === "whatsapp") url = "https://wa.me/" + S.store.whatsappNumber + "?text=" + encodeURIComponent(msg);
     else url = "sms:+" + (M.textNumber || S.store.whatsappNumber) + "?&body=" + encodeURIComponent(msg);
-    logOrder(num, channel);
+    var data = orderData(num, channel); data.update = isUpdate;
+    logOrder(data);
+    markSent(num);
     window.location.href = url;
-    showDone(num, channel);
+    showDone(num, channel, isUpdate);
   }
   // "Submit order": works on any device. Sends the order to /api/order, which saves it
   // to the store's Google Sheet and emails it to the store (see functions/api/order.js).
   function submitOrder() {
     if (!validate()) return;
-    var btn = $("send-website"), errEl = $("order-error");
+    showReview();
+  }
+  // "Check your order" screen before anything is sent
+  var reviewEl = el("div", "order-review"); reviewEl.hidden = true;
+  doneEl.parentNode.insertBefore(reviewEl, doneEl);
+  function showReview() {
+    var isUpdate = !!state.sentNum, num = currentNum();
+    reviewEl.textContent = "";
+    reviewEl.appendChild(el("h2", null, isUpdate ? "Check your changes" : "Check your order"));
+    reviewEl.appendChild(el("p", null, isUpdate
+      ? "This replaces order " + num + ". Make sure everything looks right, then send the update."
+      : "Make sure everything looks right, then send it to our meat counter."));
+    var text = buildMessage(num).split("\n").slice(2).join("\n").replace(/\*\* DELIVERY QUOTE NEEDED[^\n]*\n?/, "");
+    reviewEl.appendChild(el("pre", "order-review-text", text));
+    var errBox = el("p", "order-error"); errBox.hidden = true; errBox.setAttribute("role", "alert");
+    reviewEl.appendChild(errBox);
+    var ok = el("button", "btn btn-primary order-submit", isUpdate ? "Send updated order" : "Send order"); ok.type = "button";
+    ok.addEventListener("click", function () { doSubmit(num, isUpdate, ok, errBox); });
+    var edit = el("button", "order-link-btn", "Go back and edit"); edit.type = "button";
+    edit.addEventListener("click", function () { reviewEl.hidden = true; form.hidden = false; cartEl.hidden = false; form.scrollIntoView({ block: "start" }); });
+    reviewEl.appendChild(ok); reviewEl.appendChild(edit);
+    reviewEl.hidden = false; form.hidden = true; cartEl.hidden = true;
+    reviewEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  // Sends the order to /api/order, which saves it to the store's Google Sheet and
+  // emails it to the store (see functions/api/order.js).
+  function doSubmit(num, isUpdate, btn, errBox) {
     if (btn.disabled) return;
-    var num = submitNum || (submitNum = orderNumber());   // same number if they retry
     var data = orderData(num, "website");
+    data.update = isUpdate;
     data.message = buildMessage(num);
     data.website = $("order-website").value;           // hidden field; people leave it empty
-    btn.disabled = true; btn.textContent = "Sending your order…";
+    var label = btn.textContent;
+    btn.disabled = true; btn.textContent = isUpdate ? "Sending your update…" : "Sending your order…";
     fetch(M.submitUrl || "/api/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
       .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
       .then(function (d) {
-        if (d && d.ok) { submitNum = null; showDone(num, "website"); return; }
+        if (d && d.ok) { markSent(num); reviewEl.hidden = true; showDone(num, "website", isUpdate); return; }
         throw new Error((d && d.error) || "failed");
       })
       .catch(function (e) {
-        var msg = String(e && e.message) === "too_many"
-          ? "You've sent several orders in a short time. Please call us at " + S.store.phoneDisplay + " if you need to change your order."
-          : "Sorry, we couldn't send your order. Please try again, or call us at " + S.store.phoneDisplay +
-            (isPhone ? ". You can also send it by WhatsApp or text below." : ".");
-        errEl.textContent = msg; errEl.hidden = false;
-        errEl.scrollIntoView({ behavior: "smooth", block: "center" });
-      })
-      .then(function () { btn.disabled = false; btn.textContent = "Submit order"; });
+        errBox.textContent = String(e && e.message) === "too_many"
+          ? "You've sent several orders in a short time. Please call us at " + S.store.phoneDisplay + " to change your order."
+          : "Sorry, we couldn't send your order. Please try again, or call us at " + S.store.phoneDisplay + ".";
+        errBox.hidden = false;
+        btn.disabled = false; btn.textContent = label;
+      });
+  }
+  function updateSendLabels() {
+    $("send-website").textContent = state.sentNum ? "Review updated order" : "Submit order";
   }
   var submitNum = null;
 
@@ -628,18 +663,23 @@
     };
     return data;
   }
-  function logOrder(num, channel) {
+  function logOrder(data) {
     if (!M.orderLogUrl) return;
-    var body = JSON.stringify(orderData(num, channel));
+    var body = JSON.stringify(data);
     try {
       if (navigator.sendBeacon && navigator.sendBeacon(M.orderLogUrl, new Blob([body], { type: "text/plain" }))) return;
     } catch (e) { /* fall through */ }
     try { fetch(M.orderLogUrl, { method: "POST", mode: "no-cors", keepalive: true, headers: { "Content-Type": "text/plain" }, body: body }); } catch (e) { /* ignore */ }
   }
 
-  function showDone(num, channel) {
+  function showDone(num, channel, isUpdate) {
     doneEl.textContent = "";
-    if (channel === "website") {
+    if (channel === "website" && isUpdate) {
+      doneEl.appendChild(el("h2", null, "Order updated. Thank you!"));
+      doneEl.appendChild(el("p", null, "We've sent your changes to our meat counter. Your order number is still " + num + "."));
+      doneEl.appendChild(el("p", null, "We'll text or call you at " + state.phone + " to confirm."));
+      doneEl.appendChild(el("p", "order-fineprint", "Questions? Call us at " + S.store.phoneDisplay + "."));
+    } else if (channel === "website") {
       doneEl.appendChild(el("h2", null, "Order received. Thank you!"));
       doneEl.appendChild(el("p", null, "Your order number is " + num + ". It's on its way to our meat counter."));
       doneEl.appendChild(el("p", null, "We'll text or call you at " + state.phone + " to confirm your " +
@@ -653,9 +693,12 @@
         (state.mode === "delivery" ? "delivery time" : "pickup time") + ", final total, and a payment link."));
     }
     var again = el("button", "btn btn-cream", "Start a new order"); again.type = "button";
-    again.addEventListener("click", function () { state.cart = []; save(); doneEl.hidden = true; cartEl.hidden = false; renderCart(); window.scrollTo(0, 0); });
-    var back = el("button", "order-link-btn", "Go back and edit this order"); back.type = "button";
-    back.addEventListener("click", function () { doneEl.hidden = true; form.hidden = false; cartEl.hidden = false; });
+    again.addEventListener("click", function () {
+      state.cart = []; state.sentNum = null; state.sentAt = null; submitNum = null; save(); updateSendLabels();
+      doneEl.hidden = true; cartEl.hidden = false; renderCart(); window.scrollTo(0, 0);
+    });
+    var back = el("button", "order-link-btn", "Change this order"); back.type = "button";
+    back.addEventListener("click", function () { updateSendLabels(); doneEl.hidden = true; form.hidden = false; cartEl.hidden = false; form.scrollIntoView({ block: "start" }); });
     doneEl.appendChild(again); doneEl.appendChild(back);
     doneEl.hidden = false; form.hidden = true; cartEl.hidden = true;
     doneEl.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -751,6 +794,7 @@
   $("get-quote").addEventListener("click", getQuote);
   $("order-day").addEventListener("change", updateMode);
   $("send-website").addEventListener("click", submitOrder);
+  updateSendLabels();
   $("send-whatsapp").addEventListener("click", function () { send("whatsapp"); });
   $("send-text").addEventListener("click", function () { send("text"); });
   // WhatsApp and text links only work well on phones, so offer them there only.
