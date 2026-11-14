@@ -20,9 +20,21 @@ var NOTIFY_EMAIL = "Muhammad@alaminmarket.com";
 // Leave it as "" to turn the order page off.
 var ADMIN_PASSCODE = "";
 
+// Phone call reminders for new website orders (needs Twilio; see backend/README.md).
+// CALL_SECRET must be the same text as CALL_SECRET in Cloudflare. "" = calls off.
+var CALL_SECRET = "";
+var CALL_URL = "https://alaminmarket.com/api/call-order";
+var CALL_EVERY_MINUTES = 5;   // wait between calls
+var CALL_LANDLINE_TRIES = 5;  // store landline first...
+var CALL_CELL_TRIES = 3;      // ...then the backup cell phone
+var CALL_CHANNELS = ["Website"]; // WhatsApp and text orders already ring the store phone
+// Calls only happen while the store is open (store time, 24-hour clock)
+var CALL_HOURS = ["Mo-Th 10:00-20:00", "Fr 10:00-12:15", "Fr 13:15-20:00", "Sa-Su 10:00-20:00"];
+
 var ORDER_HEADERS = ["Sent at", "Order #", "Channel", "Pickup/Delivery", "Pickup date", "Time", "Name", "Phone",
   "Address", "Items", "Item count", "Estimated total", "All items priced", "Notes",
-  "Texts opt-in", "Opt-in wording", "Source", "Device", "Status", "Final total", "Status updated"];
+  "Texts opt-in", "Opt-in wording", "Source", "Device", "Status", "Final total", "Status updated",
+  "Call status", "Call tries", "Last call"];
 // Order statuses used by the staff order page
 var STATUSES = ["New", "Confirmed", "Ready", "Out for delivery", "Done", "Cancelled"];
 var ITEM_HEADERS = ["Sent at", "Order #", "Category", "Item", "Choices", "Special request",
@@ -34,6 +46,7 @@ function doPost(e) {
   var parsed = null;
   try { parsed = JSON.parse(e.postData.contents); } catch (err) { /* not JSON */ }
   if (parsed && parsed.admin) return adminRequest(parsed);
+  if (parsed && parsed.callAck) return callAck(parsed);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -54,6 +67,7 @@ function doPost(e) {
       safe(d.address), safe(itemsText), d.itemCount, d.estimatedTotal, d.allPriced ? "Yes" : "No",
       safe(d.notes), d.marketingOptIn ? "Yes" : "No", safe(d.optInText), safe(d.source), d.device
     ]);
+    if (CALL_SECRET && CALL_CHANNELS.indexOf(d.channel) > -1) startCalls(orders, d.orderNumber);
 
     var itemSheet = sheet(ss, "Items", ITEM_HEADERS);
     d.items.forEach(function (it) {
@@ -242,7 +256,8 @@ function listOrders(days) {
       notes: String(r[c["Notes"]] || ""),
       status: String(r[c["Status"]] || "") || "New",
       finalTotal: r[c["Final total"]] === "" || r[c["Final total"]] == null ? "" : r[c["Final total"]],
-      statusAt: r[c["Status updated"]] instanceof Date ? r[c["Status updated"]].toISOString() : ""
+      statusAt: r[c["Status updated"]] instanceof Date ? r[c["Status updated"]].toISOString() : "",
+      callStatus: String(r[c["Call status"]] || "")
     };
     // A later "UPDATE" row replaces the earlier one and needs a fresh look
     if (prev && channel.indexOf("(UPDATE)") > -1 && !String(r[c["Status"]] || "")) o.status = "New";
@@ -273,10 +288,151 @@ function setStatus(d) {
       sh.getRange(row, c["Status"] + 1).setValue(status);
       sh.getRange(row, c["Status updated"] + 1).setValue(now);
       if (total != null && !isNaN(total)) sh.getRange(row, c["Final total"] + 1).setValue(total);
+      // Staff looked at it on the order page: no more reminder calls
+      if (status !== "New" && String(sh.getRange(row, c["Call status"] + 1).getValue()) === "Calling") {
+        sh.getRange(row, c["Call status"] + 1).setValue("Seen on order page");
+      }
       found++;
     }
     return found ? { ok: true, status: status, statusAt: now.toISOString() } : { ok: false, error: "not_found" };
   } finally {
     lock.releaseLock();
   }
+}
+
+
+/* ---------------- Phone call reminders for new orders ---------------- */
+/* How it works: a new website order is marked "Calling". checkCalls() runs
+   every minute (set up once with setupCallReminders). While the store is open
+   it rings the landline every few minutes, then the backup cell, until someone
+   presses 1 on the call or marks the order on the staff page. */
+
+function startCalls(sh, num) {
+  ensureHeaders(sh, ORDER_HEADERS);
+  var c = colMap(sh), last = sh.getLastRow();
+  // An updated order replaces any earlier call for the same order number
+  var nums = sh.getRange(2, c["Order #"] + 1, Math.max(last - 2, 1), 1).getValues();
+  for (var i = 0; i < nums.length && i + 2 < last; i++) {
+    if (String(nums[i][0]) === String(num) && String(sh.getRange(i + 2, c["Call status"] + 1).getValue()) === "Calling") {
+      sh.getRange(i + 2, c["Call status"] + 1).setValue("Replaced by update");
+    }
+  }
+  sh.getRange(last, c["Call status"] + 1, 1, 2).setValues([["Calling", 0]]);
+  PropertiesService.getScriptProperties().setProperty("callsPending", "1");
+}
+
+function callAck(d) {
+  if (!CALL_SECRET || String(d.secret || "") !== CALL_SECRET) return reply("forbidden");
+  var num = String(d.order || "");
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Orders");
+    if (!sh) return reply("ok none");
+    ensureHeaders(sh, ORDER_HEADERS);
+    var c = colMap(sh), last = sh.getLastRow(), found = 0;
+    var nums = sh.getRange(2, c["Order #"] + 1, Math.max(last - 1, 1), 1).getValues();
+    for (var i = 0; i < nums.length; i++) {
+      if (String(nums[i][0]) !== num) continue;
+      if (String(sh.getRange(i + 2, c["Call status"] + 1).getValue()) === "Calling") {
+        sh.getRange(i + 2, c["Call status"] + 1).setValue("Confirmed by phone");
+        sh.getRange(i + 2, c["Last call"] + 1).setValue(new Date());
+      }
+      found++;
+    }
+    return reply(found ? "ok call-confirmed" : "ok none");
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function storeOpenNow(now) {
+  now = now || new Date();
+  var parts = Utilities.formatDate(now, "America/Los_Angeles", "u HH:mm").split(" ");
+  var dayNum = Number(parts[0]) % 7;           // 1=Mon ... 7=Sun -> 0=Sun
+  var hm = parts[1].split(":"), mins = Number(hm[0]) * 60 + Number(hm[1]);
+  var DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  return CALL_HOURS.some(function (line) {
+    var m = /^([A-Z][a-z])(?:-([A-Z][a-z]))?\s+(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/.exec(line);
+    if (!m) return false;
+    var a = DAYS.indexOf(m[1]), b = m[2] ? DAYS.indexOf(m[2]) : a, inDays = false;
+    for (var d = a; ; d = (d + 1) % 7) { if (d === dayNum) inDays = true; if (d === b) break; }
+    var open = Number(m[3]) * 60 + Number(m[4]), close = Number(m[5]) * 60 + Number(m[6]);
+    return inDays && mins >= open && mins < close;
+  });
+}
+
+function spokenDay(v) {
+  var tz = "America/Los_Angeles";
+  var iso = isoDay(v, tz);
+  if (!iso) return String(v || "");
+  var today = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
+  var tomorrow = Utilities.formatDate(new Date(Date.now() + 86400000), tz, "yyyy-MM-dd");
+  if (iso === today) return "today";
+  if (iso === tomorrow) return "tomorrow";
+  var p = iso.split("-");
+  return Utilities.formatDate(new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]), 12), tz, "EEEE, MMMM d");
+}
+
+// Runs every minute (see setupCallReminders)
+function checkCalls() {
+  if (!CALL_SECRET) return;
+  var props = PropertiesService.getScriptProperties();
+  if (props.getProperty("callsPending") !== "1") return;   // nothing waiting: quick exit
+  if (!storeOpenNow()) return;
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return;
+  try {
+    var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Orders");
+    if (!sh || sh.getLastRow() < 2) { props.deleteProperty("callsPending"); return; }
+    ensureHeaders(sh, ORDER_HEADERS);
+    var c = colMap(sh), first = Math.max(2, sh.getLastRow() - 500);
+    var rows = sh.getRange(first, 1, sh.getLastRow() - first + 1, sh.getLastColumn()).getValues();
+    var now = new Date(), waiting = 0, maxTries = CALL_LANDLINE_TRIES + CALL_CELL_TRIES;
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i], row = first + i;
+      if (String(r[c["Call status"]]) !== "Calling") continue;
+      var tries = Number(r[c["Call tries"]]) || 0;
+      var lastCall = r[c["Last call"]] instanceof Date ? r[c["Last call"]] : null;
+      var sent = r[c["Sent at"]] instanceof Date ? r[c["Sent at"]] : new Date(r[c["Sent at"]]);
+      var staffStatus = String(r[c["Status"]] || "");
+      if (staffStatus && staffStatus !== "New") { sh.getRange(row, c["Call status"] + 1).setValue("Seen on order page"); continue; }
+      if (now - sent > 24 * 3600000) { sh.getRange(row, c["Call status"] + 1).setValue("Expired"); continue; }
+      if (tries >= maxTries) { sh.getRange(row, c["Call status"] + 1).setValue("No answer"); continue; }
+      waiting++;
+      if (lastCall && now - lastCall < CALL_EVERY_MINUTES * 60000 - 20000) continue;
+      var res = UrlFetchApp.fetch(CALL_URL, {
+        method: "post", contentType: "application/json", muteHttpExceptions: true,
+        payload: JSON.stringify({
+          secret: CALL_SECRET, order: String(r[c["Order #"]]), name: String(r[c["Name"]] || ""),
+          mode: String(r[c["Pickup/Delivery"]] || ""), day: spokenDay(r[c["Pickup date"]]), time: String(r[c["Time"]] || ""),
+          update: String(r[c["Channel"]] || "").indexOf("(UPDATE)") > -1,
+          attempt: tries + 1, to: tries < CALL_LANDLINE_TRIES ? "landline" : "cell"
+        })
+      });
+      sh.getRange(row, c["Call tries"] + 1, 1, 2).setValues([[tries + 1, now]]);
+      if (res.getResponseCode() === 503) { sh.getRange(row, c["Call status"] + 1).setValue("Calls not set up"); waiting--; }
+    }
+    if (!waiting) props.deleteProperty("callsPending");
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Run this ONCE from the Apps Script editor (select it, click Run, approve).
+function setupCallReminders() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === "checkCalls") ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger("checkCalls").timeBased().everyMinutes(1).create();
+  return "Call reminders are on.";
+}
+
+// Optional: run from the editor to ring the store landline once with a test order.
+function testCall() {
+  var res = UrlFetchApp.fetch(CALL_URL, {
+    method: "post", contentType: "application/json", muteHttpExceptions: true,
+    payload: JSON.stringify({ secret: CALL_SECRET, order: "T0000-123", name: "Test customer", mode: "pickup", day: "today", time: "3–5 PM", attempt: 1, to: "landline" })
+  });
+  Logger.log(res.getResponseCode() + " " + res.getContentText());
 }

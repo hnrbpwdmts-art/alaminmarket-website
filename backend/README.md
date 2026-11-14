@@ -83,3 +83,32 @@ Order emails, WhatsApp, and text orders keep working exactly as before.
 The page adds three columns to the Orders tab: Status, Final total, Status updated.
 After 10 wrong passcodes the page locks for 15 minutes. To sign everyone out,
 change the passcode and redeploy.
+
+## Phone call reminders for new orders (Twilio)
+
+When a website order comes in, the store landline rings and reads the order
+out: "New online order from Sara, for pickup today, 12 to 3 PM. Press 1 to
+confirm." If nobody presses 1, it calls again every 5 minutes: 5 tries on the
+landline, then 3 on the backup cell (424) 527-3540. Calls happen only while
+the store is open; a late-night order rings at 10 AM. Marking the order on the
+staff page also stops the calls. Emails, WhatsApp and texts are unchanged.
+
+1. Twilio (twilio.com): create an account, upgrade it (add a payment method;
+   trial accounts play an extra message and can't be used here), and buy a
+   local phone number with Voice.
+2. Cloudflare > Workers & Pages > alaminmarket-website > Settings > Variables
+   and Secrets. Add these as **Secrets** (Production and Preview):
+   - `TWILIO_ACCOUNT_SID`  (starts with AC, on the Twilio console home page)
+   - `TWILIO_AUTH_TOKEN`   (same page, click to show)
+   - `TWILIO_FROM`         your Twilio number, like +13105550123
+   - `CALL_SECRET`         any long random text, like a 30-letter password
+   Then Deployments > latest > Retry deployment.
+3. In `Code.gs`, set `CALL_SECRET` to the exact same text. Save.
+4. In the Apps Script editor, pick `setupCallReminders` in the function menu,
+   click Run, and approve the permissions. (Once only.)
+5. Deploy > Manage deployments > Edit > New version > Deploy.
+6. Optional test: pick `testCall` and click Run. The landline should ring.
+
+Save the Twilio number in the store phones as "Online Order".
+The Orders tab gains three columns: Call status, Call tries, Last call.
+To turn calls off, set `CALL_SECRET = ""` in Code.gs and redeploy.

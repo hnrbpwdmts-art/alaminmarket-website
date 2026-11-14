@@ -149,6 +149,8 @@
     var top = el("div", "adm-card-top");
     top.appendChild(el("span", "adm-badge " + (STATUS_CLASS[o.status] || ""), o.status));
     if (o.updated) top.appendChild(el("span", "adm-badge is-updated", "Customer changed it"));
+    var CALL_BADGE = { "Calling": "📞 Calling store…", "Confirmed by phone": "📞 Answered", "No answer": "📞 No answer" };
+    if (CALL_BADGE[o.callStatus]) top.appendChild(el("span", "adm-badge adm-call" + (o.callStatus === "No answer" ? " is-new" : ""), CALL_BADGE[o.callStatus]));
     top.appendChild(el("span", "adm-num", o.num));
     li.appendChild(top);
 

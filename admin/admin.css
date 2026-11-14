@@ -74,3 +74,4 @@
 .adm-sheet-btns .btn { width: 100%; }
 .admin-body .quick-actions { display: none; }
 .admin-body { padding-bottom: 40px !important; }
+.adm-call { text-transform: none; letter-spacing: 0; background: #e8eef8; color: #1f4f8a; }
