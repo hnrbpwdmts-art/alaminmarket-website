@@ -451,7 +451,8 @@
       var last = lastOrder();
       if (last) cartEl.appendChild(reorderCard(last));
       form.hidden = true;
-      updateBar(); setStep(1);
+      if (curStep === 2) setStep(1);
+      updateBar();
       return;
     }
     var ul = el("ul", "order-lines");
@@ -497,12 +498,15 @@
     tot.appendChild(el("span", null, "Estimated total"));
     tot.appendChild(el("strong", null, T.allPriced ? money(T.total) : T.total > 0 ? "From " + money(T.total) : "We'll price it"));
     cartEl.appendChild(tot);
-    cartEl.appendChild(el("p", "order-weight-note", "Meat is sold by weight. Your final price is based on the actual weight when we cut your order. We'll confirm it with you before you pay."));
+    cartEl.appendChild(el("p", "order-weight-note", "Meat is priced by weight. We'll confirm your final total before you pay."));
+    var next = el("button", "btn btn-primary order-next", "Next: " + (modes.length > 1 ? "pickup or delivery" : "your details") + " ›"); next.type = "button";
+    next.addEventListener("click", function () { setStep(2); });
+    cartEl.appendChild(next);
     form.hidden = false;
     renderDays();
     renderTotals();
+    renderMini();
     updateBar();
-    setStep(2);
   }
 
   // Edit a cart line: open that item's options with the current choices filled in
@@ -566,7 +570,7 @@
   }
   function updateBar() {
     var T = cartTotals();
-    var show = T.count > 0 && !summaryVisible && reviewHidden() && doneEl.hidden;
+    var show = T.count > 0 && !summaryVisible && curStep === 1 && reviewHidden() && doneEl.hidden;
     bar.hidden = !show;
     document.body.classList.toggle("has-cart-bar", show);
     barBtn.textContent = "";
@@ -577,14 +581,39 @@
   function reviewHidden() { return typeof reviewEl === "undefined" || reviewEl.hidden; }
 
   // ---------- progress: Choose → Your details → Review → Done ----------
-  var progEl = $("order-progress");
+  var progEl = $("order-progress"), sectionEl = $("order-section"), curStep = 1;
   function setStep(n) {
+    var changed = n !== curStep;
+    curStep = n;
+    if (sectionEl) sectionEl.setAttribute("data-step", String(n));
+    if (n === 2) { form.hidden = false; cartEl.hidden = false; reviewEl.hidden = true; doneEl.hidden = true; renderMini(); }
+    if (n === 1) { reviewEl.hidden = true; doneEl.hidden = true; cartEl.hidden = false; }
+    updateBar();
+    if (changed && sectionEl) {
+      var top = sectionEl.getBoundingClientRect().top + window.pageYOffset - 70;
+      if (window.pageYOffset > top || n > 1) window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    }
     if (!progEl) return;
     [].forEach.call(progEl.children, function (li, i) {
       li.classList.toggle("is-done", i + 1 < n);
       li.classList.toggle("is-current", i + 1 === n);
       if (i + 1 === n) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
     });
+  }
+
+  // Small "Your order: 3 items · $45" line at the top of the details step
+  function renderMini() {
+    var m = $("order-mini"); if (!m) return;
+    var T = cartTotals();
+    m.textContent = "";
+    var txt = el("p", "order-mini-text");
+    txt.appendChild(el("strong", null, "Your order: "));
+    txt.appendChild(document.createTextNode(T.count + (T.count === 1 ? " item" : " items") +
+      (T.total > 0 ? " · about " + money(T.total) : "")));
+    m.appendChild(txt);
+    var ch = el("button", "order-link-btn", "Change"); ch.type = "button";
+    ch.addEventListener("click", function () { setStep(1); });
+    m.appendChild(ch);
   }
 
   // ---------- pickup / delivery ----------
@@ -900,12 +929,11 @@
     var ok = el("button", "btn btn-primary order-submit", isUpdate ? "Send updated order" : "Send order"); ok.type = "button";
     ok.addEventListener("click", function () { doSubmit(num, isUpdate, ok, errBox); });
     var edit = el("button", "order-link-btn rv-edit", "Go back and edit"); edit.type = "button";
-    edit.addEventListener("click", function () { reviewEl.hidden = true; form.hidden = false; cartEl.hidden = false; setStep(2); updateBar(); form.scrollIntoView({ block: "start" }); });
+    edit.addEventListener("click", function () { setStep(2); });
     reviewEl.appendChild(ok); reviewEl.appendChild(edit);
     reviewEl.appendChild(el("p", "rv-fine", "No payment now. You'll pay once we confirm your final total."));
     reviewEl.hidden = false; form.hidden = true; cartEl.hidden = true;
-    setStep(3); updateBar();
-    reviewEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    setStep(3);
   }
   // Sends the order to /api/order, which saves it to the store's Google Sheet and
   // emails it to the store (see functions/api/order.js).
@@ -932,7 +960,7 @@
       });
   }
   function updateSendLabels() {
-    $("send-website").textContent = state.sentNum ? "Review updated order" : "Submit order";
+    $("send-website").textContent = state.sentNum ? "Review my changes" : "Review my order";
   }
   var submitNum = null;
 
@@ -986,51 +1014,72 @@
     try { fetch(M.orderLogUrl, { method: "POST", mode: "no-cors", keepalive: true, headers: { "Content-Type": "text/plain" }, body: body }); } catch (e) { /* ignore */ }
   }
 
+  var WA_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5.1-1 .1-1.7-.1a15 15 0 0 1-6.3-5.5c-.5-.7-1-1.7-1-2.8 0-1.1.6-1.6.8-1.9.2-.2.5-.3.6-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.1.1.6-.1 1.2z"/></svg>';
+  var PHONE_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>';
+  function contactIcons(num) {
+    var row = el("div", "done-icons");
+    var wa = el("a", "done-icon done-icon-wa");
+    wa.href = "https://wa.me/" + S.store.whatsappNumber + "?text=" + encodeURIComponent("Hi Super Al-Amin! I have a question about my order " + num + ".");
+    wa.target = "_blank"; wa.rel = "noopener";
+    wa.setAttribute("aria-label", "WhatsApp us at " + S.store.whatsappDisplay);
+    wa.innerHTML = '<span class="done-icon-circle">' + WA_ICON + '</span><span class="done-icon-label">WhatsApp</span>';
+    var call = el("a", "done-icon done-icon-call");
+    call.href = S.store.phoneLink;
+    call.setAttribute("aria-label", "Call us at " + S.store.phoneDisplay);
+    call.innerHTML = '<span class="done-icon-circle">' + PHONE_ICON + '</span><span class="done-icon-label">Call Us</span>';
+    row.appendChild(wa); row.appendChild(call);
+    return row;
+  }
+
   function showDone(num, channel, isUpdate) {
     doneEl.textContent = "";
-    if (channel === "website" && isUpdate) {
-      doneEl.appendChild(el("h2", null, "Order updated. Thank you!"));
-      doneEl.appendChild(el("p", null, "We've sent your changes to our meat counter. Your order number is still " + num + "."));
-      doneEl.appendChild(el("p", null, "We'll text or call you at " + state.phone + " to confirm."));
-      doneEl.appendChild(el("p", "order-fineprint", "Questions? Call us at " + S.store.phoneDisplay + "."));
-    } else if (channel === "website") {
-      doneEl.appendChild(el("h2", null, "Order received. Thank you!"));
-      doneEl.appendChild(el("p", null, "Your order number is " + num + ". It's on its way to our meat counter."));
-      doneEl.appendChild(el("p", null, "We'll text or call you at " + state.phone + " to confirm your " +
-        (state.mode === "delivery" ? "delivery time and delivery cost" : "pickup time") + ", your final total, and a payment link."));
-      doneEl.appendChild(el("p", "order-fineprint", "Questions? Call us at " + S.store.phoneDisplay + "."));
-    } else {
-      doneEl.appendChild(el("h2", null, "Almost done!"));
-      doneEl.appendChild(el("p", null, "Your order " + num + " should now be open in " +
-        (channel === "whatsapp" ? "WhatsApp" : "Messages") + ". Press send there to place it."));
-      doneEl.appendChild(el("p", null, "We'll text you back with your " +
-        (state.mode === "delivery" ? "delivery time" : "pickup time") + ", final total, and a payment link."));
-    }
+    var isDel = state.mode === "delivery";
     if (channel === "website") {
-      var when = el("div", "rv-card");
-      when.appendChild(el("p", "rv-label", state.mode === "delivery" ? "Delivery" : "Pickup"));
-      when.appendChild(el("p", "rv-strong", $("order-day").value + ", " + $("order-time").value));
-      when.appendChild(el("p", null, state.mode === "delivery" ? state.address : S.store.street + ", " + S.store.city + ", " + S.store.state + " " + S.store.zip));
-      doneEl.insertBefore(when, doneEl.children[2] || null);
+      // Only reached after /api/order answered ok
+      var hero = el("div", "done-hero");
+      hero.appendChild(el("h2", "done-title", isUpdate ? "Thank you! Your updated order is in the works! 🎉" : "Thank you! Your order is in the works! 🎉"));
+      if (num) {
+        var n = el("p", "done-num");
+        n.appendChild(el("span", null, "Order number"));
+        n.appendChild(el("strong", null, num));
+        hero.appendChild(n);
+      }
+      hero.appendChild(el("p", "done-msg", isUpdate
+        ? "Thank you for ordering from Super Al-Amin Halal Market. We've received your changes and our team will review and prepare your order."
+        : "Thank you for ordering from Super Al-Amin Halal Market. We've received your order and our team will review and prepare it."));
+      hero.appendChild(el("p", "done-msg", "For questions or additional information, feel free to contact us through WhatsApp or give us a call."));
+      hero.appendChild(contactIcons(num));
+      doneEl.appendChild(hero);
+
+      var status = el("div", "done-status");
+      status.appendChild(el("p", "done-status-title", "What happens now"));
+      var ol = el("ol", "done-steps");
+      [["is-done", "Order received", "We have it."],
+       ["", "We'll text you to confirm", "At " + state.phone + ", with your final total and a payment link."],
+       ["", isDel ? "Delivery" : "Pickup", $("order-day").value + ", " + $("order-time").value + (isDel ? "" : " at " + S.store.street + ", " + S.store.city)]
+      ].forEach(function (st) { var li = el("li", st[0]); li.appendChild(el("strong", null, st[1])); li.appendChild(el("span", null, st[2])); ol.appendChild(li); });
+      status.appendChild(ol);
+      status.appendChild(el("p", "done-note", "Your order isn't ready yet. Please wait for our text before you come in."));
+      doneEl.appendChild(status);
+    } else {
+      // WhatsApp / text: the customer still has to press send in that app
+      doneEl.appendChild(el("h2", "done-title", "Almost done!"));
+      doneEl.appendChild(el("p", "done-msg", "Your order " + num + " should now be open in " +
+        (channel === "whatsapp" ? "WhatsApp" : "Messages") + ". Press send there to place it."));
+      doneEl.appendChild(el("p", "done-msg", "We'll text you back with your " +
+        (isDel ? "delivery time" : "pickup time") + ", final total, and a payment link."));
+      doneEl.appendChild(contactIcons(num));
     }
-    var contact = el("div", "order-done-contact");
-    var wa = el("a", "btn btn-whatsapp", "WhatsApp us about this order");
-    wa.href = "https://wa.me/" + S.store.whatsappNumber + "?text=" + encodeURIComponent("Hi Super Al-Amin! About my order " + num + ": ");
-    wa.target = "_blank"; wa.rel = "noopener";
-    var call = el("a", "btn btn-outline", "Call " + S.store.phoneDisplay); call.href = S.store.phoneLink;
-    contact.appendChild(wa); contact.appendChild(call);
-    doneEl.appendChild(contact);
-    var again = el("button", "btn btn-cream", "Start a new order"); again.type = "button";
+    var again = el("button", "btn btn-cream done-again", "Start a new order"); again.type = "button";
     again.addEventListener("click", function () {
       state.cart = []; state.sentNum = null; state.sentAt = null; submitNum = null; save(); updateSendLabels();
-      doneEl.hidden = true; cartEl.hidden = false; renderCart(); window.scrollTo(0, 0);
+      renderCart(); setStep(1); window.scrollTo(0, 0);
     });
     var back = el("button", "order-link-btn", "Change this order"); back.type = "button";
-    back.addEventListener("click", function () { updateSendLabels(); doneEl.hidden = true; form.hidden = false; cartEl.hidden = false; setStep(2); updateBar(); form.scrollIntoView({ block: "start" }); });
+    back.addEventListener("click", function () { updateSendLabels(); setStep(2); });
     doneEl.appendChild(again); doneEl.appendChild(back);
     doneEl.hidden = false; form.hidden = true; cartEl.hidden = true;
-    setStep(4); updateBar();
-    doneEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    setStep(4);
   }
 
   // ---------- address suggestions while typing (see functions/api/address-suggest.js) ----------
@@ -1123,6 +1172,7 @@
   $("get-quote").addEventListener("click", getQuote);
   $("order-day").addEventListener("change", updateMode);
   $("send-website").addEventListener("click", submitOrder);
+  $("order-back").addEventListener("click", function () { setStep(1); });
   ["order-name", "order-phone", "addr-street", "addr-city", "addr-zip"].forEach(function (id) {
     $(id).addEventListener("input", function () { this.removeAttribute("aria-invalid"); var e = $("order-error"); if (!e.hidden) e.hidden = true; });
   });

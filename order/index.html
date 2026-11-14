@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#1d4a34">
   <link rel="icon" href="../images/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
-  <link rel="stylesheet" href="../styles.css?v=20261113j">
+  <link rel="stylesheet" href="../styles.css?v=20261113k">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -58,31 +58,15 @@
         <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../">Home</a><span aria-hidden="true">/</span><span aria-current="page">Order meat</span></nav>
         <img class="halal-badge order-hero-badge" src="../images/halal-badge.svg" alt="100% halal meat from certified halal suppliers" width="120" height="120">
         <h1 id="page-title">Order halal meat</h1>
-        <p class="page-lede">Choose your meat and how you want it cut. We'll have it ready for pickup at our Torrance store.</p>
-        <ul class="order-badges">
-          <li><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>100% halal meat, certified suppliers</li>
-          <li><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 3l7 7-9 9-7-7z"/><path d="M5 12l-2 2 7 7 2-2"/><circle cx="16" cy="8" r="1.2"/></svg>Cut to order</li>
-          <li><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 9v11h14V9"/><path d="M10 20v-6h4v6"/></svg>Pickup in Torrance</li>
-          <li><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></svg>Pay by text link</li>
-        </ul>
+        <p class="page-lede">Pick your meat and how you want it cut. We'll text you to confirm.</p>
       </div>
     </section>
 
-    <section class="order-steps" aria-label="How ordering works">
-      <div class="container">
-        <ol class="order-steps-list">
-          <li><span class="order-steps-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg></span><strong>Pick your meat</strong><span>Choose cuts, weight, and packing.</span></li>
-          <li><span class="order-steps-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg></span><strong>Send your order</strong><span>Submit online, or send by WhatsApp or text.</span></li>
-          <li><span class="order-steps-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><strong>We text you back</strong><span>Ready time, final total, and a payment link.</span></li>
-        </ol>
-      </div>
-    </section>
-
-    <div class="section order-section">
+    <div class="section order-section" id="order-section" data-step="1">
       <div class="container">
         <ol class="order-progress" id="order-progress" aria-label="Order progress">
-          <li class="is-current" aria-current="step"><span>1</span>Choose meat</li>
-          <li><span>2</span>Your details</li>
+          <li class="is-current" aria-current="step"><span>1</span>Meat</li>
+          <li><span>2</span>Details</li>
           <li><span>3</span>Review</li>
           <li><span>4</span>Done</li>
         </ol>
@@ -100,6 +84,8 @@
           <div id="order-cart" class="order-cart"><p class="order-empty">Nothing added yet.</p></div>
 
           <form id="order-form" class="order-form" novalidate hidden>
+            <button type="button" class="order-back" id="order-back">‹ Back to meat</button>
+            <div class="order-mini" id="order-mini"></div>
             <h2 class="order-step-title"><span class="order-step-num">3</span> <span id="order-step3-title">Pickup or delivery</span></h2>
             <fieldset class="order-choice" id="order-mode">
               <legend class="visually-hidden">Pickup or delivery</legend>
@@ -126,36 +112,33 @@
               <button type="button" class="btn btn-cream order-quote-btn" id="get-quote" hidden>Get delivery estimate</button>
               <p class="order-quote" id="order-quote" role="status" hidden></p>
             </div>
-            <label class="order-field">Notes (optional)<textarea id="order-notes" rows="2" placeholder="Anything we should know about your cuts"></textarea></label>
-            <label class="order-optin"><input type="checkbox" id="order-optin"> <span>Yes, text me deals and new arrivals from Super Al-Amin. A few messages a month at most. Message and data rates may apply. Reply STOP anytime to stop. <em>(Optional, not needed to order.)</em></span></label>
+            <label class="order-field">Notes (optional)<textarea id="order-notes" rows="2" placeholder="Anything else we should know"></textarea></label>
+            <label class="order-optin"><input type="checkbox" id="order-optin"> <span>Text me deals from Super Al-Amin (a few a month). Msg &amp; data rates may apply. Reply STOP to stop. <em>Optional.</em></span></label>
             <p class="order-error" id="order-error" role="alert" hidden></p>
 
-            <h2 class="order-step-title"><span class="order-step-num">4</span> Send your order</h2>
             <div class="order-send">
-              <button type="button" class="btn btn-primary order-submit" id="send-website">Submit order</button>
-              <p class="order-send-or" id="send-or" hidden><span>or send it from your phone</span></p>
-              <div class="order-send-apps" id="send-apps" hidden>
-                <button type="button" class="btn btn-whatsapp" id="send-whatsapp">WhatsApp</button>
-                <button type="button" class="btn btn-cream" id="send-text">Text message</button>
-              </div>
+              <button type="button" class="btn btn-primary order-submit" id="send-website">Review my order</button>
+              <details class="order-send-alt" id="send-or" hidden>
+                <summary>Prefer to send it by WhatsApp or text?</summary>
+                <div class="order-send-apps" id="send-apps">
+                  <button type="button" class="btn btn-whatsapp" id="send-whatsapp">WhatsApp</button>
+                  <button type="button" class="btn btn-cream" id="send-text">Text message</button>
+                </div>
+                <p class="order-fineprint" id="apps-fineprint">Your order is only placed after you press send in WhatsApp or Messages.</p>
+              </details>
             </div>
             <p class="order-hp" aria-hidden="true"><label>Leave this empty<input id="order-website" type="text" tabindex="-1" autocomplete="off"></label></p>
-            <p class="order-fineprint">When you submit, your order goes straight to our meat counter, and we'll text or call you at the number above to confirm it. <span id="apps-fineprint" hidden>If you use WhatsApp or text instead, your order isn't placed until you press send there.</span> Meat is priced by weight, so your final total may be a little different from the estimate.</p>
-            <p class="order-fineprint order-privacy">When you send an order, we save a copy of it (your name, phone number, and what you ordered) to prepare your order, contact you about it, and understand what our customers buy. We never sell your information. <a href="../privacy/">Privacy notice</a></p>
+            <p class="order-fineprint order-privacy">No payment now. We use your details only for your order and never sell them. <a href="../privacy/">Privacy</a></p>
           </form>
 
           <div id="order-done" class="order-done" hidden></div>
 
-          <div class="order-help">
-            <p class="order-help-title">Questions? We're happy to help.</p>
-            <ul class="order-help-list">
-              <li><a href="https://www.google.com/maps/dir/?api=1&amp;destination=18220+Prairie+Ave%2C+Torrance%2C+CA+90504" data-link="directions" data-text="address" target="_blank" rel="noopener">18220 Prairie Ave, Torrance, CA 90504</a></li>
-              <li><span data-text="hoursSummary">Open daily 10 AM–8 PM</span> · Meat counter until 7 PM</li>
-              <li class="order-help-prayer" data-text="fridayNote">Closed Fridays 12:15–1:15 PM for prayer</li>
-            </ul>
+          <div class="order-help" id="order-help">
+            <p class="order-help-title">Need help ordering?</p>
+            <p class="order-help-hours"><span data-text="hoursSummary">Open daily 10 AM–8 PM</span> · Meat counter until 7 PM</p>
             <div class="order-help-btns">
               <a class="btn btn-whatsapp" href="https://wa.me/14245273540?text=Hi%20Super%20Al-Amin%21" data-link="whatsapp" data-message="general" target="_blank" rel="noopener">WhatsApp</a>
-              <a class="btn btn-outline" href="tel:+13105381188" data-link="call">Call (310) 538-1188</a>
+              <a class="btn btn-outline" href="tel:+13105381188" data-link="call">Call us</a>
             </div>
           </div>
         </aside>
@@ -191,9 +174,9 @@
     </a>
   </nav>
 
-  <script src="../site-config.js?v=20261113j"></script>
-  <script src="../meat-menu.js?v=20261113j"></script>
-  <script src="../main.js?v=20261113j"></script>
-  <script src="../order.js?v=20261113j"></script>
+  <script src="../site-config.js?v=20261113k"></script>
+  <script src="../meat-menu.js?v=20261113k"></script>
+  <script src="../main.js?v=20261113k"></script>
+  <script src="../order.js?v=20261113k"></script>
 </body>
 </html>
