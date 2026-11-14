@@ -926,6 +926,7 @@
     else if (dayConflict()) { err = "Some items aren't available on the day you picked. Please choose one of the options under Day."; field = "order-day"; }
     else if (!state.name) { err = "Please enter your name."; field = "order-name"; }
     else if (digits.length < 10 || digits.length > 11 || (digits.length === 11 && digits[0] !== "1")) { err = "Please enter a 10-digit phone number we can text, like (310) 555-0123."; field = "order-phone"; }
+    else if (phoneLooksWrong(digits)) { err = "That phone number doesn't look right. Please check it: we'll text your order confirmation to this number."; field = "order-phone"; }
     else if (state.mode === "delivery" && !addrComplete(a)) {
       if ($("addr-more").hidden) { err = "Please start typing your delivery address and pick it from the list, or tap \"Enter city and ZIP yourself\"."; field = "addr-street"; }
       else { err = "Please enter your delivery street, city, and 5-digit ZIP code."; field = a.street.length < 4 ? "addr-street" : a.city.length < 2 ? "addr-city" : "addr-zip"; }
@@ -1000,7 +1001,7 @@
     when.appendChild(el("p", "rv-strong", $("order-day").value + ", " + $("order-time").value));
     if (isDel) when.appendChild(el("p", null, state.address));
     else when.appendChild(el("p", null, S.store.street + ", " + S.store.city + ", " + S.store.state + " " + S.store.zip));
-    when.appendChild(el("p", "rv-muted", state.name + " · " + state.phone));
+    when.appendChild(el("p", "rv-muted", state.name));
     reviewEl.appendChild(when);
 
     // Items
@@ -1043,10 +1044,32 @@
     next.appendChild(steps);
     reviewEl.appendChild(next);
 
+    // Make sure we can reach them: show the number big and ask them to confirm it
+    var pc = el("div", "rv-phone-check");
+    pc.appendChild(el("p", "rv-label", "We'll text your confirmation to"));
+    pc.appendChild(el("p", "rv-phone-big", prettyPhone(state.phone)));
+    var lab = el("label", "rv-phone-ok");
+    var box = document.createElement("input"); box.type = "checkbox"; box.id = "rv-phone-ok";
+    lab.appendChild(box); lab.appendChild(document.createTextNode(" Yes, this is my correct mobile number"));
+    pc.appendChild(lab);
+    var chg = el("button", "order-link-btn rv-phone-change", "Change number"); chg.type = "button";
+    chg.addEventListener("click", function () { setStep(2); setTimeout(function () { $("order-phone").focus(); $("order-phone").select(); }, 350); });
+    pc.appendChild(chg);
+    reviewEl.appendChild(pc);
+
     var errBox = el("p", "order-error"); errBox.hidden = true; errBox.setAttribute("role", "alert");
     reviewEl.appendChild(errBox);
     var ok = el("button", "btn btn-primary order-submit", isUpdate ? "Send updated order" : "Send order"); ok.type = "button";
-    ok.addEventListener("click", function () { doSubmit(num, isUpdate, ok, errBox); });
+    box.addEventListener("change", function () { pc.classList.toggle("is-ok", box.checked); pc.classList.remove("is-invalid"); if (box.checked) errBox.hidden = true; });
+    ok.addEventListener("click", function () {
+      if (!box.checked) {
+        errBox.textContent = "Please check your phone number and tick the box, so we can text you about your order.";
+        errBox.hidden = false; pc.classList.add("is-invalid");
+        pc.scrollIntoView({ behavior: "smooth", block: "center" }); box.focus({ preventScroll: true });
+        return;
+      }
+      doSubmit(num, isUpdate, ok, errBox);
+    });
     var edit = el("button", "order-link-btn rv-edit", "Go back and edit"); edit.type = "button";
     edit.addEventListener("click", function () { setStep(2); });
     reviewEl.appendChild(ok); reviewEl.appendChild(edit);
@@ -1149,6 +1172,18 @@
       ? "No payment now. We'll text you the exact total. Delivery orders are paid before they go out."
       : "No payment now. We'll text you the exact total.";
   }
+  // Numbers that can't be real US numbers (typos, 555, 000, 111-1111, 123-4567...)
+  function phoneLooksWrong(raw) {
+    var d = String(raw || "").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
+    if (d.length !== 10) return true;
+    var area = d.slice(0, 3), exch = d.slice(3, 6);
+    if (!/^[2-9]/.test(area) || !/^[2-9]/.test(exch)) return true;      // area code / exchange can't start with 0 or 1
+    if (/^[2-9]11$/.test(area) || /^[2-9]11$/.test(exch)) return true;  // 211, 411, 911...
+    if (exch === "555") return true;                                      // movie numbers
+    if (/^(\d)\1{9}$/.test(d) || /^(\d)\1{6}$/.test(d.slice(3))) return true; // 3333333333, xxx-111-1111
+    if ("01234567890123".indexOf(d) > -1 || "98765432109876".indexOf(d) > -1) return true;
+    return false;
+  }
   function prettyPhone(p) {
     var d = String(p || "").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
     return d.length === 10 ? "(" + d.slice(0, 3) + ") " + d.slice(3, 6) + "-" + d.slice(6) : p;
@@ -1172,6 +1207,7 @@
       hero.appendChild(el("p", "done-msg done-msg-strong", "A representative from our store will contact you by text to confirm your order and your " +
         (isDel ? "delivery" : "pickup") + " time."));
       hero.appendChild(el("p", "done-msg", "For questions or additional information, feel free to contact us through WhatsApp or give us a call."));
+      hero.appendChild(el("p", "done-safety", "Haven't heard from us within 30 minutes during store hours? Please call or WhatsApp us, and we'll sort it out."));
       hero.appendChild(contactIcons(num));
       doneEl.appendChild(hero);
 
@@ -1292,6 +1328,10 @@
   // ---------- start ----------
   $("order-name").value = state.name || "";
   $("order-phone").value = state.phone || "";
+  $("order-phone").addEventListener("blur", function () {
+    var d = this.value.replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
+    if (d.length === 10) this.value = prettyPhone(d);
+  });
   var sa = state.addr || {};
   $("addr-street").value = sa.street || ""; $("addr-unit").value = sa.unit || "";
   $("addr-city").value = sa.city || ""; $("addr-zip").value = sa.zip || "";
