@@ -79,3 +79,6 @@
 .adm-sheet-warn { margin: -6px 0 14px; padding: 10px 12px; border-radius: 10px; background: #fff4e8; border: 2px solid #f0b37e; color: #8a3b12; font-weight: 700; }
 .adm-undo { margin-left: 12px; background: none; border: 0; color: #ffd36b; font: 700 1rem var(--sans); text-decoration: underline; cursor: pointer; pointer-events: auto; }
 .order-toast.is-on { pointer-events: auto; }
+.adm-web-link { text-align: center; font-size: .9rem; color: var(--green-dark); font-weight: 600; padding: 4px 0; }
+.admin-body .order-toast { z-index: 120; }
+.admin-body.sheet-open .order-toast { top: 70px; bottom: auto; }

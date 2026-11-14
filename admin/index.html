@@ -8,8 +8,8 @@
   <meta name="theme-color" content="#1d4a34">
   <link rel="icon" href="../images/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
-  <link rel="stylesheet" href="../styles.css?v=20261114k">
-  <link rel="stylesheet" href="admin.css?v=20261114k">
+  <link rel="stylesheet" href="../styles.css?v=20261114m">
+  <link rel="stylesheet" href="admin.css?v=20261114m">
 </head>
 <body class="admin-body">
   <header class="adm-top">
@@ -48,10 +48,29 @@
     </section>
   </main>
 
+  <!-- After a status change: optional message to the customer -->
+  <div class="adm-sheet-bg" id="adm-sheet-bg" hidden></div>
+  <div class="adm-sheet" id="adm-sheet" role="dialog" aria-modal="true" aria-labelledby="adm-sheet-title" hidden>
+    <div class="adm-sheet-head">
+      <h2 id="adm-sheet-title">Send an update?</h2>
+      <button type="button" class="adm-icon-btn" id="adm-sheet-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <p class="adm-sheet-sub" id="adm-sheet-sub"></p>
+    <label class="order-field">Message (you can edit it, e.g. add the total)
+      <textarea id="adm-msg" rows="5"></textarea>
+    </label>
+    <div class="adm-sheet-btns">
+      <a class="btn btn-whatsapp" id="adm-send-wa" href="#" target="_blank" rel="noopener">Open in WhatsApp</a>
+      <button type="button" class="btn btn-primary" id="adm-send-sms" hidden>Send by text</button>
+      <a class="adm-web-link" id="adm-send-web" href="#" target="_blank" rel="noopener" hidden>WhatsApp app not opening? Use WhatsApp Web</a>
+      <button type="button" class="btn btn-outline" id="adm-skip">Skip, don't send</button>
+    </div>
+  </div>
+
   <div class="order-toast" id="adm-toast" role="status" aria-live="polite"></div>
 
-  <script src="../site-config.js?v=20261114k"></script>
-  <script src="../meat-menu.js?v=20261114k"></script>
-  <script src="admin.js?v=20261114k"></script>
+  <script src="../site-config.js?v=20261114m"></script>
+  <script src="../meat-menu.js?v=20261114m"></script>
+  <script src="admin.js?v=20261114m"></script>
 </body>
 </html>
