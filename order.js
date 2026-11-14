@@ -1,5 +1,6 @@
 /* "Order meat" page. Reads the menu from meat-menu.js and store details from
-   site-config.js. Orders are sent as a WhatsApp or text message. */
+   site-config.js. Orders are submitted on the website (/api/order), which saves
+   them to the store's Google Sheet and emails the store. */
 (function () {
   "use strict";
   var M = window.MEAT_MENU, S = window.SITE;
@@ -955,17 +956,7 @@
     state.sentNum = num; state.sentAt = Date.now(); submitNum = null; save();
     try { localStorage.setItem(LAST_KEY, JSON.stringify({ cart: state.cart, at: Date.now(), num: num })); } catch (e) { /* ignore */ }
   }
-  function send(channel) {
-    if (!validate()) return;
-    var isUpdate = !!state.sentNum, num = currentNum(), msg = buildMessage(num), url;
-    if (channel === "whatsapp") url = "https://wa.me/" + S.store.whatsappNumber + "?text=" + encodeURIComponent(msg);
-    else url = "sms:+" + (M.textNumber || S.store.whatsappNumber) + "?&body=" + encodeURIComponent(msg);
-    var data = orderData(num, channel); data.update = isUpdate; data.message = msg;
-    logOrder(data);
-    markSent(num);
-    window.location.href = url;
-    showDone(num, channel, isUpdate);
-  }
+
   // "Submit order": works on any device. Sends the order to /api/order, which saves it
   // to the store's Google Sheet and emails it to the store (see functions/api/order.js).
   function submitOrder() {
@@ -1069,7 +1060,7 @@
       });
   }
   function updateSendLabels() {
-    $("send-website").textContent = isPhone ? (state.sentNum ? "Review & send changes online" : "Review & submit online") : (state.sentNum ? "Review my changes" : "Review my order");
+    $("send-website").textContent = state.sentNum ? "Review my changes" : "Review my order";
   }
   var submitNum = null;
 
@@ -1114,17 +1105,7 @@
     };
     return data;
   }
-  // WhatsApp / text orders: saved and emailed to the store (and ring the store
-  // phone, if call reminders are on) through /api/order, as a backup in case
-  // nobody is watching WhatsApp. Sent in the background as the app opens.
-  function logOrder(data) {
-    var url = M.submitUrl || "/api/order";
-    var body = JSON.stringify(data);
-    try {
-      if (navigator.sendBeacon && navigator.sendBeacon(url, new Blob([body], { type: "text/plain" }))) return;
-    } catch (e) { /* fall through */ }
-    try { fetch(url, { method: "POST", keepalive: true, headers: { "Content-Type": "text/plain" }, body: body }); } catch (e) { /* ignore */ }
-  }
+
 
 
   var WA_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5.1-1 .1-1.7-.1a15 15 0 0 1-6.3-5.5c-.5-.7-1-1.7-1-2.8 0-1.1.6-1.6.8-1.9.2-.2.5-.3.6-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.1.1.6-.1 1.2z"/></svg>';
@@ -1162,8 +1143,10 @@
         hero.appendChild(n);
       }
       hero.appendChild(el("p", "done-msg", isUpdate
-        ? "Thank you for ordering from Super Al-Amin Halal Market. We've received your changes and our team will review and prepare your order."
-        : "Thank you for ordering from Super Al-Amin Halal Market. We've received your order and our team will review and prepare it."));
+        ? "Thank you for ordering from Super Al-Amin Halal Market. Your changes have been received."
+        : "Thank you for ordering from Super Al-Amin Halal Market. Your order has been placed."));
+      hero.appendChild(el("p", "done-msg done-msg-strong", "A representative from our store will contact you by text to confirm your order and your " +
+        (isDel ? "delivery" : "pickup") + " time."));
       hero.appendChild(el("p", "done-msg", "For questions or additional information, feel free to contact us through WhatsApp or give us a call."));
       hero.appendChild(contactIcons(num));
       doneEl.appendChild(hero);
@@ -1172,20 +1155,12 @@
       status.appendChild(el("p", "done-status-title", "What happens now"));
       var ol = el("ol", "done-steps");
       [["is-done", "Order received", "We have it."],
-       ["", "We'll text you to confirm", "At " + prettyPhone(state.phone) + ", with your final total and a payment link."],
-       ["", isDel ? "Delivery" : "Pickup", $("order-day").value + ", " + $("order-time").value + (isDel ? "" : " at " + S.store.street + ", " + S.store.city)]
+       ["", "We'll text you to confirm", "At " + prettyPhone(state.phone) + ", with your final total and " + (isDel ? "delivery" : "pickup") + " time."],
+       ["", isDel ? "Delivery (requested)" : "Pickup (requested)", $("order-day").value + ", " + $("order-time").value + (isDel ? "" : " at " + S.store.street + ", " + S.store.city)]
       ].forEach(function (st) { var li = el("li", st[0]); li.appendChild(el("strong", null, st[1])); li.appendChild(el("span", null, st[2])); ol.appendChild(li); });
       status.appendChild(ol);
       status.appendChild(el("p", "done-note", "Your order isn't ready yet. Please wait for our text before you come in."));
       doneEl.appendChild(status);
-    } else {
-      // WhatsApp / text: the customer still has to press send in that app
-      doneEl.appendChild(el("h2", "done-title", "Almost done!"));
-      doneEl.appendChild(el("p", "done-msg", "Your order " + num + " should now be open in " +
-        (channel === "whatsapp" ? "WhatsApp" : "Messages") + ". Press send there to place it."));
-      doneEl.appendChild(el("p", "done-msg", "We'll text you back with your " +
-        (isDel ? "delivery time" : "pickup time") + ", final total, and a payment link."));
-      doneEl.appendChild(contactIcons(num));
     }
     if (state.later && state.later.length) {
       var names = [];
@@ -1312,24 +1287,6 @@
     $(id).addEventListener("input", function () { this.removeAttribute("aria-invalid"); var e = $("order-error"); if (!e.hidden) e.hidden = true; });
   });
   updateSendLabels();
-  $("send-whatsapp").addEventListener("click", function () { send("whatsapp"); });
-  $("send-text").addEventListener("click", function () { send("text"); });
-  // WhatsApp and text links only work well on phones, so offer them there only.
-  // Computers (and anyone else) use "Submit order".
-  // On phones, WhatsApp and text come first; online submit is the backup.
-  if (isPhone) {
-    var sendBox = $("send-website").parentNode, apps = $("send-apps"), alt = $("send-or");
-    sendBox.classList.add("is-phone");
-    $("send-whatsapp").innerHTML = WA_ICON + '<span>Send on WhatsApp</span>';
-    $("send-text").innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg><span>Send by text message</span>';
-    sendBox.insertBefore(el("p", "order-send-head", "Send your order"), sendBox.firstChild);
-    sendBox.insertBefore(apps, $("send-website"));
-    sendBox.insertBefore($("apps-fineprint"), $("send-website"));
-    sendBox.insertBefore(el("p", "order-send-or", "or"), $("send-website"));
-    $("send-website").classList.remove("btn-primary"); $("send-website").classList.add("btn-outline");
-    alt.remove();
-    updateSendLabels();
-  }
   renderCats();
   // Links like /order/?cat=goat open that meat's tab
   try {
