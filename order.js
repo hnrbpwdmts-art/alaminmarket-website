@@ -131,6 +131,12 @@
     goat: '<path d="M8 7C6.5 4.5 4 4 2.5 5.5c2 .2 3.3 1.5 4 3.5"/><path d="M16 7c1.5-2.5 4-3 5.5-1.5-2 .2-3.3 1.5-4 3.5"/><path d="M7 10c0-2.4 2.2-3.6 5-3.6s5 1.2 5 3.6v4.5c0 3-2.2 5.5-5 5.5s-5-2.5-5-5.5z"/><path d="M10 12h.01M14 12h.01"/><path d="M11 20.5c.3 1 .6 1.5 1 1.5s.7-.5 1-1.5"/>',
     veal: '<path d="M5 10c0-3 3-5 7-5s7 2 7 5v3c0 4-3 7-7 7s-7-3-7-7z"/><path d="M5 10L2.5 8.5M19 10l2.5-1.5"/><path d="M9.5 15.5c1.5 1 3.5 1 5 0"/><path d="M9.5 11h.01M14.5 11h.01"/>'
   };
+  // Illustration for items without their own photo (images/art/<category>.svg)
+  var ART_CATS = { chicken: 1, lamb: 1, beef: 1, goat: 1, veal: 1 };
+  function artFor(itemId) {
+    var c = categoryOf(itemId);
+    return c && ART_CATS[c.id] ? (document.documentElement.getAttribute("data-root") || "") + "images/art/" + c.id + ".svg" : "";
+  }
   function icon(id) {
     return ICONS[id] ? '<svg aria-hidden="true" viewBox="0 0 24 24">' + ICONS[id] + "</svg>" : "";
   }
@@ -184,6 +190,9 @@
       var img = document.createElement("img");
       img.src = (document.documentElement.getAttribute("data-root") || "") + item.image; img.alt = ""; img.loading = "lazy"; img.width = 72; img.height = 72;
       thumb.appendChild(img);
+    } else if (artFor(item.id)) {
+      var art = document.createElement("img"); art.src = artFor(item.id); art.alt = ""; art.loading = "lazy"; art.width = 72; art.height = 57;
+      thumb.appendChild(art); thumb.classList.add("order-thumb-art");
     } else { var c = categoryOf(item.id); thumb.innerHTML = icon(c ? c.id : ""); thumb.classList.add("order-thumb-icon"); }
     head.appendChild(thumb);
     var main = el("span", "order-item-main");
@@ -484,6 +493,7 @@
       var li = el("li", "order-line");
       var th = el("span", "order-thumb order-line-thumb");
       if (t.item.image) { var im = document.createElement("img"); im.src = (document.documentElement.getAttribute("data-root") || "") + t.item.image; im.alt = ""; th.appendChild(im); }
+      else if (!isReq && artFor(l.id)) { var ai = document.createElement("img"); ai.src = artFor(l.id); ai.alt = ""; th.appendChild(ai); th.classList.add("order-thumb-art"); }
       else { var cc = categoryOf(l.id); th.innerHTML = isReq ? '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h6"/></svg>' : icon(cc ? cc.id : ""); th.classList.add("order-thumb-icon"); }
       li.appendChild(th);
       var top = el("div", "order-line-top");
@@ -1227,5 +1237,14 @@
     alt.remove();
     updateSendLabels();
   }
-  renderCats(); renderItems(); renderModes(); renderCart();
+  renderCats();
+  // Links like /order/?cat=goat open that meat's tab
+  try {
+    var wantCat = new URLSearchParams(location.search).get("cat");
+    if (wantCat) {
+      var ci = catList().map(function (c) { return c.id; }).indexOf(wantCat);
+      if (ci > -1) { activeCat = ci; updateCats(); }
+    }
+  } catch (e) { /* old browser: start on the first tab */ }
+  renderItems(); renderModes(); renderCart();
 })();

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" role="img"><rect x="18" y="28" width="164" height="120" rx="14" fill="#fffdf7"/><rect x="18" y="28" width="164" height="34" rx="14" fill="#b3352b"/><rect x="18" y="48" width="164" height="14" fill="#b3352b"/>
+<circle cx="56" cy="28" r="6" fill="#143726"/><circle cx="144" cy="28" r="6" fill="#143726"/><rect x="53" y="14" width="6" height="18" rx="3" fill="#143726"/><rect x="141" y="14" width="6" height="18" rx="3" fill="#143726"/>
+<g font-family="Georgia, serif" font-weight="700" font-size="13" fill="#fff" text-anchor="middle"><text x="40" y="52">MO</text><text x="64" y="52">TU</text><text x="88" y="52">WE</text><text x="112" y="52">TH</text><text x="136" y="52">FR</text><text x="160" y="52">SA</text></g>
+<g fill="#efe5cf"><rect x="30" y="72" width="20" height="18" rx="4"/><rect x="54" y="72" width="20" height="18" rx="4"/><rect x="78" y="72" width="20" height="18" rx="4"/><rect x="102" y="72" width="20" height="18" rx="4"/>
+<rect x="30" y="96" width="20" height="18" rx="4"/><rect x="54" y="96" width="20" height="18" rx="4"/><rect x="78" y="96" width="20" height="18" rx="4"/><rect x="102" y="96" width="20" height="18" rx="4"/>
+<rect x="30" y="120" width="20" height="18" rx="4"/><rect x="54" y="120" width="20" height="18" rx="4"/><rect x="78" y="120" width="20" height="18" rx="4"/><rect x="102" y="120" width="20" height="18" rx="4"/></g>
+<rect x="126" y="70" width="44" height="70" rx="8" fill="#e7c873"/>
+<g transform="translate(148 104)"><ellipse rx="15" ry="12" fill="#f5e1cc"/><ellipse cx="1" cy="1" rx="11" ry="8" fill="#c4473e"/><rect x="-3" y="-34" width="6" height="24" rx="3" fill="#f7efdc" stroke="#e6d8b8"/></g></svg>

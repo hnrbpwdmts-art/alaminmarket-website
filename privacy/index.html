@@ -10,7 +10,8 @@
   <meta name="theme-color" content="#1d4a34">
   <link rel="icon" href="../images/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
-  <link rel="stylesheet" href="../styles.css?v=20261113m">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="stylesheet" href="../styles.css?v=20261114b">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -58,7 +59,7 @@
       <div class="container">
         <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../">Home</a><span aria-hidden="true">/</span><span aria-current="page">Privacy notice</span></nav>
         <h1 id="page-title">Privacy notice</h1>
-        <p class="page-lede">Last updated November 12, 2026</p>
+        <p class="page-lede">Last updated November 14, 2026</p>
       </div>
     </section>
     <div class="section">
@@ -72,7 +73,7 @@
           <li><strong>Your text preference:</strong> whether you agreed to receive deals and new-arrival texts.</li>
           <li><strong>Basic visit details:</strong> whether you used a phone or computer, how you sent the order (WhatsApp or text), and the website that sent you to us (for example, Google or Instagram).</li>
         </ul>
-        <p>We save this when you press <em>Send by WhatsApp</em> or <em>Send by text</em>. Your order message itself is sent through WhatsApp or your phone's messaging app, which have their own privacy policies.</p>
+        <p>We save this when you submit your order on our website, or when you press <em>Send on WhatsApp</em> or <em>Send by text message</em>. Orders sent by WhatsApp or text go through those apps, which have their own privacy policies.</p>
 
         <h2>How we use it</h2>
         <ul>
@@ -85,7 +86,7 @@
         <p>Marketing texts are optional and never needed to place an order. Message and data rates may apply. Reply <strong>STOP</strong> at any time to stop, or ask us in the store.</p>
 
         <h2>Sharing</h2>
-        <p>We do not sell or rent your personal information. We store order records with Google (Google Sheets) and use WhatsApp and phone carriers to message you. We may share information if the law requires it.</p>
+        <p>We do not sell or rent your personal information. We store order records with Google (Google Sheets and email) and use WhatsApp and phone carriers to message you. If you choose delivery, the address you type is sent to address lookup services (OpenStreetMap and the U.S. Census Bureau) to suggest and check it, and to our delivery partner, Uber, to estimate the delivery cost. We may share information if the law requires it.</p>
 
         <h2>How long we keep it</h2>
         <p>We keep order records for up to two years, then delete them.</p>
@@ -100,14 +101,40 @@
   </main>
 
   <footer class="site-footer">
-    <div class="container footer-inner">
-      <p class="footer-name" data-text="name">Super Al-Amin Halal Market</p>
-      <p><a class="footer-address" href="https://www.google.com/maps/dir/?api=1&amp;destination=18220+Prairie+Ave%2C+Torrance%2C+CA+90504" data-link="directions" data-text="address" target="_blank" rel="noopener">18220 Prairie Ave, Torrance, CA 90504</a></p>
-      <p><span data-text="hoursSummary">Open daily 10 AM–8 PM</span><br><span class="footer-prayer" data-text="fridayNote">Closed Fridays 12:15–1:15 PM for prayer</span></p>
-      <p class="footer-halal">100% halal meat from certified halal suppliers</p>
-      <ul class="footer-social" id="footer-social" aria-label="Social media"></ul>
-      <p class="footer-links"><a href="../privacy/">Privacy notice</a></p>
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <a class="footer-logo" href="../"><img src="../images/logo.png" alt="" width="56" height="56" loading="lazy"><span data-text="name">Super Al-Amin Halal Market</span></a>
+        <p class="footer-halal">100% halal meat from certified halal suppliers</p>
+        <ul class="footer-social" id="footer-social" aria-label="Social media"></ul>
+      </div>
+      <div>
+        <p class="footer-title">Shop</p>
+        <ul class="footer-list">
+          <li><a href="../order/">Order meat online</a></li>
+          <li><a href="../groceries/">Groceries</a></li>
+          <li><a href="../#samosas">Samosas &amp; chai</a></li>
+          <li><a href="../#how">How ordering works</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-title">Visit</p>
+        <ul class="footer-list">
+          <li><a class="footer-address" href="https://www.google.com/maps/dir/?api=1&amp;destination=18220+Prairie+Ave%2C+Torrance%2C+CA+90504" data-link="directions" data-text="address" target="_blank" rel="noopener">18220 Prairie Ave, Torrance, CA 90504</a></li>
+          <li><span data-text="hoursSummary">Open daily 10 AM–8 PM</span></li>
+          <li class="footer-prayer" data-text="fridayNote">Closed Fridays 12:15–1:15 PM for prayer</li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-title">Contact</p>
+        <ul class="footer-list">
+          <li><a href="tel:+13105381188" data-link="call">Call <span data-text="phone">(310) 538-1188</span></a></li>
+          <li><a href="https://wa.me/14245273540?text=Hi%20Super%20Al-Amin%21" data-link="whatsapp" data-message="general" target="_blank" rel="noopener">WhatsApp <span data-text="whatsapp">(424) 527-3540</span></a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container footer-bottom">
       <p class="footer-copy">© <span id="year">2026</span> <span data-text="name">Super Al-Amin Halal Market</span></p>
+      <p class="footer-links"><a href="../privacy/">Privacy notice</a></p>
     </div>
   </footer>
 
@@ -127,7 +154,7 @@
     </a>
   </nav>
 
-  <script src="../site-config.js?v=20261113m"></script>
-  <script src="../main.js?v=20261113m"></script>
+  <script src="../site-config.js?v=20261114b"></script>
+  <script src="../main.js?v=20261114b"></script>
 </body>
 </html>
