@@ -1,8 +1,8 @@
 /* Super Al-Amin staff order page.
    Reads orders from the order Google Sheet (backend/Code.gs) with the store
-   passcode, saves each order's status there, and opens WhatsApp or Messages on
-   this phone with a ready-to-send note for the customer. It does not replace
-   the order emails, WhatsApp, or text orders. */
+   passcode and saves each order's status there, so staff can keep track.
+   Staff text customers themselves (Call / Text / WhatsApp links on each card).
+   It does not replace the order emails. */
 (function () {
   "use strict";
   var S = window.SITE || {}, store = S.store || {}, M = window.MEAT_MENU || {};
@@ -11,7 +11,7 @@
   var $ = function (id) { return document.getElementById(id); };
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
-  var pass = "", orders = [], seen = {}, tab = "active", timer = null, sheetCtx = null;
+  var pass = "", orders = [], seen = {}, tab = "active", timer = null;
   try { pass = sessionStorage.getItem(PASS_KEY) || localStorage.getItem(PASS_KEY) || ""; } catch (e) { /* private mode */ }
 
   // ---------- talking to the sheet ----------
@@ -78,7 +78,7 @@
       render();
       $("adm-status-line").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " · refreshes every minute";
       clearInterval(timer);
-      timer = setInterval(function () { if (!document.hidden && $("adm-sheet").hidden) load(false); }, 60000);
+      timer = setInterval(function () { if (!document.hidden) load(false); }, 60000);
       return true;
     }).catch(function () {
       if (first && !orders.length) showLogin(ERRORS.network);
@@ -164,7 +164,9 @@
     var links = el("span", "adm-links");
     var ph = digits(o.phone);
     if (ph) {
-      var call = el("a", null, "Call"); call.href = "tel:+" + (ph.length === 10 ? "1" + ph : ph); links.appendChild(call);
+      var full = ph.length === 10 ? "1" + ph : ph;
+      var call = el("a", null, "Call"); call.href = "tel:+" + full; links.appendChild(call);
+      var txt = el("a", null, "Text"); txt.href = "sms:+" + full; links.appendChild(txt);
       var wa = el("a", null, "WhatsApp"); wa.href = "https://wa.me/" + (ph.length === 10 ? "1" + ph : ph); wa.target = "_blank"; wa.rel = "noopener"; links.appendChild(wa);
     }
     who.appendChild(links);
@@ -179,6 +181,8 @@
     String(o.items || "").split(/;\s*/).filter(Boolean).forEach(function (t) { items.appendChild(el("li", null, t)); });
     li.appendChild(items);
     if (o.notes) li.appendChild(el("p", "adm-notes", "Note: " + o.notes));
+    if (o.mode === "delivery" && (o.status === "New" || o.status === "Confirmed"))
+      li.appendChild(el("p", "adm-pay-note", "Delivery: collect payment (Zelle or card link) before it goes out."));
 
     var foot = el("div", "adm-card-foot");
     var tot = el("p", "adm-total");
@@ -191,7 +195,7 @@
     var acts = el("div", "adm-actions");
     nextSteps(o).forEach(function (s, i) {
       var b = el("button", "btn " + (i === 0 ? "btn-primary" : "btn-outline") + " adm-act", s.label); b.type = "button";
-      b.addEventListener("click", function () { openSheet(o, s.status); });
+      b.addEventListener("click", function () { changeStatus(o, s.status); });
       acts.appendChild(b);
     });
     var more = el("select", "adm-more"); more.setAttribute("aria-label", "Change status of " + o.num);
@@ -199,7 +203,7 @@
     ["New", "Confirmed", o.mode === "delivery" ? "Out for delivery" : "Ready", "Done", "Cancelled"].forEach(function (st) {
       if (st !== o.status) more.appendChild(new Option(st, st));
     });
-    more.addEventListener("change", function () { if (more.value) openSheet(o, more.value); more.value = ""; });
+    more.addEventListener("change", function () { var v = more.value; more.value = ""; if (v) changeStatus(o, v); });
     acts.appendChild(more);
     li.appendChild(acts);
     return li;
@@ -214,102 +218,37 @@
     }
   }
 
-  // ---------- messages ----------
-  function firstName(n) { return String(n || "").trim().split(/\s+/)[0] || "there"; }
-  function payLine(link) {
-    link = String(link || "").trim();
-    return /^https?:\/\/\S+$/i.test(link) ? " Pay here: " + link : "";
+  // ---------- status (staff text customers themselves) ----------
+  function changeStatus(o, status) {
+    if (o.mode === "delivery" && status === "Out for delivery" &&
+        !window.confirm("Delivery orders must be paid before they go out. Has " + o.name + " paid?")) return;
+    if (status === "Cancelled" && !window.confirm("Cancel order " + o.num + " for " + o.name + "?")) return;
+    var before = o.status;
+    save(o, status, function () { toast(o.num + " marked " + status, function () { save(o, before); }); });
   }
-  function messageFor(o, status, total, link) {
-    var hi = "Hi " + firstName(o.name) + ", this is " + (store.name || "Super Al-Amin Halal Market") + ". ";
-    var when = dayLabel(o).replace(/^(Today|Tomorrow), /, function (m, w) { return w.toLowerCase() + ", "; }) + (o.time ? ", " + o.time : "");
-    var t = total !== "" && total != null && !isNaN(total) ? " Your final total is " + money(total) + "." : "";
-    var where = (store.street || "18220 Prairie Ave") + ", " + (store.city || "Torrance");
-    switch (status) {
-      case "Confirmed":
-        return hi + "Your order " + o.num + " is confirmed for " + (o.mode === "delivery" ? "delivery" : "pickup") + " " + when + "." + t + payLine(link) + " Thank you!";
-      case "Ready":
-        return hi + "Your order " + o.num + " is ready for pickup at " + where + "." + t + payLine(link) + " See you soon!";
-      case "Out for delivery":
-        return hi + "Your order " + o.num + " is on its way to you now." + t + payLine(link) + " Thank you!";
-      case "Done":
-        return hi + "Thank you for your order " + o.num + "! We hope you enjoy it.";
-      case "Cancelled":
-        return hi + "Your order " + o.num + " has been cancelled. If you have any questions, please call us at " + (store.phoneDisplay || "(310) 538-1188") + ".";
-      default:
-        return hi + "About your order " + o.num + ": ";
-    }
-  }
-  var TITLES = { "Confirmed": "Confirm order", "Ready": "Ready for pickup", "Out for delivery": "Out for delivery", "Done": "Mark done", "Cancelled": "Cancel order", "New": "Move back to New" };
-  function openSheet(o, status) {
-    sheetCtx = { o: o, status: status };
-    $("adm-sheet-title").textContent = TITLES[status] || status;
-    $("adm-sheet-sub").textContent = o.num + " · " + o.name + " · " + dayLabel(o) + (o.time ? ", " + o.time : "");
-    var showTotal = status === "Confirmed" || status === "Ready" || status === "Out for delivery";
-    $("adm-total-wrap").hidden = !showTotal;
-    $("adm-pay-wrap").hidden = !showTotal;
-    $("adm-pay").value = "";
-    $("adm-total").value = o.finalTotal !== "" && o.finalTotal != null ? Number(o.finalTotal).toFixed(2) : "";
-    $("adm-msg").value = messageFor(o, status, o.finalTotal);
-    var quiet = status === "Done" || status === "New";
-    $("adm-msg-wrap").hidden = status === "New";
-    $("adm-send-wa").hidden = $("adm-send-sms").hidden = status === "New" || !digits(o.phone);
-    $("adm-save-only").className = "btn " + (quiet ? "btn-primary" : "btn-outline");
-    $("adm-sheet-error").hidden = true;
-    $("adm-sheet").hidden = false; $("adm-sheet-bg").hidden = false;
-    document.body.classList.add("sheet-open");
-    setTimeout(function () { (showTotal && !$("adm-total").value ? $("adm-total") : $("adm-msg")).focus(); }, 50);
-  }
-  function closeSheet() {
-    $("adm-sheet").hidden = true; $("adm-sheet-bg").hidden = true; sheetCtx = null;
-    document.body.classList.remove("sheet-open");
-  }
-  $("adm-sheet-close").addEventListener("click", closeSheet);
-  $("adm-sheet-bg").addEventListener("click", closeSheet);
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("adm-sheet").hidden) closeSheet(); });
-  // Rewrite the message when the total or payment link changes
-  function refreshMsg() {
-    if (!sheetCtx) return;
-    var v = $("adm-total").value;
-    $("adm-msg").value = messageFor(sheetCtx.o, sheetCtx.status, v === "" ? "" : Number(v), $("adm-pay").value);
-  }
-  $("adm-total").addEventListener("input", refreshMsg);
-  $("adm-pay").addEventListener("input", refreshMsg);
-
-  function save(channel) {
-    if (!sheetCtx) return;
-    var o = sheetCtx.o, status = sheetCtx.status, total = $("adm-total-wrap").hidden ? "" : $("adm-total").value;
-    var msg = $("adm-msg").value.trim(), ph = digits(o.phone);
-    if (ph.length === 10) ph = "1" + ph;
-    // Open the messaging app right away (phones block it if we wait for the save)
-    if (channel === "wa") window.open("https://wa.me/" + ph + "?text=" + encodeURIComponent(msg), "_blank");
-    var body = { action: "status", order: o.num, status: status };
-    if (total !== "") body.finalTotal = total;
-    // Optimistic: show the new status now; undo if the save fails
-    var before = { status: o.status, finalTotal: o.finalTotal, statusAt: o.statusAt };
-    o.status = status; if (total !== "") o.finalTotal = Number(total); o.statusAt = new Date().toISOString();
-    var req = api(body);
-    closeSheet(); render();
-    if (channel === "sms") {
-      var ios = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-      location.href = "sms:+" + ph + (ios ? "&" : "?") + "body=" + encodeURIComponent(msg);
-    }
-    req.then(function (res) {
-      if (res && res.ok) { toast(o.num + " marked " + status); return; }
-      throw new Error((res && res.error) || "save");
+  function save(o, status, onOk) {
+    var before = { status: o.status, statusAt: o.statusAt };
+    o.status = status; o.statusAt = new Date().toISOString();   // show it right away
+    render();
+    api({ action: "status", order: o.num, status: status }).then(function (res) {
+      if (!res || !res.ok) throw new Error((res && res.error) || "save");
+      if (onOk) onOk();
     }).catch(function () {
-      o.status = before.status; o.finalTotal = before.finalTotal; o.statusAt = before.statusAt; render();
+      o.status = before.status; o.statusAt = before.statusAt; render();
       toast("Couldn't save the status for " + o.num + ". Please try again.");
     });
   }
-  $("adm-send-wa").addEventListener("click", function () { save("wa"); });
-  $("adm-send-sms").addEventListener("click", function () { save("sms"); });
-  $("adm-save-only").addEventListener("click", function () { save(""); });
 
   var toastTimer = null;
-  function toast(msg) {
-    var t = $("adm-toast"); t.textContent = msg; t.classList.add("is-on");
-    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.remove("is-on"); }, 2600);
+  function toast(msg, undo) {
+    var t = $("adm-toast"); t.textContent = msg;
+    if (undo) {
+      var u = el("button", "adm-undo", "Undo"); u.type = "button";
+      u.addEventListener("click", function () { t.classList.remove("is-on"); undo(); });
+      t.appendChild(u);
+    }
+    t.classList.add("is-on");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.remove("is-on"); }, undo ? 5000 : 2600);
   }
 
   // ---------- start ----------

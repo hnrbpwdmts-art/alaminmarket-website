@@ -75,3 +75,7 @@
 .admin-body .quick-actions { display: none; }
 .admin-body { padding-bottom: 40px !important; }
 .adm-call { text-transform: none; letter-spacing: 0; background: #e8eef8; color: #1f4f8a; }
+.adm-pay-note { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; background: #e8eef8; color: #1f4f8a; font-weight: 600; font-size: .92rem; }
+.adm-sheet-warn { margin: -6px 0 14px; padding: 10px 12px; border-radius: 10px; background: #fff4e8; border: 2px solid #f0b37e; color: #8a3b12; font-weight: 700; }
+.adm-undo { margin-left: 12px; background: none; border: 0; color: #ffd36b; font: 700 1rem var(--sans); text-decoration: underline; cursor: pointer; pointer-events: auto; }
+.order-toast.is-on { pointer-events: auto; }

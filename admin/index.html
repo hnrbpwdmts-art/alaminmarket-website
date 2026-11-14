@@ -8,8 +8,8 @@
   <meta name="theme-color" content="#1d4a34">
   <link rel="icon" href="../images/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
-  <link rel="stylesheet" href="../styles.css?v=20261114i">
-  <link rel="stylesheet" href="admin.css?v=20261114i">
+  <link rel="stylesheet" href="../styles.css?v=20261114j">
+  <link rel="stylesheet" href="admin.css?v=20261114j">
 </head>
 <body class="admin-body">
   <header class="adm-top">
@@ -35,7 +35,7 @@
         <button class="btn btn-primary adm-login-btn" type="submit">Sign in</button>
         <p class="adm-error" id="adm-login-error" role="alert" hidden></p>
       </form>
-      <p class="adm-fine">Orders still arrive by email, WhatsApp, and text as usual. This page is an extra.</p>
+      <p class="adm-fine">Orders still arrive by email as usual. This page is for keeping track of them.</p>
     </section>
 
     <!-- Orders -->
@@ -48,35 +48,10 @@
     </section>
   </main>
 
-  <!-- Message sheet -->
-  <div class="adm-sheet-bg" id="adm-sheet-bg" hidden></div>
-  <div class="adm-sheet" id="adm-sheet" role="dialog" aria-modal="true" aria-labelledby="adm-sheet-title" hidden>
-    <div class="adm-sheet-head">
-      <h2 id="adm-sheet-title">Update order</h2>
-      <button type="button" class="adm-icon-btn" id="adm-sheet-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    </div>
-    <p class="adm-sheet-sub" id="adm-sheet-sub"></p>
-    <label class="order-field" id="adm-total-wrap">Final total (after weighing)
-      <span class="adm-money"><span>$</span><input id="adm-total" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00"></span>
-    </label>
-    <label class="order-field" id="adm-pay-wrap">Payment link (optional, e.g. from Square)
-      <input id="adm-pay" type="url" inputmode="url" autocomplete="off" placeholder="Paste the link here">
-    </label>
-    <label class="order-field" id="adm-msg-wrap">Message to customer (you can edit it)
-      <textarea id="adm-msg" rows="5"></textarea>
-    </label>
-    <div class="adm-sheet-btns">
-      <button type="button" class="btn btn-whatsapp" id="adm-send-wa">Save &amp; send on WhatsApp</button>
-      <button type="button" class="btn btn-primary" id="adm-send-sms">Save &amp; send by text</button>
-      <button type="button" class="btn btn-outline" id="adm-save-only">Save without a message</button>
-    </div>
-    <p class="adm-error" id="adm-sheet-error" role="alert" hidden></p>
-  </div>
-
   <div class="order-toast" id="adm-toast" role="status" aria-live="polite"></div>
 
-  <script src="../site-config.js?v=20261114i"></script>
-  <script src="../meat-menu.js?v=20261114i"></script>
-  <script src="admin.js?v=20261114i"></script>
+  <script src="../site-config.js?v=20261114j"></script>
+  <script src="../meat-menu.js?v=20261114j"></script>
+  <script src="admin.js?v=20261114j"></script>
 </body>
 </html>

@@ -23,6 +23,9 @@ window.SITE = {
     whatsappDisplay: "(424) 527-3540",
     whatsappNumber: "14245273540", // digits only, with country code 1
 
+    // Shown in payment instructions (order page and staff messages)
+    zelleDisplay: "(310) 773-8177",
+
     directionsLink:
       "https://www.google.com/maps/dir/?api=1&destination=18220+Prairie+Ave%2C+Torrance%2C+CA+90504",
 
