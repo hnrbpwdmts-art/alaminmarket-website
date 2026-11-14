@@ -1040,3 +1040,37 @@ body.sheet-open { overflow: hidden; }
 .btn-outline { background: #fff; color: var(--green-dark); border: 2px solid var(--green); }
 .btn-outline:hover { background: var(--cream); }
 .done-msg-strong { font-weight: 700; color: var(--green-dark); }
+
+/* ===== Small phones: cart panel and options sheet that scroll properly ===== */
+.order-cart-foot { margin-top: 10px; }
+.order-cart-foot .order-next { margin-top: 10px; }
+@media (max-width: 899px) {
+  /* The cart panel: header / scrolling list / pinned subtotal + Checkout */
+  body.cart-open .order-section[data-step="1"] .order-summary {
+    top: auto; height: 88vh; height: 88dvh; max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px);
+    align-self: stretch; display: flex; flex-direction: column; overflow: hidden;
+    padding: 0; background: var(--cream);
+  }
+  body.cart-open .cart-head { position: static; flex: none; padding: 14px 18px 8px; margin: 0; border-bottom: 1px solid var(--cream-2); }
+  body.cart-open .cart-head .order-step-title { margin: 0; }
+  body.cart-open #order-cart { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 4px 18px 0; touch-action: pan-y; }
+  body.cart-open .order-cart-foot { position: sticky; bottom: 0; z-index: 2; margin: 8px -18px 0; padding: 10px 18px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--cream); box-shadow: 0 -10px 14px -10px rgba(20,55,38,.25); }
+  body.cart-open .order-cart-foot .order-total { margin: 0; }
+  body.cart-open .order-next { position: static; box-shadow: none; margin-top: 8px; }
+  body.cart-open .order-help { display: none; }
+  /* Options sheet: use the real screen height on iPhones */
+  .order-item.is-open { max-height: 92vh; max-height: 92dvh; -webkit-overflow-scrolling: touch; }
+}
+/* Short screens (iPhone SE / mini and smaller): tighter cart lines and sheet header */
+@media (max-width: 899px) and (max-height: 760px) {
+  .order-line { padding: 10px 0 !important; column-gap: 10px; grid-template-columns: 44px 1fr; }
+  .order-line-thumb { width: 44px; height: 44px; }
+  .order-line-desc { font-size: .88rem; }
+  body.cart-open .cart-head { padding: 10px 16px 6px; }
+  body.cart-open .cart-close { padding: 6px 12px; }
+  body.cart-open .order-weight-note { font-size: .82rem; margin: 8px 0 0; }
+  .order-item.is-open .order-item-head { padding-top: 10px !important; padding-bottom: 10px !important; }
+  .order-item.is-open .order-thumb { width: 52px; height: 52px; }
+  .order-item.is-open .order-item-name { font-size: 1.05rem; }
+  .order-item.is-open .order-item-body { padding-top: 8px; }
+}
