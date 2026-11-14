@@ -1014,3 +1014,10 @@ body.sheet-open { overflow: hidden; }
   .meat-cats li:last-child:nth-child(odd) .meat-cat-price { grid-column: 2; grid-row: 3; align-self: start; }
   .meat-cats li:last-child:nth-child(odd) .meat-cat-go { grid-column: 2; grid-row: 4; align-self: start; margin-top: 4px; }
 }
+.order-thumb-art { background: var(--cream); }
+.order-thumb-art img { object-fit: contain !important; padding: 4px; }
+.order-item:not(.is-open) .order-thumb-art img { padding: 6px 10px; }
+.order-line-thumb.order-thumb-art { background: var(--cream); }
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity .5s ease, transform .5s ease; }
+.reveal.is-in { opacity: 1; transform: none; }
+@media print { .reveal { opacity: 1; transform: none; } }

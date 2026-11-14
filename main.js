@@ -606,8 +606,14 @@
       var text, cls;
       if (open) {
         var closesSoon = open[1] - now.min <= 60;
-        text = (closesSoon ? "Closing soon · until " : "Open now · until ") + fmt(open[1]);
-        cls = closesSoon ? "is-soon" : "is-open";
+        var reopens = today.some(function (r) { return r[0] >= open[1]; });
+        if (reopens) {
+          text = "Open now · " + (now.day === 5 ? "prayer break " : "break ") + "at " + fmt(open[1]);
+          cls = "is-open";
+        } else {
+          text = (closesSoon ? "Closing soon · until " : "Open now · until ") + fmt(open[1]);
+          cls = closesSoon ? "is-soon" : "is-open";
+        }
       } else {
         var later = today.filter(function (r) { return r[0] > now.min; })[0];
         if (later) {
@@ -646,4 +652,20 @@
       if (best) el.textContent = "From $" + best.p.toFixed(2) + (best.perLb ? " / lb" : " each");
     });
   })();
+})();
+
+/* Gentle fade-in as homepage sections scroll into view (skipped for reduced motion) */
+(function () {
+  if (!("IntersectionObserver" in window)) return;
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  var els = document.querySelectorAll(".meat-cat, .how-steps li, .weekend-inner, #counter .split, #samosas .split, .category-grid > li, .visit-map, .visit-card");
+  if (!els.length) return;
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("is-in"); io.unobserve(e.target); } });
+  }, { rootMargin: "0px 0px -8% 0px" });
+  els.forEach(function (el, i) {
+    el.classList.add("reveal");
+    el.style.transitionDelay = (i % 5) * 60 + "ms";
+    io.observe(el);
+  });
 })();
