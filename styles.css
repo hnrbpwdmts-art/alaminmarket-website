@@ -320,6 +320,8 @@ a { color: var(--green); }
 .visit-icon svg { width: 24px; height: 24px; fill: var(--cream); }
 .visit-label { font-size: .8rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--red); }
 .visit-value { font-family: var(--serif); font-size: 1.25rem; font-weight: 700; color: var(--green-dark); line-height: 1.25; }
+.visit-prayer { font-size: .9rem; font-weight: 700; color: var(--red); line-height: 1.35; }
+.visit-card-hours:hover { transform: none; border-color: var(--cream-2); }
 .visit-action { font-size: .92rem; color: var(--green); font-weight: 600; }
 
 .hours {
@@ -395,7 +397,7 @@ a { color: var(--green); }
 }
 
 @media (min-width: 640px) {
-  .visit-grid { grid-template-columns: repeat(3, 1fr); }
+  .visit-grid { grid-template-columns: repeat(2, 1fr); }
   .reviews-list { grid-template-columns: repeat(2, 1fr); }
   .showcase-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
   .category-grid { grid-template-columns: repeat(2, 1fr); }
@@ -438,7 +440,8 @@ a { color: var(--green); }
   .hero-inner { grid-template-columns: 1.05fr 1fr; align-items: center; gap: 48px; }
   .section { padding: 88px 0; }
   .split { grid-template-columns: 1fr 1fr; gap: 56px; }
-  .groceries-intro { grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; margin-bottom: 40px; }
+  .groceries-intro { margin-bottom: 32px; }
+  .visit-grid { grid-template-columns: repeat(4, 1fr); }
   .split-reverse .split-figure { order: 2; }
   .reviews-list { grid-template-columns: repeat(3, 1fr); }
   .showcase-grid { grid-template-columns: repeat(5, 1fr); }
@@ -601,6 +604,9 @@ a { color: var(--green); }
 .addr-option strong { display: block; color: var(--green-dark); }
 .addr-option span { font-size: .88rem; color: var(--muted); }
 .addr-option:hover, .addr-option[aria-selected="true"] { background: var(--cream); }
+.addr-picked { margin: -6px 0 6px; font-size: .92rem; color: var(--muted); }
+.addr-picked strong { color: var(--green-dark); }
+.addr-manual { display: block; margin: -4px 0 12px; font-size: .9rem; }
 .addr-credit { padding: 6px 12px 2px; font-size: .72rem; color: var(--muted); }
 
 /* Halal badge */
@@ -623,3 +629,10 @@ a { color: var(--green); }
 .order-opts-tiles .order-opt { border-radius: 12px; padding: 10px 4px; text-align: center; }
 .order-q-sublabel { margin: 12px 0 8px; font-size: .82rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 @media (min-width: 640px) { .order-opts-grid { grid-template-columns: repeat(3, 1fr); } }
+
+/* Order page: shorter top on phones so the meat choices come first */
+@media (max-width: 599px) {
+  .order-hero { padding: 22px 0 24px; }
+  .order-hero .page-lede { margin-bottom: 0; font-size: 1rem; }
+  .order-hero .order-badges, .order-hero-badge, .order-steps { display: none; }
+}
