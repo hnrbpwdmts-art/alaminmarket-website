@@ -81,6 +81,7 @@ export async function onRequestPost({ request, env }) {
     })),
     source: str(d.source, 100),
     device: d.device === "Phone" ? "Phone" : "Computer",
+    update: !!d.update,              // true = changes to an order already sent (same order number)
     message: str(d.message, 6000),   // readable order text for the email
     notify: true
   };
