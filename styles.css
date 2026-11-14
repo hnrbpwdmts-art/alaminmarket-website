@@ -1039,3 +1039,4 @@ body.sheet-open { overflow: hidden; }
 .done-next-btn { width: 100%; justify-content: center; }
 .btn-outline { background: #fff; color: var(--green-dark); border: 2px solid var(--green); }
 .btn-outline:hover { background: var(--cream); }
+.done-msg-strong { font-weight: 700; color: var(--green-dark); }
