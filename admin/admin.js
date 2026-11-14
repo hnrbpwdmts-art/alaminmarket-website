@@ -216,18 +216,22 @@
 
   // ---------- messages ----------
   function firstName(n) { return String(n || "").trim().split(/\s+/)[0] || "there"; }
-  function messageFor(o, status, total) {
+  function payLine(link) {
+    link = String(link || "").trim();
+    return /^https?:\/\/\S+$/i.test(link) ? " Pay here: " + link : "";
+  }
+  function messageFor(o, status, total, link) {
     var hi = "Hi " + firstName(o.name) + ", this is " + (store.name || "Super Al-Amin Halal Market") + ". ";
     var when = dayLabel(o).replace(/^(Today|Tomorrow), /, function (m, w) { return w.toLowerCase() + ", "; }) + (o.time ? ", " + o.time : "");
     var t = total !== "" && total != null && !isNaN(total) ? " Your final total is " + money(total) + "." : "";
     var where = (store.street || "18220 Prairie Ave") + ", " + (store.city || "Torrance");
     switch (status) {
       case "Confirmed":
-        return hi + "Your order " + o.num + " is confirmed for " + (o.mode === "delivery" ? "delivery" : "pickup") + " " + when + "." + t + " Thank you!";
+        return hi + "Your order " + o.num + " is confirmed for " + (o.mode === "delivery" ? "delivery" : "pickup") + " " + when + "." + t + payLine(link) + " Thank you!";
       case "Ready":
-        return hi + "Your order " + o.num + " is ready for pickup at " + where + "." + t + " See you soon!";
+        return hi + "Your order " + o.num + " is ready for pickup at " + where + "." + t + payLine(link) + " See you soon!";
       case "Out for delivery":
-        return hi + "Your order " + o.num + " is on its way to you now." + t + " Thank you!";
+        return hi + "Your order " + o.num + " is on its way to you now." + t + payLine(link) + " Thank you!";
       case "Done":
         return hi + "Thank you for your order " + o.num + "! We hope you enjoy it.";
       case "Cancelled":
@@ -243,6 +247,8 @@
     $("adm-sheet-sub").textContent = o.num + " · " + o.name + " · " + dayLabel(o) + (o.time ? ", " + o.time : "");
     var showTotal = status === "Confirmed" || status === "Ready" || status === "Out for delivery";
     $("adm-total-wrap").hidden = !showTotal;
+    $("adm-pay-wrap").hidden = !showTotal;
+    $("adm-pay").value = "";
     $("adm-total").value = o.finalTotal !== "" && o.finalTotal != null ? Number(o.finalTotal).toFixed(2) : "";
     $("adm-msg").value = messageFor(o, status, o.finalTotal);
     var quiet = status === "Done" || status === "New";
@@ -261,11 +267,14 @@
   $("adm-sheet-close").addEventListener("click", closeSheet);
   $("adm-sheet-bg").addEventListener("click", closeSheet);
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("adm-sheet").hidden) closeSheet(); });
-  $("adm-total").addEventListener("input", function () {
+  // Rewrite the message when the total or payment link changes
+  function refreshMsg() {
     if (!sheetCtx) return;
     var v = $("adm-total").value;
-    $("adm-msg").value = messageFor(sheetCtx.o, sheetCtx.status, v === "" ? "" : Number(v));
-  });
+    $("adm-msg").value = messageFor(sheetCtx.o, sheetCtx.status, v === "" ? "" : Number(v), $("adm-pay").value);
+  }
+  $("adm-total").addEventListener("input", refreshMsg);
+  $("adm-pay").addEventListener("input", refreshMsg);
 
   function save(channel) {
     if (!sheetCtx) return;
