@@ -47,7 +47,18 @@
     }
     return "Price coming soon";
   }
+  // "Request an item": something not on the menu, priced by the store
+  var REQUEST_ITEM = { id: "request", name: "Item request", priceUnit: "each", unit: "each", choices: [], price: null };
+  var FAV_KEY = "alamin-favs", LAST_KEY = "alamin-last-order";
+  var favs = [];
+  try { favs = JSON.parse(localStorage.getItem(FAV_KEY) || "[]") || []; } catch (e) { favs = []; }
+  function saveFavs() { try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch (e) { /* ignore */ } }
+  function categoryOf(id) {
+    for (var c = 0; c < M.categories.length; c++) if ((M.categories[c].items || []).some(function (it) { return it.id === id; })) return M.categories[c];
+    return null;
+  }
   function findItem(id) {
+    if (id === "request") return REQUEST_ITEM;
     for (var c = 0; c < M.categories.length; c++) {
       var items = M.categories[c].items || [];
       for (var i = 0; i < items.length; i++) if (items[i].id === id) return items[i];
@@ -102,6 +113,7 @@
         var it = findItem(l.id);
         return it && l.picks && (it.choices || []).every(function (q) { return l.picks[q]; });
       });
+      state.cart.forEach(function (l) { l.uid = l.uid || Math.random().toString(36).slice(2); });
     }
   } catch (e) { /* storage unavailable */ }
   // A sent order can be edited for a while; changes go out under the same order number
@@ -125,54 +137,144 @@
 
   // ---------- menu ----------
   var activeCat = 0, catTabs = [];
+  var FAV_CAT = { id: "favorites", name: "Favorites", items: [] };
+  var STAR = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 20.5l-1.3-1.2C6 15.1 3 12.4 3 8.9 3 6.2 5.1 4 7.8 4c1.6 0 3.1.8 4.2 2 1.1-1.2 2.6-2 4.2-2C18.9 4 21 6.2 21 8.9c0 3.5-3 6.2-7.7 10.4z"/></svg>';
+  function catList() {
+    FAV_CAT.items = favs.map(findItem).filter(function (it) { return it && it.id !== "request"; });
+    return (FAV_CAT.items.length ? [FAV_CAT] : []).concat(M.categories);
+  }
   function renderCats() {
-    M.categories.forEach(function (cat, i) {
-      var b = el("button", "order-cat");
-      b.innerHTML = icon(cat.id);
+    var keep = catList()[activeCat];
+    catsEl.textContent = ""; catTabs = [];
+    catList().forEach(function (cat, i) {
+      var b = el("button", "order-cat" + (cat === FAV_CAT ? " order-cat-fav" : ""));
+      b.innerHTML = cat === FAV_CAT ? STAR : icon(cat.id);
       b.appendChild(el("span", null, cat.name));
       b.type = "button"; b.setAttribute("role", "tab");
       b.addEventListener("click", function () { activeCat = i; updateCats(); renderItems(); });
       catsEl.appendChild(b); catTabs.push(b);
     });
-    catsEl.hidden = M.categories.length < 2;
+    var idx = catList().indexOf(keep); activeCat = idx > -1 ? idx : 0;
+    catsEl.hidden = catList().length < 2;
     updateCats();
   }
   function updateCats() {
     catTabs.forEach(function (b, i) { b.setAttribute("aria-selected", i === activeCat ? "true" : "false"); });
   }
+  function currentCat() { return catList()[activeCat] || M.categories[0]; }
 
   function renderItems() {
     itemsEl.textContent = "";
-    if (M.categories[activeCat].note) itemsEl.appendChild(el("p", "order-cat-note", M.categories[activeCat].note));
-    (M.categories[activeCat].items || []).forEach(function (item) { itemsEl.appendChild(itemCard(item)); });
+    var cat = currentCat();
+    if (cat === FAV_CAT) itemsEl.appendChild(el("p", "order-cat-note", "Your favorites are saved on this device. Tap the heart on any item to add or remove it."));
+    else if (cat.note) itemsEl.appendChild(el("p", "order-cat-note", cat.note));
+    (cat.items || []).forEach(function (item) { itemsEl.appendChild(itemCard(item)); });
+    itemsEl.appendChild(requestCard());
   }
 
+  var DAY_FULL = { Sun: "Sunday", Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday" };
+  function daysShort(days) { return days.join(" & ") + " only"; }
   function itemCard(item) {
     var card = el("article", "order-item");
+    card.setAttribute("data-item", item.id);
     var head = el("button", "order-item-head");
     head.type = "button"; head.setAttribute("aria-expanded", "false");
-    head.appendChild(el("span", "order-item-name", item.name));
-    head.appendChild(el("span", "order-item-price", priceLabel(item)));
-    var body = el("div", "order-item-body"); body.hidden = true;
-    head.addEventListener("click", function () {
-      var open = body.hidden;
-      itemsEl.querySelectorAll(".order-item-body").forEach(function (b) { b.hidden = true; });
-      itemsEl.querySelectorAll(".order-item-head").forEach(function (h) { h.setAttribute("aria-expanded", "false"); });
-      if (open) { body.hidden = false; head.setAttribute("aria-expanded", "true"); buildPicker(item, body); }
+    var thumb = el("span", "order-thumb");
+    if (item.image) {
+      var img = document.createElement("img");
+      img.src = (document.documentElement.getAttribute("data-root") || "") + item.image; img.alt = ""; img.loading = "lazy"; img.width = 72; img.height = 72;
+      thumb.appendChild(img);
+    } else { var c = categoryOf(item.id); thumb.innerHTML = icon(c ? c.id : ""); thumb.classList.add("order-thumb-icon"); }
+    head.appendChild(thumb);
+    var main = el("span", "order-item-main");
+    main.appendChild(el("span", "order-item-name", item.name));
+    if (item.note) main.appendChild(el("span", "order-item-sub", item.note));
+    var tags = el("span", "order-item-tags");
+    tags.appendChild(el("span", "order-item-price", priceLabel(item)));
+    if (item.days && item.days.length) tags.appendChild(el("span", "order-badge-days", daysShort(item.days)));
+    main.appendChild(tags);
+    head.appendChild(main);
+    head.appendChild(el("span", "order-item-plus", "+"));
+    var fav = el("button", "order-fav");
+    fav.type = "button"; fav.innerHTML = STAR;
+    function syncFav() {
+      var on = favs.indexOf(item.id) > -1;
+      fav.setAttribute("aria-pressed", on ? "true" : "false");
+      fav.setAttribute("aria-label", (on ? "Remove " : "Save ") + item.name + (on ? " from favorites" : " to favorites"));
+    }
+    syncFav();
+    fav.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var i = favs.indexOf(item.id);
+      if (i > -1) favs.splice(i, 1); else favs.push(item.id);
+      saveFavs(); syncFav();
+      toast(i > -1 ? "Removed from favorites" : "Saved to favorites");
+      var wasFav = currentCat() === FAV_CAT;
+      renderCats();
+      if (wasFav) renderItems();
     });
-    card.appendChild(head); card.appendChild(body);
+    var body = el("div", "order-item-body"); body.hidden = true;
+    head.addEventListener("click", function () { openItem(item, card); });
+    card.appendChild(head); card.appendChild(fav); card.appendChild(body);
+    return card;
+  }
+  // Open one item's options (closing any other); "line" = cart line being edited
+  function openItem(item, card, line, lineIndex) {
+    var body = card.querySelector(".order-item-body"), head = card.querySelector(".order-item-head");
+    var open = body.hidden || line;
+    itemsEl.querySelectorAll(".order-item-body").forEach(function (b) { b.hidden = true; });
+    itemsEl.querySelectorAll(".order-item-head").forEach(function (h) { h.setAttribute("aria-expanded", "false"); });
+    itemsEl.querySelectorAll(".order-item").forEach(function (c) { c.classList.remove("is-open"); });
+    if (open) {
+      body.hidden = false; head.setAttribute("aria-expanded", "true"); card.classList.add("is-open");
+      buildPicker(item, body, line, lineIndex);
+    }
+  }
+
+  // "Don't see it? Request an item" — added to the order as a line the store prices
+  function requestCard() {
+    var card = el("div", "order-request");
+    var openBtn = el("button", "order-request-open", "Don't see what you need? Request an item");
+    openBtn.type = "button";
+    var box = el("div", "order-request-box"); box.hidden = true;
+    var lab = el("label", "order-field", "What would you like, and how much?");
+    var ta = document.createElement("textarea"); ta.rows = 2; ta.maxLength = 200;
+    ta.placeholder = "Example: 3 lb goat liver, cut small";
+    lab.appendChild(ta); box.appendChild(lab);
+    box.appendChild(el("p", "order-request-note", "We'll check availability and price, and confirm with you before you pay."));
+    var add = el("button", "btn btn-primary order-add", "Add request to my order"); add.type = "button";
+    add.addEventListener("click", function () {
+      var v = ta.value.trim();
+      if (v.length < 3) { ta.focus(); ta.setAttribute("aria-invalid", "true"); return; }
+      state.cart.push({ uid: Math.random().toString(36).slice(2), id: "request", picks: {}, qty: 1, unit: "each", custom: v });
+      save(); renderCart(); ta.value = ""; box.hidden = true; openBtn.hidden = false;
+      toast("Request added to your order");
+    });
+    ta.addEventListener("input", function () { ta.removeAttribute("aria-invalid"); });
+    box.appendChild(add);
+    openBtn.addEventListener("click", function () { openBtn.hidden = true; box.hidden = false; ta.focus(); });
+    card.appendChild(openBtn); card.appendChild(box);
     return card;
   }
 
-  function buildPicker(item, body) {
-    var picked = {}, qty = item.min || 1, custom = "";
+  // Small message at the bottom of the screen ("Added to your order")
+  var toastEl = el("div", "order-toast"); toastEl.setAttribute("role", "status"); toastEl.setAttribute("aria-live", "polite");
+  document.body.appendChild(toastEl);
+  var toastTimer = null;
+  function toast(msg) {
+    toastEl.textContent = msg; toastEl.classList.add("is-on");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.classList.remove("is-on"); }, 2200);
+  }
+
+  var Q_LABELS = { Cut: "How should we cut it?", Skin: "Skin on or off?", Fat: "With or without fat?", Type: "Which type?", "BBQ cut": "BBQ cut?" };
+  function buildPicker(item, body, line, lineIndex) {
+    var picked = line ? Object.assign({}, line.picks) : {}, qty = line ? line.qty : (item.min || 1), custom = line ? (line.custom || "") : "";
     var units = item.units && item.units.length ? item.units : [item.unit];
-    var unit = units[0];
+    var unit = line && line.unit ? line.unit : units[0];
     var step = item.step || 1, min = item.min || step;
     function draw() {
       body.textContent = "";
-      if (item.note) body.appendChild(el("p", "order-item-note", item.note));
-      if (item.days && item.days.length) body.appendChild(el("p", "order-item-days", "Available " + item.days.map(function (d) { return ({Sun:"Sunday",Mon:"Monday",Tue:"Tuesday",Wed:"Wednesday",Thu:"Thursday",Fri:"Friday",Sat:"Saturday"})[d] || d; }).join(" and ") + " only"));
+      if (item.days && item.days.length) body.appendChild(el("p", "order-item-days", "Available for " + item.days.map(function (d) { return DAY_FULL[d] || d; }).join(" and ") + " pickup or delivery only"));
       (item.choices || []).forEach(function (q) {
         var opts = optionsFor(item, q, picked);
         if (picked[q] && opts.indexOf(picked[q]) === -1) delete picked[q];
@@ -180,7 +282,7 @@
         // Only one possible answer (and it's not the first question): no need to ask
         if (opts.length === 1 && (item.choices || []).indexOf(q) > 0) return;
         var group = el("div", "order-q");
-        group.appendChild(el("p", "order-q-label", q));
+        group.appendChild(el("p", "order-q-label", Q_LABELS[q] || q));
         // Layout: piece counts as small tiles, long lists in a neat grid,
         // grinds grouped under "Ground"
         var isCount = opts.every(function (v) { return /^(\d+ pieces|Whole.*)$/.test(v); }) && opts.some(function (v) { return /^\d+ pieces$/.test(v); });
@@ -219,7 +321,7 @@
       // quantity
       var qrow = el("div", "order-qty-row");
       var qlab = el("div", "order-qty-label");
-      qlab.appendChild(el("p", "order-q-label", units.length > 1 ? "Order by" : (unit === "lb" ? "Weight" : "How many")));
+      qlab.appendChild(el("p", "order-q-label", units.length > 1 ? "Order by" : (unit === "lb" ? "How many pounds?" : "How many?")));
       if (units.length > 1) {
         var ut = el("div", "order-opts order-unit-toggle");
         units.forEach(function (u) {
@@ -251,7 +353,7 @@
       if (packs.length) {
         if (packs.indexOf(picked.Packing) === -1) picked.Packing = packs[0];
         var pg = el("div", "order-q");
-        pg.appendChild(el("p", "order-q-label", "Packing" + (item.packing ? "" : " (smallest pack is 1 lb)")));
+        pg.appendChild(el("p", "order-q-label", "How should we pack it?"));
         var prow = el("div", "order-opts" + (packs.length > 4 ? " order-opts-grid" : ""));
         packs.forEach(function (v) {
           var b = el("button", "order-opt", v); b.type = "button";
@@ -265,7 +367,7 @@
 
       // Free-text special cutting request, at the end of every item
       var cl = el("label", "order-field order-custom");
-      cl.appendChild(document.createTextNode("Special cutting or packing? (optional)"));
+      cl.appendChild(document.createTextNode("Special instructions (optional)"));
       var ct = document.createElement("textarea");
       ct.rows = 2; ct.maxLength = 200; ct.value = custom;
       ct.placeholder = "Example: 10 pieces, curry size, 1.5 lb packs";
@@ -274,15 +376,33 @@
       body.appendChild(cl);
 
       var ready = (item.choices || []).every(function (q) { return picked[q]; });
-      var add = el("button", "btn btn-primary order-add", ready ? "Add to order" : "Choose " + firstMissing().toLowerCase());
+      // Live estimate for this item
+      var est = ready ? lineCost({ id: item.id, picks: picked, qty: qty, unit: unit }) : null;
+      var estEl = el("p", "order-item-est");
+      if (est != null) {
+        estEl.appendChild(el("span", null, priceUnit(item) === "lb" ? "Estimated price" : "Price"));
+        estEl.appendChild(el("strong", null, money(est)));
+      } else if (ready) estEl.appendChild(el("span", null, "Priced by weight at the store"));
+      if (estEl.childNodes.length) body.appendChild(estEl);
+      var editing = !!line;
+      var add = el("button", "btn btn-primary order-add", ready ? (editing ? "Save changes" : "Add to order") + (est != null ? " · " + money(est) : "") : "Choose: " + (Q_LABELS[firstMissing()] || firstMissing()).replace(/\?$/, "").toLowerCase());
       add.type = "button"; add.disabled = !ready;
       add.addEventListener("click", function () {
-        state.cart.push({ id: item.id, picks: Object.assign({}, picked), qty: qty, unit: unit, custom: custom.trim() });
+        var newLine = { uid: line ? line.uid : Math.random().toString(36).slice(2), id: item.id, picks: Object.assign({}, picked), qty: qty, unit: unit, custom: custom.trim() };
+        var idx = editing ? state.cart.findIndex(function (l) { return l.uid === line.uid; }) : -1;
+        if (idx > -1) state.cart[idx] = newLine; else state.cart.push(newLine);
         save(); renderCart();
-        add.textContent = "Added ✓";
-        setTimeout(function () { body.hidden = true; body.previousSibling.setAttribute("aria-expanded", "false"); }, 700);
+        toast(editing ? "Item updated" : "Added to your order");
+        body.hidden = true; body.parentNode.classList.remove("is-open");
+        body.parentNode.querySelector(".order-item-head").setAttribute("aria-expanded", "false");
+        if (editing) { var sm = document.querySelector(".order-summary"); if (sm) sm.scrollIntoView({ behavior: "smooth", block: "start" }); }
       });
       body.appendChild(add);
+      if (editing) {
+        var cancel = el("button", "order-link-btn order-cancel-edit", "Cancel"); cancel.type = "button";
+        cancel.addEventListener("click", function () { body.hidden = true; body.parentNode.classList.remove("is-open"); });
+        body.appendChild(cancel);
+      }
     }
     function firstMissing() {
       var qs = item.choices || [];
@@ -295,6 +415,7 @@
   // ---------- cart ----------
   function lineText(l) {
     var item = findItem(l.id);
+    if (l.id === "request") return { item: item, desc: l.custom || "", custom: "" };
     var parts = [];
     (item.choices || []).forEach(function (q) {
       var v = l.picks[q];
@@ -315,38 +436,155 @@
     return price * l.qty;
   }
 
+  function cartTotals() {
+    var total = 0, allPriced = true, count = 0;
+    state.cart.forEach(function (l) { var c = lineCost(l); count++; if (c == null) allPriced = false; else total += c; });
+    return { total: total, allPriced: allPriced, count: count };
+  }
+  function stepOf(l) { var it = findItem(l.id); return it.step || 1; }
+  function minOf(l) { var it = findItem(l.id); return it.min || it.step || 1; }
+
   function renderCart() {
     cartEl.textContent = "";
     if (!state.cart.length) {
-      cartEl.appendChild(el("p", "order-empty", "Nothing added yet."));
+      cartEl.appendChild(el("p", "order-empty", "Your order is empty. Choose a meat to get started."));
+      var last = lastOrder();
+      if (last) cartEl.appendChild(reorderCard(last));
       form.hidden = true;
+      updateBar(); setStep(1);
       return;
     }
-    var ul = el("ul", "order-lines"), total = 0, allPriced = true;
+    var ul = el("ul", "order-lines");
     state.cart.forEach(function (l, i) {
-      var t = lineText(l), cost = lineCost(l);
-      if (cost == null) allPriced = false; else total += cost;
+      var t = lineText(l), cost = lineCost(l), isReq = l.id === "request";
       var li = el("li", "order-line");
-      var info = el("div", "order-line-info");
-      info.appendChild(el("span", "order-line-name", lineUnit(l) === "lb" ? fmtQty(l.qty, "lb") + " " + t.item.name : l.qty + " × " + t.item.name));
-      info.appendChild(el("span", "order-line-desc", t.desc));
-      if (t.custom) info.appendChild(el("span", "order-line-desc order-line-custom", "Special request: " + t.custom));
-      li.appendChild(info);
-      li.appendChild(el("span", "order-line-cost", cost != null ? money(cost) : (itemPrice(t.item, l.picks) != null ? priceLabel(t.item, l.picks) : "")));
-      var rm = el("button", "order-line-rm", "Remove"); rm.type = "button";
-      rm.setAttribute("aria-label", "Remove " + t.item.name);
-      rm.addEventListener("click", function () { state.cart.splice(i, 1); save(); renderCart(); });
-      li.appendChild(rm);
+      var top = el("div", "order-line-top");
+      top.appendChild(el("span", "order-line-name", isReq ? "Item request" : t.item.name));
+      top.appendChild(el("span", "order-line-cost", cost != null ? money(cost) : isReq ? "We'll price it" : (itemPrice(t.item, l.picks) != null ? priceLabel(t.item, l.picks) : "")));
+      li.appendChild(top);
+      if (t.desc) li.appendChild(el("span", "order-line-desc", t.desc));
+      if (t.custom) li.appendChild(el("span", "order-line-desc order-line-custom", "Special instructions: " + t.custom));
+      var ctl = el("div", "order-line-ctl");
+      if (!isReq) {
+        var lb = lineUnit(l) === "lb";
+        var st = el("div", "order-stepper order-stepper-sm");
+        var minus = el("button", "order-step-btn", "−"); minus.type = "button"; minus.setAttribute("aria-label", "Less " + t.item.name);
+        var val = el("span", "order-step-val", lb ? fmtQty(l.qty, "lb") : fmtQty(l.qty, "each", t.item));
+        var plus = el("button", "order-step-btn", "+"); plus.type = "button"; plus.setAttribute("aria-label", "More " + t.item.name);
+        minus.disabled = l.qty <= minOf(l);
+        minus.addEventListener("click", function () { l.qty = Math.max(minOf(l), Math.round((l.qty - stepOf(l)) * 100) / 100); save(); renderCart(); });
+        plus.addEventListener("click", function () { l.qty = Math.round((l.qty + stepOf(l)) * 100) / 100; save(); renderCart(); });
+        st.appendChild(minus); st.appendChild(val); st.appendChild(plus);
+        ctl.appendChild(st);
+        var ed = el("button", "order-line-act", "Edit"); ed.type = "button";
+        ed.setAttribute("aria-label", "Edit " + t.item.name);
+        ed.addEventListener("click", function () { editLine(l, i); });
+        ctl.appendChild(ed);
+      }
+      var rm = el("button", "order-line-act order-line-rm", "Remove"); rm.type = "button";
+      rm.setAttribute("aria-label", "Remove " + (isReq ? "item request" : t.item.name));
+      rm.addEventListener("click", function () {
+        var removed = state.cart.splice(i, 1)[0]; save(); renderCart();
+        toastUndo((isReq ? "Request" : t.item.name) + " removed", function () { state.cart.splice(i, 0, removed); save(); renderCart(); });
+      });
+      ctl.appendChild(rm);
+      li.appendChild(ctl);
       ul.appendChild(li);
     });
     cartEl.appendChild(ul);
+    var T = cartTotals();
     var tot = el("p", "order-total");
     tot.appendChild(el("span", null, "Estimated total"));
-    tot.appendChild(el("strong", null, allPriced ? money(total) : total > 0 ? "From " + money(total) : "Sent by text"));
+    tot.appendChild(el("strong", null, T.allPriced ? money(T.total) : T.total > 0 ? "From " + money(T.total) : "We'll price it"));
     cartEl.appendChild(tot);
+    cartEl.appendChild(el("p", "order-weight-note", "Meat is sold by weight. Your final price is based on the actual weight when we cut your order. We'll confirm it with you before you pay."));
     form.hidden = false;
     renderDays();
     renderTotals();
+    updateBar();
+    setStep(2);
+  }
+
+  // Edit a cart line: open that item's options with the current choices filled in
+  function editLine(l, i) {
+    var cat = categoryOf(l.id), list = catList();
+    var ci = list.indexOf(cat);
+    if (ci > -1 && list[activeCat] !== cat && !(list[activeCat] === FAV_CAT && favs.indexOf(l.id) > -1)) { activeCat = ci; updateCats(); renderItems(); }
+    var card = itemsEl.querySelector('[data-item="' + l.id + '"]');
+    if (!card) return;
+    openItem(findItem(l.id), card, l, i);
+    card.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function toastUndo(msg, undo) {
+    toastEl.textContent = msg + " ";
+    var u = el("button", "order-toast-undo", "Undo"); u.type = "button";
+    u.addEventListener("click", function () { undo(); toastEl.classList.remove("is-on"); });
+    toastEl.appendChild(u); toastEl.classList.add("is-on");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.classList.remove("is-on"); }, 5000);
+  }
+
+  // ---------- order again ----------
+  function lastOrder() {
+    try {
+      var d = JSON.parse(localStorage.getItem(LAST_KEY) || "null");
+      if (!d || !Array.isArray(d.cart)) return null;
+      var cart = d.cart.filter(function (l) { var it = findItem(l.id); return it && (it.choices || []).every(function (q) { return l.picks && l.picks[q]; }); });
+      return cart.length ? { cart: cart, at: d.at, num: d.num } : null;
+    } catch (e) { return null; }
+  }
+  function reorderCard(last) {
+    var box = el("div", "order-again");
+    box.appendChild(el("p", "order-again-title", "Order again"));
+    var when = last.at ? new Date(last.at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+    box.appendChild(el("p", "order-again-sub", "Your last order" + (when ? " (" + when + ")" : "") + ":"));
+    var ul = el("ul", "order-again-list");
+    last.cart.slice(0, 4).forEach(function (l) {
+      var t = lineText(l);
+      ul.appendChild(el("li", null, (l.id === "request" ? "Request: " + t.desc : (lineUnit(l) === "lb" ? fmtQty(l.qty, "lb") + " " : l.qty + " × ") + t.item.name)));
+    });
+    if (last.cart.length > 4) ul.appendChild(el("li", null, "+ " + (last.cart.length - 4) + " more"));
+    box.appendChild(ul);
+    var b = el("button", "btn btn-cream order-again-btn", "Add these items to my order"); b.type = "button";
+    b.addEventListener("click", function () {
+      state.cart = last.cart.map(function (l) { return Object.assign({}, l, { uid: Math.random().toString(36).slice(2) }); });
+      save(); renderCart(); toast("Items added. You can change anything before sending.");
+    });
+    box.appendChild(b);
+    return box;
+  }
+
+  // ---------- sticky "View order" bar on phones ----------
+  var bar = el("div", "cart-bar"); bar.hidden = true;
+  var barBtn = el("button", "cart-bar-btn"); barBtn.type = "button";
+  bar.appendChild(barBtn);
+  document.body.appendChild(bar);
+  var summaryEl = document.querySelector(".order-summary"), summaryVisible = false;
+  barBtn.addEventListener("click", function () { summaryEl.scrollIntoView({ behavior: "smooth", block: "start" }); });
+  if ("IntersectionObserver" in window && summaryEl) {
+    new IntersectionObserver(function (es) { summaryVisible = es[0].isIntersecting; updateBar(); }, { rootMargin: "0px 0px -35% 0px" }).observe(summaryEl);
+  }
+  function updateBar() {
+    var T = cartTotals();
+    var show = T.count > 0 && !summaryVisible && reviewHidden() && doneEl.hidden;
+    bar.hidden = !show;
+    document.body.classList.toggle("has-cart-bar", show);
+    barBtn.textContent = "";
+    barBtn.appendChild(el("span", "cart-bar-count", String(T.count)));
+    barBtn.appendChild(el("span", "cart-bar-label", "View order"));
+    barBtn.appendChild(el("span", "cart-bar-total", T.allPriced ? money(T.total) : T.total > 0 ? "From " + money(T.total) : ""));
+  }
+  function reviewHidden() { return typeof reviewEl === "undefined" || reviewEl.hidden; }
+
+  // ---------- progress: Choose → Your details → Review → Done ----------
+  var progEl = $("order-progress");
+  function setStep(n) {
+    if (!progEl) return;
+    [].forEach.call(progEl.children, function (li, i) {
+      li.classList.toggle("is-done", i + 1 < n);
+      li.classList.toggle("is-current", i + 1 === n);
+      if (i + 1 === n) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
+    });
   }
 
   // ---------- pickup / delivery ----------
@@ -522,23 +760,27 @@
       "-" + String(Math.floor(Math.random() * 900) + 100);
   }
   function validate() {
-    var err = "";
+    var err = "", field = null;
     state.name = $("order-name").value.trim();
     state.phone = $("order-phone").value.trim();
-    var a = readAddr();
+    var a = readAddr(), digits = state.phone.replace(/\D/g, "");
     save();
-    if (!$("order-day").value) err = "Please pick a day.";
-    else if (!state.name) err = "Please enter your name.";
-    else if (state.phone.replace(/\D/g, "").length < 10) err = "Please enter a phone number we can text.";
-    else if (state.mode === "delivery" && !addrComplete(a)) err = $("addr-more").hidden
-      ? "Please pick your delivery address from the list, or tap \"Enter city and ZIP yourself\"."
-      : "Please enter your delivery street, city, and ZIP code.";
+    ["order-name", "order-phone", "addr-street", "addr-city", "addr-zip"].forEach(function (id) { $(id).removeAttribute("aria-invalid"); });
+    if (!$("order-day").value) { err = "Please pick a day."; field = "order-day"; }
+    else if (!state.name) { err = "Please enter your name."; field = "order-name"; }
+    else if (digits.length < 10 || digits.length > 11 || (digits.length === 11 && digits[0] !== "1")) { err = "Please enter a 10-digit phone number we can text, like (310) 555-0123."; field = "order-phone"; }
+    else if (state.mode === "delivery" && !addrComplete(a)) {
+      if ($("addr-more").hidden) { err = "Please start typing your delivery address and pick it from the list, or tap \"Enter city and ZIP yourself\"."; field = "addr-street"; }
+      else { err = "Please enter your delivery street, city, and 5-digit ZIP code."; field = a.street.length < 4 ? "addr-street" : a.city.length < 2 ? "addr-city" : "addr-zip"; }
+    }
     else if (state.mode === "delivery" && M.delivery.minimumOrder && subtotal() < M.delivery.minimumOrder)
-      err = "Delivery orders need at least " + money(M.delivery.minimumOrder) + " of meat. Add more, or choose pickup.";
+      err = "Delivery orders need at least " + money(M.delivery.minimumOrder) + " of meat. You have about " + money(subtotal()) + ". Add more, or choose pickup.";
     else if (state.mode === "delivery" && M.delivery.quoteUrl && !quote) { err = "Checking your delivery estimate. Please try again in a moment."; getQuote(); }
     else if (state.mode === "delivery" && quote && quote.error === "outside_area")
       err = "We can't deliver to this address. Please choose pickup.";
     var e = $("order-error"); e.hidden = !err; e.textContent = err;
+    if (field) { var f = $(field); f.setAttribute("aria-invalid", "true"); f.focus({ preventScroll: true }); f.scrollIntoView({ behavior: "smooth", block: "center" }); }
+    else if (err) e.scrollIntoView({ behavior: "smooth", block: "center" });
     return !err;
   }
   function buildMessage(num) {
@@ -554,6 +796,7 @@
     state.cart.forEach(function (l, i) {
       var t = lineText(l), cost = lineCost(l);
       if (cost == null) allPriced = false; else total += cost;
+      if (l.id === "request") { lines.push((i + 1) + ") ITEM REQUEST (please check availability and price): " + t.desc); return; }
       lines.push((i + 1) + ") " + t.item.name + ": " + t.desc + " | " + (lineUnit(l) === "lb" ? fmtQty(l.qty, "lb") : "Qty " + fmtQty(l.qty, "each", t.item)) +
         (cost != null ? " | about " + money(cost) : (itemPrice(t.item, l.picks) != null ? " | " + priceLabel(t.item, l.picks) : "")));
       if (t.custom) lines.push("   Special request: " + t.custom);
@@ -570,7 +813,10 @@
     return lines.join("\n");
   }
   function currentNum() { return state.sentNum || submitNum || (submitNum = orderNumber()); }
-  function markSent(num) { state.sentNum = num; state.sentAt = Date.now(); submitNum = null; save(); }
+  function markSent(num) {
+    state.sentNum = num; state.sentAt = Date.now(); submitNum = null; save();
+    try { localStorage.setItem(LAST_KEY, JSON.stringify({ cart: state.cart, at: Date.now(), num: num })); } catch (e) { /* ignore */ }
+  }
   function send(channel) {
     if (!validate()) return;
     var isUpdate = !!state.sentNum, num = currentNum(), msg = buildMessage(num), url;
@@ -654,10 +900,11 @@
     var ok = el("button", "btn btn-primary order-submit", isUpdate ? "Send updated order" : "Send order"); ok.type = "button";
     ok.addEventListener("click", function () { doSubmit(num, isUpdate, ok, errBox); });
     var edit = el("button", "order-link-btn rv-edit", "Go back and edit"); edit.type = "button";
-    edit.addEventListener("click", function () { reviewEl.hidden = true; form.hidden = false; cartEl.hidden = false; form.scrollIntoView({ block: "start" }); });
+    edit.addEventListener("click", function () { reviewEl.hidden = true; form.hidden = false; cartEl.hidden = false; setStep(2); updateBar(); form.scrollIntoView({ block: "start" }); });
     reviewEl.appendChild(ok); reviewEl.appendChild(edit);
     reviewEl.appendChild(el("p", "rv-fine", "No payment now. You'll pay once we confirm your final total."));
     reviewEl.hidden = false; form.hidden = true; cartEl.hidden = true;
+    setStep(3); updateBar();
     reviewEl.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   // Sends the order to /api/order, which saves it to the store's Google Sheet and
@@ -759,15 +1006,30 @@
       doneEl.appendChild(el("p", null, "We'll text you back with your " +
         (state.mode === "delivery" ? "delivery time" : "pickup time") + ", final total, and a payment link."));
     }
+    if (channel === "website") {
+      var when = el("div", "rv-card");
+      when.appendChild(el("p", "rv-label", state.mode === "delivery" ? "Delivery" : "Pickup"));
+      when.appendChild(el("p", "rv-strong", $("order-day").value + ", " + $("order-time").value));
+      when.appendChild(el("p", null, state.mode === "delivery" ? state.address : S.store.street + ", " + S.store.city + ", " + S.store.state + " " + S.store.zip));
+      doneEl.insertBefore(when, doneEl.children[2] || null);
+    }
+    var contact = el("div", "order-done-contact");
+    var wa = el("a", "btn btn-whatsapp", "WhatsApp us about this order");
+    wa.href = "https://wa.me/" + S.store.whatsappNumber + "?text=" + encodeURIComponent("Hi Super Al-Amin! About my order " + num + ": ");
+    wa.target = "_blank"; wa.rel = "noopener";
+    var call = el("a", "btn btn-outline", "Call " + S.store.phoneDisplay); call.href = S.store.phoneLink;
+    contact.appendChild(wa); contact.appendChild(call);
+    doneEl.appendChild(contact);
     var again = el("button", "btn btn-cream", "Start a new order"); again.type = "button";
     again.addEventListener("click", function () {
       state.cart = []; state.sentNum = null; state.sentAt = null; submitNum = null; save(); updateSendLabels();
       doneEl.hidden = true; cartEl.hidden = false; renderCart(); window.scrollTo(0, 0);
     });
     var back = el("button", "order-link-btn", "Change this order"); back.type = "button";
-    back.addEventListener("click", function () { updateSendLabels(); doneEl.hidden = true; form.hidden = false; cartEl.hidden = false; form.scrollIntoView({ block: "start" }); });
+    back.addEventListener("click", function () { updateSendLabels(); doneEl.hidden = true; form.hidden = false; cartEl.hidden = false; setStep(2); updateBar(); form.scrollIntoView({ block: "start" }); });
     doneEl.appendChild(again); doneEl.appendChild(back);
     doneEl.hidden = false; form.hidden = true; cartEl.hidden = true;
+    setStep(4); updateBar();
     doneEl.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -861,6 +1123,9 @@
   $("get-quote").addEventListener("click", getQuote);
   $("order-day").addEventListener("change", updateMode);
   $("send-website").addEventListener("click", submitOrder);
+  ["order-name", "order-phone", "addr-street", "addr-city", "addr-zip"].forEach(function (id) {
+    $(id).addEventListener("input", function () { this.removeAttribute("aria-invalid"); var e = $("order-error"); if (!e.hidden) e.hidden = true; });
+  });
   updateSendLabels();
   $("send-whatsapp").addEventListener("click", function () { send("whatsapp"); });
   $("send-text").addEventListener("click", function () { send("text"); });

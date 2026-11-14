@@ -6,7 +6,9 @@
 
    Each item:
      name:     what the customer sees, e.g. "Whole Chicken"
-     note:     optional short line shown when the item is opened, e.g. "Skinless"
+     note:     optional short line shown under the name, e.g. "Skinless"
+     image:    optional photo, e.g. "images/meat/whole-chicken.jpg" (square photos
+               look best). Items without a photo show a simple drawing.
      price:    price, e.g. 4.99. Use null to show "Price coming soon".
      priceUnit: what the price is for: "lb" or "each"
      priceChoice, prices: when the price depends on a choice, e.g.
@@ -356,6 +358,7 @@ window.MEAT_MENU = {
         {
           id: "baby-goat-mix",
           name: "Fresh Baby Goat (Mixed)",
+          image: "images/hero-goat-chops.jpg",
           note: "Mixed cuts, sold by weight.",
           price: 13.99,
           priceUnit: "lb",
