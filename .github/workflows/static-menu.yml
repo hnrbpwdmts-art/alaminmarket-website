@@ -1,0 +1,26 @@
+# Keeps the plain-HTML menu in order/index.html in sync with meat-menu.js.
+name: Update static meat menu
+on:
+  push:
+    branches: [main]
+    paths: [meat-menu.js, tools/build-static-menu.js]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tools/build-static-menu.js
+      - name: Commit if changed
+        run: |
+          if ! git diff --quiet order/index.html; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -am "Update static meat menu from meat-menu.js"
+            git push
+          fi

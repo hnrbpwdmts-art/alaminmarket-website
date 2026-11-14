@@ -1126,3 +1126,12 @@ body.sheet-open { overflow: hidden; }
 /* Bigger tap targets in the options sheet */
 .order-opt { min-height: 44px; }
 .order-item.is-open .order-item-plus { width: 44px; height: 44px; }
+
+/* Plain-HTML menu shown before the ordering script loads (and to search engines) */
+.order-static { grid-column: 1 / -1; background: #fff; border-radius: 14px; padding: 16px 18px; }
+.order-static-intro { margin: 0 0 10px; color: var(--muted); }
+.order-static-cat h3 { margin: 14px 0 4px; font-size: 1.15rem; }
+.order-static-note { margin: 0 0 6px; color: var(--muted); font-size: .92rem; }
+.order-static ul { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
+.order-static li span { color: var(--muted); font-size: .88rem; }
+.order-noscript { background: #fff4e8; padding: 12px 14px; border-radius: 12px; }
