@@ -426,9 +426,10 @@
   function subtotal() {
     var t = 0; state.cart.forEach(function (l) { var c = lineCost(l); if (c != null) t += c; }); return t;
   }
-  function showQuote(text, isError) {
+  function showQuote(text, isError, isInfo) {
     var q = $("order-quote"); q.hidden = !text; q.textContent = text || "";
     q.classList.toggle("is-error", !!isError);
+    q.classList.toggle("is-info", !!isInfo);
   }
   function clearQuote() { quote = null; showQuote(""); renderTotals(); }
   function getQuote() {
@@ -455,13 +456,13 @@
           quote = null;
           showQuote("Please check your street, city, and 5-digit ZIP code.", true);
         } else {
-          // We deliver here, but there's no automatic estimate: the store texts the delivery cost
+          // Inside our area but Uber won't price it: the store contacts the customer with a quote
           quote = { error: "manual", miles: d && d.miles };
-          showQuote(M.delivery.note);
+          showQuote(M.delivery.manualNote || M.delivery.note, false, true);
         }
         renderTotals();
       })
-      .catch(function () { quote = { error: "manual" }; showQuote(M.delivery.note); renderTotals(); });
+      .catch(function () { quote = { error: "manual" }; showQuote(M.delivery.manualNote || M.delivery.note, false, true); renderTotals(); });
   }
   // Delivery fee line under the order total
   function renderTotals() {
@@ -506,6 +507,7 @@
     lines.push("Phone: " + state.phone);
     if (isDel) lines.push("Address: " + state.address);
     if (isDel && quote && quote.miles != null) lines.push("Distance: about " + quote.miles + " miles from the store (straight line)");
+    if (isDel && quote && quote.error === "manual") lines.push("** DELIVERY QUOTE NEEDED: outside Uber's area. Contact the customer with a delivery price. **");
     lines.push("");
     state.cart.forEach(function (l, i) {
       var t = lineText(l), cost = lineCost(l);

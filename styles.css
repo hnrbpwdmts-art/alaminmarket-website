@@ -590,6 +590,7 @@ a { color: var(--green); }
 .order-quote-btn { width: 100%; margin: 2px 0 10px; min-height: 46px; border: 1.5px solid var(--green); cursor: pointer; font-family: var(--sans); }
 .order-quote { margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; background: var(--paper); font-weight: 700; color: var(--green-dark); }
 .order-quote.is-error { color: var(--red); }
+.order-quote.is-info { font-weight: 600; color: var(--ink); background: #fff8e6; border-left: 4px solid #e2a51e; line-height: 1.45; }
 .addr-wrap { position: relative; }
 .addr-suggest {
   position: absolute; left: 0; right: 0; top: calc(100% - 8px); z-index: 30; list-style: none; margin: 0; padding: 6px;

@@ -58,6 +58,9 @@ window.MEAT_MENU = {
     times: ["12–3 PM", "3–6 PM", "6–8 PM"],
     /* Shown when a live delivery price isn't available. */
     note: "We'll text you the delivery fee together with your total.",
+    /* Shown when the address is inside our delivery area but outside the
+       area Uber covers. The order can still be sent. */
+    manualNote: "This address is a little outside our usual delivery area, but we can still deliver to you. Send your order, and someone from our store will contact you with a delivery quote before we confirm it.",
     /* Live delivery prices from Uber Direct (works once the site is on
        Cloudflare and the Uber keys are added there). Leave "" to turn off. */
     quoteUrl: "/api/delivery-quote",
