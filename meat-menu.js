@@ -50,12 +50,16 @@ window.MEAT_MENU = {
 
   pickup: {
     enabled: true,
-    times: ["10 AM–12 PM", "12–3 PM", "3–6 PM", "6–8 PM"]
+    /* Time windows must end by 7 PM (meat counter closes). For today, a
+       window disappears 1 hour before it ends, so the last same-day order is 6 PM. */
+    times: ["10 AM–12 PM", "12–3 PM", "3–5 PM", "5–7 PM"],
+    fridayTimes: ["10 AM–12 PM", "1:15–3 PM", "3–5 PM", "5–7 PM"]   // closed 12:15–1:15 for prayer
   },
 
   delivery: {
     enabled: true,           // false = pickup only
-    times: ["12–3 PM", "3–6 PM", "6–8 PM"],
+    times: ["12–3 PM", "3–5 PM", "5–7 PM"],
+    fridayTimes: ["1:15–3 PM", "3–5 PM", "5–7 PM"],
     /* Shown when a live delivery price isn't available. */
     note: "We'll text you the delivery fee together with your total.",
     /* Shown when the address is inside our delivery area but outside the

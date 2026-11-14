@@ -361,7 +361,7 @@
       var lab = el("label", "order-choice-opt");
       var r = document.createElement("input");
       r.type = "radio"; r.name = "mode"; r.value = m.id; r.checked = state.mode === m.id;
-      r.addEventListener("change", function () { state.mode = m.id; save(); updateMode(); });
+      r.addEventListener("change", function () { state.mode = m.id; save(); renderDays(); });
       lab.appendChild(r); lab.appendChild(el("span", null, m.label));
       fs.appendChild(lab);
     });
@@ -380,15 +380,13 @@
     note.textContent = parts.join(" ");
     note.hidden = !isDel || !parts.length;
     renderTotals();
-    var times = ((isDel ? M.delivery.times : M.pickup.times) || []).filter(function (t) {
-      // For today, hide time windows that have already ended
-      if ($("order-day").selectedIndex !== 0 || !/^Today/.test($("order-day").value)) return true;
-      var m = t.match(/(\d{1,2})(?::(\d\d))?\s*(AM|PM)\s*$/i);
-      if (!m) return true;
-      var h = (+m[1] % 12) + (/pm/i.test(m[3]) ? 12 : 0);
-      var now = new Date();
-      return h * 60 + (+m[2] || 0) - 60 > now.getHours() * 60 + now.getMinutes();
-    });
+    var opt = $("order-day").selectedOptions && $("order-day").selectedOptions[0];
+    var iso = opt && opt.getAttribute("data-date");
+    var times = [];
+    if (iso) {
+      var parts = iso.split("-"), day = new Date(+parts[0], +parts[1] - 1, +parts[2]), n = storeNow();
+      times = windowsFor(state.mode, day, day.toDateString() === new Date(n.getFullYear(), n.getMonth(), n.getDate()).toDateString());
+    }
     var sel = $("order-time"), prev = sel.value;
     sel.textContent = "";
     times.forEach(function (t) { var o = el("option", null, t); o.value = t; sel.appendChild(o); });
@@ -396,15 +394,34 @@
   }
 
   function isoDate(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  // Store time (Los Angeles), whatever time zone the customer's device is in
+  function storeNow() {
+    try { return new Date(new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" })); }
+    catch (e) { return new Date(); }
+  }
+  // Time windows for a day; for today, only windows ending at least 1 hour from now
+  function windowsFor(mode, d, isToday) {
+    var cfg = (mode === "delivery" ? M.delivery : M.pickup) || {};
+    var list = (d.getDay() === 5 && cfg.fridayTimes) ? cfg.fridayTimes : (cfg.times || []);
+    if (!isToday) return list.slice();
+    var now = storeNow(), mins = now.getHours() * 60 + now.getMinutes();
+    return list.filter(function (t) {
+      var m = t.match(/(\d{1,2})(?::(\d\d))?\s*(AM|PM)\s*$/i);
+      if (!m) return true;
+      var h = (+m[1] % 12) + (/pm/i.test(m[3]) ? 12 : 0);
+      return h * 60 + (+m[2] || 0) - 60 >= mins;
+    });
+  }
   function renderDays() {
     var sel = $("order-day"), prev = sel.value;
     sel.textContent = "";
     var need = [];
     state.cart.forEach(function (l) { var it = findItem(l.id); if (it.days && it.days.length) need.push(it.days); });
-    var now = new Date();
+    var now = storeNow();
     for (var i = 0; i <= (M.daysAhead || 7); i++) {
       var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
       var dn = DAY_NAMES[d.getDay()];
+      if (!windowsFor(state.mode, d, i === 0).length) continue;     // e.g. today after 6 PM
       if ((M.closedDays || []).indexOf(isoDate(d)) > -1) continue;
       if (!need.every(function (days) { return days.indexOf(dn) > -1; })) continue;
       var label = (i === 0 ? "Today, " : i === 1 ? "Tomorrow, " : "") +
