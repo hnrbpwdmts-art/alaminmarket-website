@@ -1036,7 +1036,8 @@
     var steps = el("ol", "rv-steps");
     [["We get your order", "It goes straight to our meat counter."],
      ["We cut and weigh it", "Meat is sold by weight, and every cut is a little different, so your final weight and price may be slightly more or less than the estimate."],
-     ["We text you to confirm", "You'll get your final total" + (isDel ? ", delivery cost," : "") + " and a payment link at " + state.phone + "."],
+     ["We text you to confirm", "You'll get your final total" + (isDel ? " (with delivery)" : "") + " at " + prettyPhone(state.phone) + "."],
+     ["How to pay", payText(isDel)],
      [isDel ? "We deliver it" : "Pick it up", isDel ? "We'll bring it to your door at the time we confirm." : "Come to the counter at your pickup time. Your order will be packed and ready."]
     ].forEach(function (st) { var li = el("li"); li.appendChild(el("strong", null, st[0])); li.appendChild(el("span", null, st[1])); steps.appendChild(li); });
     next.appendChild(steps);
@@ -1049,7 +1050,7 @@
     var edit = el("button", "order-link-btn rv-edit", "Go back and edit"); edit.type = "button";
     edit.addEventListener("click", function () { setStep(2); });
     reviewEl.appendChild(ok); reviewEl.appendChild(edit);
-    reviewEl.appendChild(el("p", "rv-fine", "No payment now. You'll pay once we confirm your final total."));
+    reviewEl.appendChild(el("p", "rv-fine", "No payment now. You'll pay after we confirm your final total."));
     reviewEl.hidden = false; form.hidden = true; cartEl.hidden = true;
     setStep(3);
   }
@@ -1143,6 +1144,13 @@
     return row;
   }
 
+  // Payment options, shown on the review and confirmation screens
+  function payText(isDel) {
+    var z = S.store.zelleDisplay;
+    return isDel
+      ? "Delivery orders are paid before they go out" + (z ? ": Zelle to " + z + "," : ",") + " or by card with a link we text you."
+      : "Pay when you pick up (cash or card)" + (z ? ", by Zelle to " + z : "") + ", or ask us to text you a card payment link.";
+  }
   function prettyPhone(p) {
     var d = String(p || "").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
     return d.length === 10 ? "(" + d.slice(0, 3) + ") " + d.slice(3, 6) + "-" + d.slice(6) : p;
@@ -1174,6 +1182,7 @@
       var ol = el("ol", "done-steps");
       [["is-done", "Order received", "We have it."],
        ["", "We'll text you to confirm", "At " + prettyPhone(state.phone) + ", with your final total and " + (isDel ? "delivery" : "pickup") + " time."],
+       ["", "How to pay", payText(isDel)],
        ["", isDel ? "Delivery (requested)" : "Pickup (requested)", $("order-day").value + ", " + $("order-time").value + (isDel ? "" : " at " + S.store.street + ", " + S.store.city)]
       ].forEach(function (st) { var li = el("li", st[0]); li.appendChild(el("strong", null, st[1])); li.appendChild(el("span", null, st[2])); ol.appendChild(li); });
       status.appendChild(ol);
