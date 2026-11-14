@@ -1037,3 +1037,5 @@ body.sheet-open { overflow: hidden; }
 .done-next-title { margin: 0 0 4px; font-weight: 700; color: #8a3b12; font-size: 1.08rem; }
 .done-next p { margin: 0 0 12px; }
 .done-next-btn { width: 100%; justify-content: center; }
+.btn-outline { background: #fff; color: var(--green-dark); border: 2px solid var(--green); }
+.btn-outline:hover { background: var(--cream); }

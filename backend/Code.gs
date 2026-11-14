@@ -15,15 +15,25 @@
 // Website orders are emailed here. Separate several addresses with commas.
 var NOTIFY_EMAIL = "Muhammad@alaminmarket.com";
 
+// Passcode for the staff order page (alaminmarket.com/admin/).
+// Change it to your own: at least 8 characters, letters and numbers.
+// Leave it as "" to turn the order page off.
+var ADMIN_PASSCODE = "";
+
 var ORDER_HEADERS = ["Sent at", "Order #", "Channel", "Pickup/Delivery", "Pickup date", "Time", "Name", "Phone",
   "Address", "Items", "Item count", "Estimated total", "All items priced", "Notes",
-  "Texts opt-in", "Opt-in wording", "Source", "Device"];
+  "Texts opt-in", "Opt-in wording", "Source", "Device", "Status", "Final total", "Status updated"];
+// Order statuses used by the staff order page
+var STATUSES = ["New", "Confirmed", "Ready", "Out for delivery", "Done", "Cancelled"];
 var ITEM_HEADERS = ["Sent at", "Order #", "Category", "Item", "Choices", "Special request",
   "Amount", "Unit", "Price", "Price per", "Estimate"];
 var CUSTOMER_HEADERS = ["Phone", "Name", "First order", "Last order", "Orders", "Texts opt-in",
   "Opt-in date", "Opt-in wording"];
 
 function doPost(e) {
+  var parsed = null;
+  try { parsed = JSON.parse(e.postData.contents); } catch (err) { /* not JSON */ }
+  if (parsed && parsed.admin) return adminRequest(parsed);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -37,7 +47,9 @@ function doPost(e) {
       return it.item + " (" + it.choices + ") " + it.qty + (it.unit === "lb" ? " lb" : "");
     }).join("; ");
 
-    sheet(ss, "Orders", ORDER_HEADERS).appendRow([
+    var orders = sheet(ss, "Orders", ORDER_HEADERS);
+    ensureHeaders(orders, ORDER_HEADERS);
+    orders.appendRow([
       when, d.orderNumber, d.channel + (d.update ? " (UPDATE)" : ""), d.mode, d.date || d.day, d.time, safe(d.name), asText(phone),
       safe(d.address), safe(itemsText), d.itemCount, d.estimatedTotal, d.allPriced ? "Yes" : "No",
       safe(d.notes), d.marketingOptIn ? "Yes" : "No", safe(d.optInText), safe(d.source), d.device
@@ -141,3 +153,130 @@ function safe(v) {
 }
 
 function reply(text) { return ContentService.createTextOutput(text); }
+
+// Older sheets: add any new column titles (like Status) to the end of the header row
+function ensureHeaders(sh, headers) {
+  var lastCol = Math.max(sh.getLastColumn(), 1);
+  var have = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
+  var missing = headers.filter(function (h) { return have.indexOf(h) === -1; });
+  if (missing.length) {
+    sh.getRange(1, have.length + 1, 1, missing.length).setValues([missing]).setFontWeight("bold");
+  }
+}
+
+/* ---------------- Staff order page (alaminmarket.com/admin/) ---------------- */
+
+function jsonReply(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function adminRequest(d) {
+  if (!ADMIN_PASSCODE || ADMIN_PASSCODE.length < 8) return jsonReply({ ok: false, error: "not_set" });
+  // After 10 wrong passcodes, the page is locked for 15 minutes
+  var cache = CacheService.getScriptCache();
+  var fails = Number(cache.get("adminFails") || 0);
+  if (fails >= 10) return jsonReply({ ok: false, error: "locked" });
+  if (String(d.passcode || "") !== ADMIN_PASSCODE) {
+    cache.put("adminFails", String(fails + 1), 900);
+    return jsonReply({ ok: false, error: "wrong_passcode" });
+  }
+  try {
+    if (d.action === "list") return jsonReply({ ok: true, orders: listOrders(Number(d.days) || 14), statuses: STATUSES });
+    if (d.action === "status") return jsonReply(setStatus(d));
+    return jsonReply({ ok: true });
+  } catch (err) {
+    return jsonReply({ ok: false, error: "server", detail: String(err).slice(0, 200) });
+  }
+}
+
+function colMap(sh) {
+  var head = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(String);
+  var m = {};
+  head.forEach(function (h, i) { m[h] = i; });
+  return m;
+}
+
+function isoDay(v, tz) {
+  if (v instanceof Date) return Utilities.formatDate(v, tz, "yyyy-MM-dd");
+  var s = String(v || "");
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? m[0] : "";
+}
+
+// Recent orders (newest version of each order number), for the staff page
+function listOrders(days) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName("Orders");
+  if (!sh || sh.getLastRow() < 2) return [];
+  ensureHeaders(sh, ORDER_HEADERS);
+  var tz = ss.getSpreadsheetTimeZone() || "America/Los_Angeles";
+  var c = colMap(sh);
+  var first = Math.max(2, sh.getLastRow() - 1500);
+  var rows = sh.getRange(first, 1, sh.getLastRow() - first + 1, sh.getLastColumn()).getValues();
+  var today = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
+  var since = new Date(Date.now() - Math.min(Math.max(days, 1), 60) * 86400000);
+  var byNum = {}, order = [];
+  rows.forEach(function (r) {
+    var num = String(r[c["Order #"]] || "");
+    if (!num) return;
+    var sent = r[c["Sent at"]] instanceof Date ? r[c["Sent at"]] : new Date(r[c["Sent at"]]);
+    var pickup = isoDay(r[c["Pickup date"]], tz);
+    if (!(sent >= since) && !(pickup && pickup >= today)) return;
+    var channel = String(r[c["Channel"]] || "");
+    var prev = byNum[num];
+    var o = {
+      num: num,
+      sentAt: isNaN(sent) ? "" : sent.toISOString(),
+      channel: channel.replace(" (UPDATE)", ""),
+      updated: (prev ? prev.updated : false) || channel.indexOf("(UPDATE)") > -1,
+      mode: String(r[c["Pickup/Delivery"]] || ""),
+      date: pickup,
+      dayText: pickup ? "" : String(r[c["Pickup date"]] || ""),
+      time: String(r[c["Time"]] || ""),
+      name: String(r[c["Name"]] || ""),
+      phone: String(r[c["Phone"]] || "").replace(/^'/, ""),
+      address: String(r[c["Address"]] || ""),
+      items: String(r[c["Items"]] || ""),
+      itemCount: r[c["Item count"]],
+      estimate: r[c["Estimated total"]],
+      notes: String(r[c["Notes"]] || ""),
+      status: String(r[c["Status"]] || "") || "New",
+      finalTotal: r[c["Final total"]] === "" || r[c["Final total"]] == null ? "" : r[c["Final total"]],
+      statusAt: r[c["Status updated"]] instanceof Date ? r[c["Status updated"]].toISOString() : ""
+    };
+    // A later "UPDATE" row replaces the earlier one and needs a fresh look
+    if (prev && channel.indexOf("(UPDATE)") > -1 && !String(r[c["Status"]] || "")) o.status = "New";
+    if (!prev) order.push(num);
+    byNum[num] = o;
+  });
+  return order.map(function (n) { return byNum[n]; }).reverse();
+}
+
+function setStatus(d) {
+  var status = String(d.status || "");
+  if (STATUSES.indexOf(status) === -1) return { ok: false, error: "bad_status" };
+  var num = String(d.order || "");
+  if (!/^[A-Z]{0,3}\d{4}-\d{3}$/.test(num)) return { ok: false, error: "bad_order" };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName("Orders");
+    if (!sh) return { ok: false, error: "no_sheet" };
+    ensureHeaders(sh, ORDER_HEADERS);
+    var c = colMap(sh), last = sh.getLastRow(), found = 0, now = new Date();
+    var nums = sh.getRange(2, c["Order #"] + 1, Math.max(last - 1, 1), 1).getValues();
+    var total = d.finalTotal === "" || d.finalTotal == null ? null : Number(d.finalTotal);
+    for (var i = 0; i < nums.length; i++) {
+      if (String(nums[i][0]) !== num) continue;
+      var row = i + 2;
+      sh.getRange(row, c["Status"] + 1).setValue(status);
+      sh.getRange(row, c["Status updated"] + 1).setValue(now);
+      if (total != null && !isNaN(total)) sh.getRange(row, c["Final total"] + 1).setValue(total);
+      found++;
+    }
+    return found ? { ok: true, status: status, statusAt: now.toISOString() } : { ok: false, error: "not_found" };
+  } finally {
+    lock.releaseLock();
+  }
+}
