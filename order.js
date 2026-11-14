@@ -116,11 +116,13 @@
       state.cart.forEach(function (l) { l.uid = l.uid || Math.random().toString(36).slice(2); });
     }
   } catch (e) { /* storage unavailable */ }
+  // Weekend-only items put aside when a customer splits their order (see dayNote)
+  state.later = (state.later || []).filter(function (l) { return findItem(l.id); });
   // A sent order can be edited for a while; changes go out under the same order number
   if (state.sentNum && !(state.sentAt > Date.now() - 12 * 3600 * 1000)) { state.sentNum = null; state.sentAt = null; }
   function save() {
     try { localStorage.setItem(STORE_KEY, JSON.stringify({ cart: state.cart, mode: state.mode, name: state.name, phone: state.phone, addr: state.addr,
-      sentNum: state.sentNum || null, sentAt: state.sentAt || null })); } catch (e) { /* ignore */ }
+      sentNum: state.sentNum || null, sentAt: state.sentAt || null, later: state.later || [] })); } catch (e) { /* ignore */ }
   }
 
   // ---------- category icons (simple line drawings) ----------
@@ -536,6 +538,9 @@
     tot.appendChild(el("strong", null, T.allPriced ? money(T.total) : T.total > 0 ? "From " + money(T.total) : "We'll price it"));
     cartEl.appendChild(tot);
     cartEl.appendChild(el("p", "order-weight-note", "Meat is priced by weight. We'll confirm your final total before you pay."));
+    var wk = state.cart.filter(function (l) { var it = findItem(l.id); return it.days && it.days.length; });
+    if (wk.length && wk.length < state.cart.length)
+      cartEl.appendChild(el("p", "order-mixed-note", "Goat and veal are for Friday or Saturday. Need the rest sooner? You can split it into 2 orders at checkout."));
     var next = el("button", "btn btn-primary order-next", "Checkout ›"); next.type = "button";
     next.addEventListener("click", function () { closeCartDrawer(); setStep(2); });
     cartEl.appendChild(next);
@@ -720,10 +725,12 @@
       return h * 60 + (+m[2] || 0) - 60 >= mins;
     });
   }
+  // Every day is offered. If a Friday/Saturday-only item doesn't fit the chosen day,
+  // dayNote() lets the customer move the day, drop those items, or split the order.
   function renderDays() {
     var sel = $("order-day"), prev = sel.value;
     sel.textContent = "";
-    var need = [];
+    var need = [], firstOk = null;
     state.cart.forEach(function (l) { var it = findItem(l.id); if (it.days && it.days.length) need.push(it.days); });
     var now = storeNow();
     for (var i = 0; i <= (M.daysAhead || 7); i++) {
@@ -731,15 +738,75 @@
       var dn = DAY_NAMES[d.getDay()];
       if (!windowsFor(state.mode, d, i === 0).length) continue;     // e.g. today after 6 PM
       if ((M.closedDays || []).indexOf(isoDate(d)) > -1) continue;
-      if (!need.every(function (days) { return days.indexOf(dn) > -1; })) continue;
+      var ok = need.every(function (days) { return days.indexOf(dn) > -1; });
       var label = (i === 0 ? "Today, " : i === 1 ? "Tomorrow, " : "") +
         d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-      var o = el("option", null, label); o.value = label; o.setAttribute("data-date", isoDate(d)); sel.appendChild(o);
+      var o = el("option", null, label); o.value = label; o.setAttribute("data-date", isoDate(d)); o.setAttribute("data-ok", ok ? "1" : "0");
+      sel.appendChild(o);
+      if (ok && firstOk == null) firstOk = label;
     }
-    if (!sel.options.length) { var none = el("option", null, "No day has all items. Remove one to continue."); none.value = ""; sel.appendChild(none); }
-    if ([].some.call(sel.options, function (o) { return o.value === prev; })) sel.value = prev;
+    if (!sel.options.length) { var none = el("option", null, "No days available. Please call us."); none.value = ""; sel.appendChild(none); }
+    if (prev && [].some.call(sel.options, function (o) { return o.value === prev; })) sel.value = prev;
+    else if (firstOk) sel.value = firstOk;
     updateMode();
     if (!$("order-time").options.length && sel.options.length > 1) { sel.selectedIndex = 1; updateMode(); }
+    dayNote();
+  }
+  // Lines that can't be had on the chosen day (e.g. goat on a Monday)
+  function chosenDay() {
+    var opt = $("order-day").selectedOptions && $("order-day").selectedOptions[0];
+    var iso = opt && opt.getAttribute("data-date");
+    if (!iso) return null;
+    var p = iso.split("-"), d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return { opt: opt, name: DAY_NAMES[d.getDay()], short: d.toLocaleDateString("en-US", { weekday: "long" }) };
+  }
+  function linesNotOn(dayName) {
+    return state.cart.filter(function (l) { var it = findItem(l.id); return it.days && it.days.length && it.days.indexOf(dayName) === -1; });
+  }
+  function dayConflict() { var c = chosenDay(); return !!(c && linesNotOn(c.name).length); }
+  function joinWords(list) { return list.length < 2 ? list.join("") : list.slice(0, -1).join(", ") + " and " + list[list.length - 1]; }
+  function dayNote() {
+    var box = $("order-day-note"); if (!box) return;
+    box.textContent = "";
+    var c = chosenDay(), bad = c ? linesNotOn(c.name) : [];
+    $("order-day").toggleAttribute("aria-invalid", bad.length > 0);
+    if (!bad.length) { box.hidden = true; return; }
+    var catNames = [], dayList = [];
+    bad.forEach(function (l) {
+      var cat = categoryOf(l.id), n = (cat ? cat.name : findItem(l.id).name).toLowerCase();
+      if (catNames.indexOf(n) === -1) catNames.push(n);
+      (findItem(l.id).days || []).forEach(function (d) { var f = (DAY_FULL[d] || d) + "s"; if (dayList.indexOf(f) === -1) dayList.push(f); });
+    });
+    var what = joinWords(catNames), rest = state.cart.length - bad.length;
+    var whatCap = what.charAt(0).toUpperCase() + what.slice(1);
+    box.appendChild(el("p", "order-day-note-title", "Fresh " + what + (catNames.length > 1 ? " are" : " is") + " only available on " + joinWords(dayList) + "."));
+    box.appendChild(el("p", "order-day-note-sub", "Choose what works best for you:"));
+    var opts = el("div", "order-day-opts");
+    function option(title, sub, fn, primary) {
+      var b = el("button", "order-day-opt" + (primary ? " is-primary" : "")); b.type = "button";
+      b.appendChild(el("strong", null, title)); if (sub) b.appendChild(el("span", null, sub));
+      b.addEventListener("click", fn); opts.appendChild(b);
+    }
+    var firstOk = [].filter.call($("order-day").options, function (o) { return o.getAttribute("data-ok") === "1"; })[0];
+    if (firstOk) option("Get everything on " + firstOk.value.replace(/^(Today|Tomorrow), /, ""), "Your whole order on one day", function () {
+      $("order-day").value = firstOk.value; updateMode(); dayNote(); toast("Day changed to " + firstOk.value);
+    }, true);
+    if (rest > 0) {
+      option("Split into 2 orders", "Everything else on " + c.short + ", then order the " + what + " for the weekend", function () {
+        state.later = (state.later || []).concat(bad);
+        state.cart = state.cart.filter(function (l) { return bad.indexOf(l) === -1; });
+        save(); renderCart(); renderMini();
+        toast(whatCap + " saved for your next order");
+      });
+      option("Remove " + what + ", keep " + c.short, "", function () {
+        var before = state.cart.slice();
+        state.cart = state.cart.filter(function (l) { return bad.indexOf(l) === -1; });
+        save(); renderCart(); renderMini();
+        toastUndo(whatCap + " removed", function () { state.cart = before; save(); renderCart(); renderMini(); });
+      });
+    }
+    box.appendChild(opts);
+    box.hidden = false;
   }
 
   // ---------- delivery price ----------
@@ -837,6 +904,7 @@
     save();
     ["order-name", "order-phone", "addr-street", "addr-city", "addr-zip"].forEach(function (id) { $(id).removeAttribute("aria-invalid"); });
     if (!$("order-day").value) { err = "Please pick a day."; field = "order-day"; }
+    else if (dayConflict()) { err = "Some items aren't available on the day you picked. Please choose one of the options under Day."; field = "order-day"; }
     else if (!state.name) { err = "Please enter your name."; field = "order-name"; }
     else if (digits.length < 10 || digits.length > 11 || (digits.length === 11 && digits[0] !== "1")) { err = "Please enter a 10-digit phone number we can text, like (310) 555-0123."; field = "order-phone"; }
     else if (state.mode === "delivery" && !addrComplete(a)) {
@@ -1072,6 +1140,10 @@
     return row;
   }
 
+  function prettyPhone(p) {
+    var d = String(p || "").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
+    return d.length === 10 ? "(" + d.slice(0, 3) + ") " + d.slice(3, 6) + "-" + d.slice(6) : p;
+  }
   function showDone(num, channel, isUpdate) {
     doneEl.textContent = "";
     var isDel = state.mode === "delivery";
@@ -1096,7 +1168,7 @@
       status.appendChild(el("p", "done-status-title", "What happens now"));
       var ol = el("ol", "done-steps");
       [["is-done", "Order received", "We have it."],
-       ["", "We'll text you to confirm", "At " + state.phone + ", with your final total and a payment link."],
+       ["", "We'll text you to confirm", "At " + prettyPhone(state.phone) + ", with your final total and a payment link."],
        ["", isDel ? "Delivery" : "Pickup", $("order-day").value + ", " + $("order-time").value + (isDel ? "" : " at " + S.store.street + ", " + S.store.city)]
       ].forEach(function (st) { var li = el("li", st[0]); li.appendChild(el("strong", null, st[1])); li.appendChild(el("span", null, st[2])); ol.appendChild(li); });
       status.appendChild(ol);
@@ -1111,9 +1183,26 @@
         (isDel ? "delivery time" : "pickup time") + ", final total, and a payment link."));
       doneEl.appendChild(contactIcons(num));
     }
+    if (state.later && state.later.length) {
+      var names = [];
+      state.later.forEach(function (l) { var n = findItem(l.id).name; if (names.indexOf(n) === -1) names.push(n); });
+      var nx = el("div", "done-next");
+      nx.appendChild(el("p", "done-next-title", "Next: your weekend order"));
+      nx.appendChild(el("p", null, joinWords(names) + " is saved. Order it now for Friday or Saturday. Your details are already filled in."));
+      var go = el("button", "btn btn-red done-next-btn", "Order my weekend items ›"); go.type = "button";
+      go.addEventListener("click", function () {
+        state.cart = state.later; state.later = []; state.sentNum = null; state.sentAt = null; submitNum = null;
+        save(); updateSendLabels();
+        $("order-day").textContent = "";   // let renderDays pick the first Friday/Saturday
+        renderCart(); setStep(2);
+      });
+      nx.appendChild(go);
+      doneEl.insertBefore(nx, doneEl.children[1] || null);
+    }
     var again = el("button", "btn btn-cream done-again", "Start a new order"); again.type = "button";
     again.addEventListener("click", function () {
-      state.cart = []; state.sentNum = null; state.sentAt = null; submitNum = null; save(); updateSendLabels();
+      state.cart = state.later && state.later.length ? state.later : []; state.later = [];
+      state.sentNum = null; state.sentAt = null; submitNum = null; save(); updateSendLabels();
       renderCart(); setStep(1); window.scrollTo(0, 0);
     });
     var back = el("button", "order-link-btn", "Change this order"); back.type = "button";
@@ -1211,7 +1300,7 @@
   // Saved address from a previous visit: show it ready to use
   if (sa.city && sa.zip) { showManual(false); showPicked(sa.city, sa.zip); }
   $("get-quote").addEventListener("click", getQuote);
-  $("order-day").addEventListener("change", updateMode);
+  $("order-day").addEventListener("change", function () { updateMode(); dayNote(); });
   $("send-website").addEventListener("click", submitOrder);
   $("order-back").addEventListener("click", function () { setStep(1); });
   $("cart-close").addEventListener("click", closeCartDrawer);
