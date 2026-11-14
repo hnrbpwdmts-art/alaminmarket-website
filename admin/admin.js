@@ -11,7 +11,7 @@
   var $ = function (id) { return document.getElementById(id); };
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
-  var pass = "", orders = [], seen = {}, tab = "active", timer = null;
+  var pass = "", orders = [], tab = "active", timer = null;
   try { pass = sessionStorage.getItem(PASS_KEY) || localStorage.getItem(PASS_KEY) || ""; } catch (e) { /* private mode */ }
 
   // ---------- talking to the sheet ----------
@@ -38,6 +38,8 @@
     var v = $("adm-pass").value.trim();
     if (!v) { showLogin("Please enter the passcode."); return; }
     pass = v;
+    unlockAudio();   // the Sign in tap lets the page play sounds
+    if ("Notification" in window && Notification.permission === "default") try { Notification.requestPermission(); } catch (e) { /* ignore */ }
     var btn = ev.target.querySelector("button"); btn.disabled = true; btn.textContent = "Signing in…";
     load(true).then(function (ok) {
       btn.disabled = false; btn.textContent = "Sign in";
@@ -66,19 +68,15 @@
         } else $("adm-status-line").textContent = ERRORS.network;
         return false;
       }
-      var fresh = [];
-      res.orders.forEach(function (o) { if (!first && !seen[o.num] && Object.keys(seen).length) fresh.push(o); seen[o.num] = true; });
       orders = res.orders;
       $("adm-login").hidden = true; $("adm-app").hidden = false; $("adm-top-actions").hidden = false;
-      if (fresh.length) {
-        var n = $("adm-new"); n.hidden = false;
-        n.textContent = fresh.length === 1 ? "1 new order just came in: " + fresh[0].name : fresh.length + " new orders just came in";
-        if (navigator.vibrate) try { navigator.vibrate(200); } catch (e) { /* ignore */ }
-      }
       render();
-      $("adm-status-line").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " · refreshes every minute";
+      checkAlarm();
+      updateEnable();
+      $("adm-status-line").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " · checks for new orders every 30 seconds";
       clearInterval(timer);
-      timer = setInterval(function () { if (!document.hidden && $("adm-sheet").hidden) load(false); }, 60000);
+      // Keep checking even when this tab is in the background, so the alarm can sound
+      timer = setInterval(function () { load(false); }, 30000);
       return true;
     }).catch(function () {
       if (first && !orders.length) showLogin(ERRORS.network);
@@ -86,7 +84,7 @@
       return false;
     });
   }
-  $("adm-refresh").addEventListener("click", function () { $("adm-new").hidden = true; load(false); });
+  $("adm-refresh").addEventListener("click", function () { load(false); });
   document.addEventListener("visibilitychange", function () { if (!document.hidden && pass && !$("adm-app").hidden) load(false); });
 
   // ---------- dates ----------
@@ -223,6 +221,7 @@
     if (o.mode === "delivery" && status === "Out for delivery" &&
         !window.confirm("Delivery orders must be paid before they go out. Has " + o.name + " paid?")) return;
     if (status === "Cancelled" && !window.confirm("Cancel order " + o.num + " for " + o.name + "?")) return;
+    ackOrder(o);
     var before = o.status;
     save(o, status, function () { toast(o.num + " marked " + status, function () { save(o, before); }); });
     if (MESSAGE_STATUSES.indexOf(status) > -1 && digits(o.phone)) openSheet(o, status);
@@ -297,6 +296,120 @@
       toast("Couldn't save the status for " + o.num + ". Please try again.");
     });
   }
+
+  // ---------- new order alarm: chime + voice + banner + notification, repeats until "Got it" ----------
+  var ACK_KEY = "alamin-admin-ack", SOUND_KEY = "alamin-admin-sound";
+  var acked = {};
+  try { acked = JSON.parse(localStorage.getItem(ACK_KEY) || "{}") || {}; } catch (e) { acked = {}; }
+  var soundOn = true;
+  try { soundOn = localStorage.getItem(SOUND_KEY) !== "off"; } catch (e) { /* ignore */ }
+  var audioCtx = null, ringTimer = null, titleTimer = null, rung = {}, baseTitle = document.title;
+  function alarmKey(o) { return o.num + "|" + (o.sentAt || ""); }   // an edited order alarms again
+  function pendingOrders() { return orders.filter(function (o) { return o.status === "New" && !acked[alarmKey(o)]; }); }
+  function saveAcks() {
+    // keep the list small: only keys for orders still on the page
+    var keep = {}; orders.forEach(function (o) { var k = alarmKey(o); if (acked[k]) keep[k] = 1; });
+    acked = keep;
+    try { localStorage.setItem(ACK_KEY, JSON.stringify(acked)); } catch (e) { /* ignore */ }
+  }
+  function ackOrder(o) { acked[alarmKey(o)] = 1; saveAcks(); setTimeout(checkAlarm, 0); }
+  function unlockAudio() {
+    try {
+      if (!audioCtx) { var AC = window.AudioContext || window.webkitAudioContext; if (AC) audioCtx = new AC(); }
+      if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    } catch (e) { /* no sound on this device */ }
+    if (window.speechSynthesis) try { speechSynthesis.speak(new SpeechSynthesisUtterance("")); } catch (e) { /* ignore */ }
+    updateEnable();
+  }
+  function audioReady() { return !!(audioCtx && audioCtx.state === "running"); }
+  function updateEnable() { $("adm-enable").hidden = !soundOn || audioReady() || $("adm-app").hidden; }
+  function chime() {
+    if (!audioReady()) return;
+    var t = audioCtx.currentTime;
+    [[880, 0], [660, .28], [880, .7], [660, .98]].forEach(function (n) {
+      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "sine"; o.frequency.value = n[0];
+      g.gain.setValueAtTime(0.0001, t + n[1]);
+      g.gain.exponentialRampToValueAtTime(0.5, t + n[1] + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + n[1] + 0.26);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t + n[1]); o.stop(t + n[1] + 0.3);
+    });
+  }
+  function spokenTime(t) { return String(t || "").replace(/\s*[–-]\s*/g, " to "); }
+  function announceText(list) {
+    if (list.length > 1) return "You have " + list.length + " new online orders.";
+    var o = list[0];
+    var day = dayLabel(o).replace(/,.*$/, "");
+    return "New online order from " + firstName(o.name) + ", " + (o.mode === "delivery" ? "delivery" : "pickup") +
+      (day ? " " + day.toLowerCase() : "") + (o.time ? ", " + spokenTime(o.time) : "") + ".";
+  }
+  function speak(text) {
+    if (!window.speechSynthesis) return;
+    try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(text); u.rate = 0.95; u.lang = "en-US"; speechSynthesis.speak(u); } catch (e) { /* ignore */ }
+  }
+  function notify(list) {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    try {
+      var n = new Notification(list.length > 1 ? list.length + " new orders" : "New order from " + list[0].name,
+        { body: list.length > 1 ? "Open the order page to see them." : announceText(list), tag: "alamin-order", renotify: true, icon: "../images/apple-touch-icon.png" });
+      n.onclick = function () { window.focus(); n.close(); };
+    } catch (e) { /* ignore */ }
+  }
+  function ring(list) {
+    if (!soundOn) return;
+    chime();
+    setTimeout(function () { speak(announceText(list)); }, 1300);
+    if (navigator.vibrate) try { navigator.vibrate([300, 150, 300]); } catch (e) { /* ignore */ }
+  }
+  function checkAlarm() {
+    var list = pendingOrders(), box = $("adm-alarm");
+    if (!list.length) {
+      box.hidden = true; clearInterval(ringTimer); ringTimer = null;
+      clearInterval(titleTimer); titleTimer = null; document.title = baseTitle;
+      return;
+    }
+    $("adm-alarm-title").textContent = list.length > 1 ? "🔔 " + list.length + " new orders!" : "🔔 New order from " + list[0].name;
+    $("adm-alarm-sub").textContent = list.length > 1
+      ? list.map(function (o) { return o.name; }).join(", ")
+      : (list[0].mode === "delivery" ? "Delivery" : "Pickup") + " · " + dayLabel(list[0]) + (list[0].time ? " · " + list[0].time : "");
+    box.hidden = false;
+    var fresh = list.filter(function (o) { return !rung[alarmKey(o)]; });
+    if (fresh.length) {
+      fresh.forEach(function (o) { rung[alarmKey(o)] = 1; });
+      ring(list); notify(fresh);
+    }
+    if (!ringTimer) ringTimer = setInterval(function () { var l = pendingOrders(); if (l.length) ring(l); }, 30000);
+    if (!titleTimer) {
+      var flip = false;
+      titleTimer = setInterval(function () { flip = !flip; document.title = flip ? "🔔 New order!" : baseTitle; }, 1000);
+    }
+  }
+  $("adm-alarm-ok").addEventListener("click", function () {
+    unlockAudio();
+    pendingOrders().forEach(function (o) { acked[alarmKey(o)] = 1; });
+    saveAcks(); checkAlarm();
+    if (window.speechSynthesis) try { speechSynthesis.cancel(); } catch (e) { /* ignore */ }
+  });
+  function soundLabel() {
+    var b = $("adm-sound"); b.textContent = soundOn ? "🔔 Alerts on" : "🔕 Alerts off"; b.setAttribute("aria-pressed", soundOn ? "true" : "false");
+  }
+  $("adm-sound").addEventListener("click", function () {
+    soundOn = !soundOn;
+    try { localStorage.setItem(SOUND_KEY, soundOn ? "on" : "off"); } catch (e) { /* ignore */ }
+    soundLabel();
+    if (soundOn) {
+      unlockAudio(); chime();
+      if ("Notification" in window && Notification.permission === "default") try { Notification.requestPermission(); } catch (e) { /* ignore */ }
+    } else if (window.speechSynthesis) try { speechSynthesis.cancel(); } catch (e) { /* ignore */ }
+    updateEnable();
+  });
+  $("adm-enable").addEventListener("click", function () {
+    unlockAudio(); chime();
+    if ("Notification" in window && Notification.permission === "default") try { Notification.requestPermission(); } catch (e) { /* ignore */ }
+    var l = pendingOrders(); if (l.length) setTimeout(function () { speak(announceText(l)); }, 1300);
+  });
+  soundLabel();
 
   var toastTimer = null;
   function toast(msg, undo) {

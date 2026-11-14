@@ -82,3 +82,15 @@
 .adm-web-link { text-align: center; font-size: .9rem; color: var(--green-dark); font-weight: 600; padding: 4px 0; }
 .admin-body .order-toast { z-index: 120; }
 .admin-body.sheet-open .order-toast { top: 70px; bottom: auto; }
+
+/* New order alarm */
+.adm-alarm { position: sticky; top: 64px; z-index: 15; display: flex; align-items: center; gap: 12px; margin: 10px 0 12px; padding: 14px 16px; border-radius: 14px; background: var(--red); color: #fff; box-shadow: 0 10px 24px rgba(179,53,43,.35); animation: adm-pulse 1.2s ease-in-out infinite; }
+.adm-alarm-text { flex: 1; display: grid; gap: 2px; }
+.adm-alarm-text strong { font-size: 1.15rem; }
+.adm-alarm-text span { opacity: .95; }
+.adm-alarm-btn { flex: none; min-height: 48px; padding: 0 20px; border: 0; border-radius: 999px; background: #fff; color: var(--red); font: 800 1.05rem var(--sans); cursor: pointer; }
+@keyframes adm-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(179,53,43,.55); } 50% { box-shadow: 0 0 0 10px rgba(179,53,43,0); } }
+@media (prefers-reduced-motion: reduce) { .adm-alarm { animation: none; } }
+.adm-enable { display: block; width: 100%; margin: 10px 0; padding: 12px 14px; border-radius: 12px; border: 2px dashed #c58a12; background: #fdf3d8; color: #8a5d00; font: 700 1rem var(--sans); cursor: pointer; }
+.adm-sound-btn { white-space: nowrap; }
+@media (max-width: 420px) { .adm-sound-btn { padding: 8px 10px; font-size: .85rem; } }
