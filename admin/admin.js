@@ -78,7 +78,7 @@
       render();
       $("adm-status-line").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " · refreshes every minute";
       clearInterval(timer);
-      timer = setInterval(function () { if (!document.hidden) load(false); }, 60000);
+      timer = setInterval(function () { if (!document.hidden && $("adm-sheet").hidden) load(false); }, 60000);
       return true;
     }).catch(function () {
       if (first && !orders.length) showLogin(ERRORS.network);
@@ -225,7 +225,66 @@
     if (status === "Cancelled" && !window.confirm("Cancel order " + o.num + " for " + o.name + "?")) return;
     var before = o.status;
     save(o, status, function () { toast(o.num + " marked " + status, function () { save(o, before); }); });
+    if (MESSAGE_STATUSES.indexOf(status) > -1 && digits(o.phone)) openSheet(o, status);
   }
+
+  // ---------- optional customer update (WhatsApp on a computer; text or WhatsApp on a phone) ----------
+  var MESSAGE_STATUSES = ["Confirmed", "Ready", "Out for delivery", "Cancelled"];
+  var onPhone = /iPhone|iPod|Android.*Mobile|Mobile.*Android|Windows Phone/i.test(navigator.userAgent) ||
+    (/iPad|Android/i.test(navigator.userAgent) && Math.min(screen.width, screen.height) < 600);
+  var isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  var sheetCtx = null;
+  function firstName(n) { return String(n || "").trim().split(/\s+/)[0] || "there"; }
+  function messageFor(o, status) {
+    var hi = "Hi " + firstName(o.name) + ", this is " + (store.name || "Super Al-Amin Halal Market") + ". ";
+    var when = dayLabel(o).replace(/^(Today|Tomorrow), /, function (m, w) { return w.toLowerCase() + ", "; }) + (o.time ? ", " + o.time : "");
+    var where = (store.street || "18220 Prairie Ave") + ", " + (store.city || "Torrance");
+    switch (status) {
+      case "Confirmed": return hi + "Your order " + o.num + " is confirmed for " + (o.mode === "delivery" ? "delivery" : "pickup") + " " + when + ". Thank you!";
+      case "Ready": return hi + "Your order " + o.num + " is ready for pickup at " + where + ". See you soon!";
+      case "Out for delivery": return hi + "Your order " + o.num + " is on its way to you now. Thank you!";
+      case "Cancelled": return hi + "Your order " + o.num + " has been cancelled. If you have any questions, please call us at " + (store.phoneDisplay || "(310) 538-1188") + ".";
+      default: return hi;
+    }
+  }
+  function fullPhone(o) { var p = digits(o.phone); return p.length === 10 ? "1" + p : p; }
+  function openSheet(o, status) {
+    sheetCtx = { o: o, status: status };
+    $("adm-sheet-sub").textContent = o.name + " · " + o.num + " · marked " + status;
+    $("adm-msg").value = messageFor(o, status);
+    $("adm-send-sms").hidden = !onPhone;
+    $("adm-send-wa").textContent = onPhone ? "Send on WhatsApp" : "Open in WhatsApp";
+    $("adm-send-web").hidden = onPhone;
+    updateWebLink();
+    $("adm-sheet").hidden = false; $("adm-sheet-bg").hidden = false;
+    document.body.classList.add("sheet-open");
+  }
+  // Links are kept up to date as the message is edited, so a tap opens the app directly
+  function updateWebLink() {
+    if (!sheetCtx) return;
+    var ph = fullPhone(sheetCtx.o), msg = encodeURIComponent($("adm-msg").value.trim());
+    var wa = $("adm-send-wa");
+    if (onPhone) { wa.href = "https://wa.me/" + ph + "?text=" + msg; wa.target = "_blank"; }
+    else { wa.href = "whatsapp://send?phone=" + ph + "&text=" + msg; wa.removeAttribute("target"); }   // WhatsApp desktop app
+    $("adm-send-web").href = "https://web.whatsapp.com/send?phone=" + ph + "&text=" + msg;
+  }
+  function closeSheet() {
+    $("adm-sheet").hidden = true; $("adm-sheet-bg").hidden = true; sheetCtx = null;
+    document.body.classList.remove("sheet-open");
+  }
+  $("adm-msg").addEventListener("input", updateWebLink);
+  $("adm-sheet-close").addEventListener("click", closeSheet);
+  $("adm-sheet-bg").addEventListener("click", closeSheet);
+  $("adm-skip").addEventListener("click", closeSheet);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("adm-sheet").hidden) closeSheet(); });
+  $("adm-send-wa").addEventListener("click", function () { setTimeout(closeSheet, 100); });
+  $("adm-send-sms").addEventListener("click", function () {
+    if (!sheetCtx) return;
+    var ph = fullPhone(sheetCtx.o), msg = encodeURIComponent($("adm-msg").value.trim());
+    closeSheet();
+    location.href = "sms:+" + ph + (isIOS ? "&" : "?") + "body=" + msg;
+  });
+  $("adm-send-web").addEventListener("click", function () { setTimeout(closeSheet, 100); });
   function save(o, status, onOk) {
     var before = { status: o.status, statusAt: o.statusAt };
     o.status = status; o.statusAt = new Date().toISOString();   // show it right away
