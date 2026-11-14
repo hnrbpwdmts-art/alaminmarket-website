@@ -284,7 +284,21 @@
     var cartOpen = document.body.classList.contains("cart-open");
     backdrop.hidden = !(itemOpen || cartOpen);
     document.body.classList.toggle("sheet-open", itemOpen || cartOpen);
+    lockPage(itemOpen || cartOpen);
     if (typeof updateBar === "function" && typeof bar !== "undefined") updateBar();
+  }
+  // iPhones ignore overflow:hidden on the page, so pin the page in place while a sheet is open
+  var lockedY = null;
+  function lockPage(on) {
+    var b = document.body.style;
+    if (on && lockedY === null) {
+      lockedY = window.pageYOffset;
+      b.position = "fixed"; b.top = -lockedY + "px"; b.left = "0"; b.right = "0"; b.width = "100%";
+    } else if (!on && lockedY !== null) {
+      var y = lockedY; lockedY = null;
+      b.position = ""; b.top = ""; b.left = ""; b.right = ""; b.width = "";
+      window.scrollTo(0, y);
+    }
   }
   function openCartDrawer() { document.body.classList.add("cart-open"); syncSheets(); var c = $("cart-close"); if (c) c.focus({ preventScroll: true }); }
   function closeCartDrawer() { if (!document.body.classList.contains("cart-open")) return; document.body.classList.remove("cart-open"); syncSheets(); }
@@ -534,17 +548,20 @@
     });
     cartEl.appendChild(ul);
     var T = cartTotals();
+    // Subtotal + Checkout stay pinned at the bottom of the cart panel on phones
+    var foot = el("div", "order-cart-foot");
     var tot = el("p", "order-total");
     tot.appendChild(el("span", null, "Subtotal (estimate)"));
     tot.appendChild(el("strong", null, T.allPriced ? money(T.total) : T.total > 0 ? "From " + money(T.total) : "We'll price it"));
-    cartEl.appendChild(tot);
     cartEl.appendChild(el("p", "order-weight-note", "Meat is priced by weight. We'll confirm your final total before you pay."));
     var wk = state.cart.filter(function (l) { var it = findItem(l.id); return it.days && it.days.length; });
     if (wk.length && wk.length < state.cart.length)
       cartEl.appendChild(el("p", "order-mixed-note", "Goat and veal are for Friday or Saturday. Need the rest sooner? You can split it into 2 orders at checkout."));
     var next = el("button", "btn btn-primary order-next", "Checkout ›"); next.type = "button";
     next.addEventListener("click", function () { closeCartDrawer(); setStep(2); });
-    cartEl.appendChild(next);
+    foot.appendChild(tot);
+    foot.appendChild(next);
+    cartEl.appendChild(foot);
     form.hidden = false;
     renderDays();
     renderTotals();
@@ -888,7 +905,8 @@
     var row = el("p", "order-total order-total-delivery");
     row.appendChild(el("span", null, "Delivery (estimate, up to)"));
     row.appendChild(el("strong", null, money(quote.fee)));
-    cartEl.appendChild(row);
+    var foot = cartEl.querySelector(".order-cart-foot");
+    if (foot) foot.insertBefore(row, foot.querySelector(".order-next")); else cartEl.appendChild(row);
   }
 
   // ---------- send ----------
