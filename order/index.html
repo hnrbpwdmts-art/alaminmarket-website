@@ -10,7 +10,7 @@
   <link rel="icon" href="../images/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="stylesheet" href="../styles.css?v=20261114o">
+  <link rel="stylesheet" href="../styles.css?v=20261114p">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -66,8 +66,8 @@
     <div class="section order-section" id="order-section" data-step="1">
       <div class="container">
         <ol class="order-progress" id="order-progress" aria-label="Order progress">
-          <li class="is-current" aria-current="step"><span>1</span>Shop</li>
-          <li><span>2</span>Checkout</li>
+          <li class="is-current" aria-current="step"><span>1</span>Meat</li>
+          <li><span>2</span>Details</li>
           <li><span>3</span>Review</li>
           <li><span>4</span>Done</li>
         </ol>
@@ -115,7 +115,10 @@
               <p class="order-quote" id="order-quote" role="status" hidden></p>
             </div>
             <label class="order-field">Notes (optional)<textarea id="order-notes" rows="2" placeholder="Anything else we should know"></textarea></label>
-            <label class="order-optin"><input type="checkbox" id="order-optin"> <span>Text me deals from Super Al-Amin (a few a month). Msg &amp; data rates may apply. Reply STOP to stop. <em>Optional.</em></span></label>
+            <div class="order-optin-box">
+              <p class="order-optin-title">Optional, not needed to order</p>
+              <label class="order-optin"><input type="checkbox" id="order-optin"> <span>Text me deals from Super Al-Amin (a few a month). Msg &amp; data rates may apply. Reply STOP to stop.</span></label>
+            </div>
             <p class="order-error" id="order-error" role="alert" hidden></p>
 
             <div class="order-send">
@@ -129,6 +132,7 @@
 
           <div class="order-help" id="order-help">
             <p class="order-help-title">Need help ordering?</p>
+            <p class="order-help-how">Place your order online right here. WhatsApp and phone are for questions.</p>
             <p class="order-help-hours"><span data-text="hoursSummary">Open daily 10 AM–8 PM</span> · Meat counter until 7 PM</p>
             <div class="order-help-btns">
               <a class="btn btn-whatsapp" href="https://wa.me/14245273540?text=Hi%20Super%20Al-Amin%21" data-link="whatsapp" data-message="general" target="_blank" rel="noopener">WhatsApp</a>
@@ -194,9 +198,9 @@
     </a>
   </nav>
 
-  <script src="../site-config.js?v=20261114o"></script>
-  <script src="../meat-menu.js?v=20261114o"></script>
-  <script src="../main.js?v=20261114o"></script>
-  <script src="../order.js?v=20261114o"></script>
+  <script src="../site-config.js?v=20261114p"></script>
+  <script src="../meat-menu.js?v=20261114p"></script>
+  <script src="../main.js?v=20261114p"></script>
+  <script src="../order.js?v=20261114p"></script>
 </body>
 </html>

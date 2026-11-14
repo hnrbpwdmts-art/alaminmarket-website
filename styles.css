@@ -1085,3 +1085,44 @@ body.sheet-open { overflow: hidden; }
 .rv-phone-change { display: inline-block; margin-top: 4px; }
 .done-safety { margin: 4px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--cream); font-size: .95rem; color: var(--ink); }
 .rv-phone-ok { justify-content: flex-start; text-align: left; max-width: 320px; margin: 0 auto; }
+
+/* ===== UX review: shorter homepage ===== */
+.hero-actions { display: grid; gap: 12px; max-width: 520px; }
+.hero-main { width: 100%; justify-content: center; min-height: 60px; font-size: 1.15rem; }
+.hero-secondary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hero-secondary .btn { justify-content: center; min-height: 50px; padding: 10px 12px; font-size: 1rem; }
+@media (min-width: 900px) { .hero-main { width: auto; justify-self: start; } .hero-secondary { max-width: 420px; } }
+.meat-weekend { margin: 18px auto 0; max-width: 760px; text-align: center; padding: 12px 16px; border-radius: 14px; background: #fff4e8; color: #6b2e0d; }
+.meat-weekend a { font-weight: 700; color: var(--red); white-space: nowrap; }
+.more-grid { display: grid; gap: 16px; margin-top: 24px; }
+@media (min-width: 760px) { .more-grid { grid-template-columns: 1fr 1fr; gap: 22px; } }
+.more-card { background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 16px rgba(20,55,38,.08); display: flex; flex-direction: column; scroll-margin-top: 90px; }
+.more-card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
+.more-body { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.more-body h3 { margin: 0; font-size: 1.3rem; }
+.more-body p { margin: 0 0 6px; color: var(--muted); }
+.more-body .btn { margin-top: auto; align-self: flex-start; }
+@media (max-width: 759px) { .more-body .btn { align-self: stretch; justify-content: center; } }
+
+/* ===== UX review: groceries page ===== */
+.grocery-tab-count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 2px; border-radius: 999px; background: rgba(29,74,52,.1); font-size: .78rem; }
+.grocery-tab[aria-selected="true"] .grocery-tab-count { background: rgba(255,255,255,.22); }
+@media (max-width: 899px) {
+  .grocery-tabs { -webkit-mask-image: linear-gradient(to right, #000 85%, transparent); mask-image: linear-gradient(to right, #000 85%, transparent); padding-right: 32px; }
+  .page-hero-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .page-hero-actions .btn { justify-content: center; min-height: 48px; padding: 8px 10px; font-size: .92rem; }
+  .grocery-tab { min-height: 40px; padding: 6px 12px; font-size: .9rem; }
+}
+.showcase-item span { min-height: calc(1.3em * 2 + 20px); }
+.showcase-grid { gap: 14px; }
+@media (min-width: 700px) { .showcase-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1000px) { .showcase-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 759px) { .visit-art { display: none; } }
+.order-optin-box { margin: 6px 0 14px; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--cream-2); background: #fffdf7; }
+.order-optin-title { margin: 0 0 4px; font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.order-optin-box .order-optin { margin: 0; }
+.order-help-how { margin: 0 0 6px; font-size: .92rem; }
+.done-home { display: block; margin: 6px auto 0; text-align: center; }
+/* Bigger tap targets in the options sheet */
+.order-opt { min-height: 44px; }
+.order-item.is-open .order-item-plus { width: 44px; height: 44px; }

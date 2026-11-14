@@ -1194,7 +1194,7 @@
     if (channel === "website") {
       // Only reached after /api/order answered ok
       var hero = el("div", "done-hero");
-      hero.appendChild(el("h2", "done-title", isUpdate ? "Thank you! Your updated order is in the works! 🎉" : "Thank you! Your order is in the works! 🎉"));
+      hero.appendChild(el("h2", "done-title", isUpdate ? "Thank You! Your Updated Order Is in the Works! 🎉" : "Thank You! Your Order Is in the Works! 🎉"));
       if (num) {
         var n = el("p", "done-num");
         n.appendChild(el("span", null, "Order number"));
@@ -1202,9 +1202,9 @@
         hero.appendChild(n);
       }
       hero.appendChild(el("p", "done-msg", isUpdate
-        ? "Thank you for ordering from Super Al-Amin Halal Market. Your changes have been received."
-        : "Thank you for ordering from Super Al-Amin Halal Market. Your order has been placed."));
-      hero.appendChild(el("p", "done-msg done-msg-strong", "A representative from our store will contact you by text to confirm your order and your " +
+        ? "Your changes have been received by Super Al-Amin Halal Market. Our team will review them and contact you with the final details."
+        : "Your order has been received by Super Al-Amin Halal Market. Our team will review it and contact you with the final details."));
+      hero.appendChild(el("p", "done-msg done-msg-strong", "We'll text you at " + prettyPhone(state.phone) + " to confirm your order, exact total, and " +
         (isDel ? "delivery" : "pickup") + " time."));
       hero.appendChild(el("p", "done-msg", "For questions or additional information, feel free to contact us through WhatsApp or give us a call."));
       hero.appendChild(el("p", "done-safety", "Haven't heard from us within 30 minutes during store hours? Please call or WhatsApp us, and we'll sort it out."));
@@ -1247,7 +1247,8 @@
     });
     var back = el("button", "order-link-btn", "Change this order"); back.type = "button";
     back.addEventListener("click", function () { updateSendLabels(); setStep(2); });
-    doneEl.appendChild(again); doneEl.appendChild(back);
+    var home = el("a", "order-link-btn done-home", "Back to home"); home.href = (document.documentElement.getAttribute("data-root") || "/");
+    doneEl.appendChild(again); doneEl.appendChild(back); doneEl.appendChild(home);
     doneEl.hidden = false; form.hidden = true; cartEl.hidden = true;
     setStep(4);
   }
