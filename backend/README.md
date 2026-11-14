@@ -66,3 +66,20 @@ says "Website (UPDATE)". Use the newest version.
   repeat steps 4 to 7 to make a new link and paste the new one in.
 - If you change `Code.gs` later, use **Deploy > Manage deployments > Edit > New version**
   so the link stays the same.
+
+## Staff order page (alaminmarket.com/admin/)
+
+An extra, private page that lists recent orders from this sheet, lets staff mark
+each one Confirmed / Ready / Out for delivery / Done / Cancelled, and opens
+WhatsApp or Messages on the phone with a ready-to-send note for the customer.
+Order emails, WhatsApp, and text orders keep working exactly as before.
+
+1. In `Code.gs`, set `ADMIN_PASSCODE` to your own passcode (8+ characters).
+2. Paste the whole file into Extensions > Apps Script and click Save.
+3. Deploy > Manage deployments > pencil (Edit) > Version: **New version** > Deploy.
+   The link stays the same.
+4. Open alaminmarket.com/admin/ and sign in with the passcode.
+
+The page adds three columns to the Orders tab: Status, Final total, Status updated.
+After 10 wrong passcodes the page locks for 15 minutes. To sign everyone out,
+change the passcode and redeploy.
