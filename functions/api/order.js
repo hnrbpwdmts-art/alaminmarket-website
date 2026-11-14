@@ -1,7 +1,8 @@
 /* Cloudflare Pages Function: POST /api/order
    Receives an order from the website's "Submit order" button (works on any
-   device), saves it to the store's Google Sheet, and the sheet's script emails
-   the order to the store (see backend/Code.gs and backend/README.md).
+   device), or a copy of an order the customer is sending by WhatsApp or text,
+   saves it to the store's Google Sheet, and the sheet's script emails the
+   order to the store (see backend/Code.gs and backend/README.md).
 
    Optional settings (Pages project > Settings > Variables and Secrets):
      ORDER_LOG_URL   the Google Apps Script web app link (defaults to the one below)
@@ -59,7 +60,7 @@ export async function onRequestPost({ request, env }) {
     version: 1,
     orderNumber,
     sentAt: new Date().toISOString(),
-    channel: "Website",
+    channel: d.channel === "WhatsApp" || d.channel === "Text" ? d.channel : "Website",
     mode: d.mode === "delivery" ? "delivery" : "pickup",
     day: str(d.day, 40),
     date: str(d.date, 12),

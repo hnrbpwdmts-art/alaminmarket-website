@@ -3,8 +3,8 @@
  * Setup steps are in backend/README.md. Paste this whole file into
  * Extensions > Apps Script in your orders Google Sheet.
  *
- * Orders placed with the website's "Submit order" button are also emailed
- * to NOTIFY_EMAIL below.
+ * Every order (website, WhatsApp, and text) is also emailed to NOTIFY_EMAIL
+ * below, as a backup in case nobody is near the store phone.
  *
  * Tabs created automatically:
  *   Orders     one row per order
@@ -27,7 +27,7 @@ var CALL_URL = "https://alaminmarket.com/api/call-order";
 var CALL_EVERY_MINUTES = 5;   // wait between calls
 var CALL_LANDLINE_TRIES = 5;  // store landline first...
 var CALL_CELL_TRIES = 3;      // ...then the backup cell phone
-var CALL_CHANNELS = ["Website"]; // WhatsApp and text orders already ring the store phone
+var CALL_CHANNELS = ["Website", "WhatsApp", "Text"]; // remove a channel to stop its calls
 // Calls only happen while the store is open (store time, 24-hour clock)
 var CALL_HOURS = ["Mo-Th 10:00-20:00", "Fr 10:00-12:15", "Fr 13:15-20:00", "Sa-Su 10:00-20:00"];
 
@@ -78,9 +78,8 @@ function doPost(e) {
     // An update to an order already sent doesn't count as a new order
     if (phone && !d.update) updateCustomer(sheet(ss, "Customers", CUSTOMER_HEADERS), phone, d, when);
 
-    // Email alert for orders submitted on the website (not WhatsApp or text,
-    // which already arrive on the store phone)
-    if (d.notify && d.channel === "Website" && NOTIFY_EMAIL) {
+    // Email alert for every order (website, WhatsApp, and text) as a backup
+    if (d.notify && NOTIFY_EMAIL) {
       try { emailOrder(d, phone); return reply("ok emailed"); }
       catch (mailErr) { return reply("ok email-failed"); }
     }
@@ -95,10 +94,13 @@ function doPost(e) {
 function emailOrder(d, phone) {
   var digits = phone.replace(/\D/g, "");
   var name = String(d.name || "").slice(0, 80);
-  var subject = (d.update ? "UPDATED website order " : "New website order ") + d.orderNumber + " – " + name + " (" +
+  var via = d.channel === "WhatsApp" ? "WhatsApp" : d.channel === "Text" ? "text" : "website";
+  var subject = (d.update ? "UPDATED " + via + " order " : "New " + via + " order ") + d.orderNumber + " – " + name + " (" +
     (d.mode === "delivery" ? "Delivery" : "Pickup") + " " + (d.day || "") + ", " + (d.time || "") + ")";
   var body = String(d.message || "").slice(0, 6000);
   if (d.update) body = "This REPLACES the earlier version of order " + d.orderNumber + ". Use this one.\n\n" + body;
+  if (via !== "website") body = "The customer chose to send this order by " + via + ". It should also arrive on the store " +
+    (via === "WhatsApp" ? "WhatsApp" : "phone as a text") + ". If it doesn't, the customer may not have pressed send, so please call them to check.\n\n" + body;
   var links = phone ? '<p style="font-size:16px">Contact ' + esc(name) + ': ' +
     '<a href="tel:' + phone + '">Call</a> &nbsp;·&nbsp; ' +
     '<a href="sms:' + phone + '">Text</a> &nbsp;·&nbsp; ' +
@@ -388,7 +390,7 @@ function checkCalls() {
     ensureHeaders(sh, ORDER_HEADERS);
     var c = colMap(sh), first = Math.max(2, sh.getLastRow() - 500);
     var rows = sh.getRange(first, 1, sh.getLastRow() - first + 1, sh.getLastColumn()).getValues();
-    var now = new Date(), waiting = 0, maxTries = CALL_LANDLINE_TRIES + CALL_CELL_TRIES;
+    var now = new Date(), waiting = 0, placed = false, maxTries = CALL_LANDLINE_TRIES + CALL_CELL_TRIES;
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i], row = first + i;
       if (String(r[c["Call status"]]) !== "Calling") continue;
@@ -401,12 +403,15 @@ function checkCalls() {
       if (tries >= maxTries) { sh.getRange(row, c["Call status"] + 1).setValue("No answer"); continue; }
       waiting++;
       if (lastCall && now - lastCall < CALL_EVERY_MINUTES * 60000 - 20000) continue;
+      if (placed) continue;   // one call per minute, so calls don't hit a busy line
+      placed = true;
       var res = UrlFetchApp.fetch(CALL_URL, {
         method: "post", contentType: "application/json", muteHttpExceptions: true,
         payload: JSON.stringify({
           secret: CALL_SECRET, order: String(r[c["Order #"]]), name: String(r[c["Name"]] || ""),
           mode: String(r[c["Pickup/Delivery"]] || ""), day: spokenDay(r[c["Pickup date"]]), time: String(r[c["Time"]] || ""),
           update: String(r[c["Channel"]] || "").indexOf("(UPDATE)") > -1,
+          channel: String(r[c["Channel"]] || "").replace(" (UPDATE)", ""),
           attempt: tries + 1, to: tries < CALL_LANDLINE_TRIES ? "landline" : "cell"
         })
       });
