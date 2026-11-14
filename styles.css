@@ -514,6 +514,14 @@ a { color: var(--green); }
 .order-error { color: var(--red); font-weight: 700; }
 .order-send { display: grid; gap: 10px; }
 .order-send .btn { justify-content: center; width: 100%; }
+.order-submit { min-height: 56px; font-size: 1.1rem; }
+.order-submit[disabled] { opacity: .7; cursor: progress; }
+.order-send-or { display: flex; align-items: center; gap: 12px; margin: 6px 0 0; color: var(--muted); font-size: .9rem; }
+.order-send-or::before, .order-send-or::after { content: ""; flex: 1; height: 1px; background: var(--cream-2); }
+.order-send-apps { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.order-send-apps .btn { min-height: 48px; padding: 10px 12px; font-size: .98rem; border: 1.5px solid var(--green); }
+.order-send-apps .btn-whatsapp { border-color: var(--whatsapp); }
+.order-hp { position: absolute !important; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .order-fineprint { color: var(--muted); font-size: .88rem; margin: 12px 0 0; }
 .order-done h2 { margin-bottom: .3em; }
 .order-done .btn { margin: 6px 0 4px; }

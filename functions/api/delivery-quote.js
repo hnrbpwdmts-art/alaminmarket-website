@@ -17,6 +17,18 @@ const STORE_ADDRESS = {
 
 let cachedToken = null; // { token, expiresAt }
 
+// Best-effort limit so nobody can use the site to spam Uber with quote requests
+const LIMIT = 12, WINDOW_MS = 10 * 60 * 1000;
+const recent = new Map(); // ip -> [timestamps]
+function tooMany(ip) {
+  const now = Date.now();
+  const list = (recent.get(ip) || []).filter((t) => now - t < WINDOW_MS);
+  if (list.length >= LIMIT) { recent.set(ip, list); return true; }
+  list.push(now); recent.set(ip, list);
+  if (recent.size > 5000) recent.clear();
+  return false;
+}
+
 async function getToken(env) {
   if (cachedToken && cachedToken.expiresAt > Date.now() + 60000) return cachedToken.token;
   const res = await fetch("https://auth.uber.com/oauth/v2/token", {
@@ -44,8 +56,9 @@ function json(body, status = 200) {
 
 export async function onRequestPost({ request, env }) {
   if (!env.UBER_CLIENT_ID || !env.UBER_CLIENT_SECRET || !env.UBER_CUSTOMER_ID) {
-    return json({ ok: false, error: "not_configured" }, 503);
+    return json({ ok: false, error: "not_configured" });
   }
+  if (tooMany(request.headers.get("CF-Connecting-IP") || "unknown")) return json({ ok: false, error: "too_many" }, 429);
   let input;
   try { input = await request.json(); } catch (e) { return json({ ok: false, error: "bad_request" }, 400); }
 

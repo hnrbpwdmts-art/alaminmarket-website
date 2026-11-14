@@ -90,7 +90,10 @@
 
   // ---------- saved state ----------
   var state = { cart: [], mode: "pickup", name: "", phone: "", address: "", addr: {} };
-  var quote = null;           // live delivery price from Uber: { fee, minutes, quoteId } or { error }
+  var quote = null;
+  // Phones and tablets (iPads report themselves as Macs, so also check for touch)
+  var isPhone = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);           // live delivery price from Uber: { fee, minutes, quoteId } or { error }
   try {
     var saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
     if (saved && Array.isArray(saved.cart)) {
@@ -368,7 +371,7 @@
     $("order-address-wrap").hidden = !isDel;
     var note = $("order-delivery-note"), parts = [];
     if (M.delivery && M.delivery.minimumOrder) parts.push("Delivery minimum: " + money(M.delivery.minimumOrder) + " of meat.");
-    if (M.delivery && M.delivery.quoteUrl) parts.push("Delivered by Uber. Enter your address to see the delivery price.");
+    if (M.delivery && M.delivery.quoteUrl) parts.push("Enter your address to see a delivery estimate.");
     else if (M.delivery && M.delivery.note) parts.push(M.delivery.note);
     note.textContent = parts.join(" ");
     note.hidden = !isDel || !parts.length;
@@ -436,18 +439,24 @@
       .then(function (r) { return r.json().catch(function () { return { ok: false, error: "unavailable" }; }); })
       .then(function (d) {
         if (d && d.ok) {
-          quote = { fee: d.fee, minutes: d.minutes, quoteId: d.quoteId };
-          showQuote("Delivery: " + money(d.fee) + (d.minutes ? " · about " + d.minutes + " min once your order is ready" : ""));
+          // Show a worst-case estimate: Uber's price plus any cushion, rounded up to the next dollar.
+          // We may deliver ourselves or combine orders; the customer never pays more than this.
+          var est = Math.ceil((Number(d.fee) || 0) + (Number(M.delivery.cushion) || 0));
+          quote = { fee: est, uberFee: d.fee, minutes: d.minutes, quoteId: d.quoteId };
+          showQuote("Estimated delivery: up to " + money(est) + ". We'll confirm the final delivery cost when we confirm your order.");
         } else if (d && (d.error === "outside_area" || d.error === "undeliverable")) {
           quote = { error: d.error };
           showQuote("Sorry, we can't deliver to this address. Please choose pickup, or message us.", true);
+        } else if (d && d.error === "not_configured") {
+          quote = { error: "off" };
+          showQuote(M.delivery.note);
         } else {
           quote = { error: "unavailable" };
-          showQuote("We couldn't get a live delivery price right now. " + M.delivery.note);
+          showQuote("We couldn't get a delivery estimate right now. " + M.delivery.note);
         }
         renderTotals();
       })
-      .catch(function () { quote = { error: "unavailable" }; showQuote("We couldn't get a live delivery price right now. " + M.delivery.note); renderTotals(); });
+      .catch(function () { quote = { error: "unavailable" }; showQuote("We couldn't get a delivery estimate right now. " + M.delivery.note); renderTotals(); });
   }
   // Delivery fee line under the order total
   function renderTotals() {
@@ -455,7 +464,7 @@
     if (old) old.remove();
     if (state.mode !== "delivery" || !quote || quote.fee == null || !state.cart.length) return;
     var row = el("p", "order-total order-total-delivery");
-    row.appendChild(el("span", null, "Delivery (Uber)"));
+    row.appendChild(el("span", null, "Delivery (estimate, up to)"));
     row.appendChild(el("strong", null, money(quote.fee)));
     cartEl.appendChild(row);
   }
@@ -478,7 +487,7 @@
     else if (state.mode === "delivery" && !addrComplete(a)) err = "Please enter your delivery street, city, and ZIP code.";
     else if (state.mode === "delivery" && M.delivery.minimumOrder && subtotal() < M.delivery.minimumOrder)
       err = "Delivery orders need at least " + money(M.delivery.minimumOrder) + " of meat. Add more, or choose pickup.";
-    else if (state.mode === "delivery" && M.delivery.quoteUrl && !quote) err = "Please tap \"Get delivery price\" first.";
+    else if (state.mode === "delivery" && M.delivery.quoteUrl && !quote) err = "Please tap \"Get delivery estimate\" first.";
     else if (state.mode === "delivery" && quote && (quote.error === "outside_area" || quote.error === "undeliverable"))
       err = "We can't deliver to this address. Please choose pickup.";
     var e = $("order-error"); e.hidden = !err; e.textContent = err;
@@ -502,7 +511,8 @@
     lines.push("");
     var byWeight = state.cart.some(function (l) { return priceUnit(findItem(l.id)) === "lb"; });
     var fee = isDel && quote && quote.fee != null ? quote.fee : null;
-    if (fee != null) lines.push("Delivery fee (Uber quote): " + money(fee) + (quote.quoteId ? " [" + quote.quoteId + "]" : ""));
+    if (fee != null) lines.push("Delivery estimate shown: up to " + money(fee) +
+      (quote.uberFee != null ? " (Uber quote " + money(quote.uberFee) + (quote.quoteId ? " [" + quote.quoteId + "]" : "") + ")" : ""));
     if (total > 0) lines.push((byWeight ? "Estimated total: " : "Total: ") + (allPriced ? "" : "at least ") + money(total + (fee || 0)) +
       (isDel ? (fee != null ? " incl. delivery" : " + delivery") : "") + (byWeight ? " (final price by weight)" : ""));
     var notes = $("order-notes").value.trim();
@@ -518,9 +528,37 @@
     window.location.href = url;
     showDone(num, channel);
   }
+  // "Submit order": works on any device. Sends the order to /api/order, which saves it
+  // to the store's Google Sheet and emails it to the store (see functions/api/order.js).
+  function submitOrder() {
+    if (!validate()) return;
+    var btn = $("send-website"), errEl = $("order-error");
+    if (btn.disabled) return;
+    var num = submitNum || (submitNum = orderNumber());   // same number if they retry
+    var data = orderData(num, "website");
+    data.message = buildMessage(num);
+    data.website = $("order-website").value;           // hidden field; people leave it empty
+    btn.disabled = true; btn.textContent = "Sending your order…";
+    fetch(M.submitUrl || "/api/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
+      .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
+      .then(function (d) {
+        if (d && d.ok) { submitNum = null; showDone(num, "website"); return; }
+        throw new Error((d && d.error) || "failed");
+      })
+      .catch(function (e) {
+        var msg = String(e && e.message) === "too_many"
+          ? "You've sent several orders in a short time. Please call us at " + S.store.phoneDisplay + " if you need to change your order."
+          : "Sorry, we couldn't send your order. Please try again, or call us at " + S.store.phoneDisplay +
+            (isPhone ? ". You can also send it by WhatsApp or text below." : ".");
+        errEl.textContent = msg; errEl.hidden = false;
+        errEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      })
+      .then(function () { btn.disabled = false; btn.textContent = "Submit order"; });
+  }
+  var submitNum = null;
+
   // Save a copy of the order to the store's Google Sheet (see backend/README.md)
-  function logOrder(num, channel) {
-    if (!M.orderLogUrl) return;
+  function orderData(num, channel) {
     var src = "";
     try { src = sessionStorage.getItem("alamin-source") || ""; } catch (e) { /* ignore */ }
     var total = 0, allPriced = true;
@@ -539,14 +577,14 @@
       version: 1,
       orderNumber: num,
       sentAt: new Date().toISOString(),
-      channel: channel === "whatsapp" ? "WhatsApp" : "Text",
+      channel: channel === "whatsapp" ? "WhatsApp" : channel === "website" ? "Website" : "Text",
       mode: state.mode,
       day: $("order-day").value,
       date: ($("order-day").selectedOptions[0] || {}).getAttribute ? $("order-day").selectedOptions[0].getAttribute("data-date") : "",
       time: $("order-time").value,
       name: state.name,
       phone: state.phone,
-      address: state.mode === "delivery" ? state.address + (quote && quote.fee != null ? " (Uber fee " + money(quote.fee) + ")" : "") : "",
+      address: state.mode === "delivery" ? state.address + (quote && quote.fee != null ? " (delivery estimate up to " + money(quote.fee) + ")" : "") : "",
       notes: $("order-notes").value.trim(),
       marketingOptIn: $("order-optin").checked,
       optInText: $("order-optin").checked ? $("order-optin").parentNode.textContent.replace(/\s+/g, " ").trim() : "",
@@ -555,9 +593,13 @@
       itemCount: items.length,
       items: items,
       source: src,
-      device: /Mobi|Android|iPhone/i.test(navigator.userAgent) ? "Phone" : "Computer"
+      device: isPhone ? "Phone" : "Computer"
     };
-    var body = JSON.stringify(data);
+    return data;
+  }
+  function logOrder(num, channel) {
+    if (!M.orderLogUrl) return;
+    var body = JSON.stringify(orderData(num, channel));
     try {
       if (navigator.sendBeacon && navigator.sendBeacon(M.orderLogUrl, new Blob([body], { type: "text/plain" }))) return;
     } catch (e) { /* fall through */ }
@@ -566,11 +608,19 @@
 
   function showDone(num, channel) {
     doneEl.textContent = "";
-    doneEl.appendChild(el("h2", null, "Almost done!"));
-    doneEl.appendChild(el("p", null, "Your order " + num + " should now be open in " +
-      (channel === "whatsapp" ? "WhatsApp" : "Messages") + ". Press send there to place it."));
-    doneEl.appendChild(el("p", null, "We'll text you back with your " +
-      (state.mode === "delivery" ? "delivery time" : "pickup time") + ", final total, and a payment link."));
+    if (channel === "website") {
+      doneEl.appendChild(el("h2", null, "Order received. Thank you!"));
+      doneEl.appendChild(el("p", null, "Your order number is " + num + ". It's on its way to our meat counter."));
+      doneEl.appendChild(el("p", null, "We'll text or call you at " + state.phone + " to confirm your " +
+        (state.mode === "delivery" ? "delivery time and delivery cost" : "pickup time") + ", your final total, and a payment link."));
+      doneEl.appendChild(el("p", "order-fineprint", "Questions? Call us at " + S.store.phoneDisplay + "."));
+    } else {
+      doneEl.appendChild(el("h2", null, "Almost done!"));
+      doneEl.appendChild(el("p", null, "Your order " + num + " should now be open in " +
+        (channel === "whatsapp" ? "WhatsApp" : "Messages") + ". Press send there to place it."));
+      doneEl.appendChild(el("p", null, "We'll text you back with your " +
+        (state.mode === "delivery" ? "delivery time" : "pickup time") + ", final total, and a payment link."));
+    }
     var again = el("button", "btn btn-cream", "Start a new order"); again.type = "button";
     again.addEventListener("click", function () { state.cart = []; save(); doneEl.hidden = true; cartEl.hidden = false; renderCart(); window.scrollTo(0, 0); });
     var back = el("button", "order-link-btn", "Go back and edit this order"); back.type = "button";
@@ -589,9 +639,11 @@
   ["addr-street", "addr-unit", "addr-city", "addr-zip"].forEach(function (id) { $(id).addEventListener("input", clearQuote); });
   $("get-quote").addEventListener("click", getQuote);
   $("order-day").addEventListener("change", updateMode);
+  $("send-website").addEventListener("click", submitOrder);
   $("send-whatsapp").addEventListener("click", function () { send("whatsapp"); });
   $("send-text").addEventListener("click", function () { send("text"); });
-  // Computers usually can't send text messages, so only offer WhatsApp there
-  if (!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) && !("ontouchstart" in window)) $("send-text").hidden = true;
+  // WhatsApp and text links only work well on phones, so offer them there only.
+  // Computers (and anyone else) use "Submit order".
+  if (isPhone) { $("send-or").hidden = false; $("send-apps").hidden = false; $("apps-fineprint").hidden = false; }
   renderCats(); renderItems(); renderModes(); renderCart();
 })();

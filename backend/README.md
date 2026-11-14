@@ -1,4 +1,4 @@
-# Order log (Google Sheet)
+# Order log (Google Sheet) and order emails
 
 Every order a customer sends from the website is also saved to a Google Sheet,
 with three tabs that fill in automatically:
@@ -27,6 +27,23 @@ with three tabs that fill in automatically:
 7. Paste it into `orderLogUrl` in `meat-menu.js`, or send it to Claude.
 
 Open the URL in a browser to check it: it should say "Super Al-Amin order log is running."
+
+## Order emails (orders from the "Submit order" button)
+
+Orders placed with the website's **Submit order** button are saved to the sheet and
+emailed to `NOTIFY_EMAIL` at the top of `Code.gs` (Muhammad@alaminmarket.com).
+WhatsApp and text orders aren't emailed, because they already arrive on the store phone.
+
+**To switch emails on, or after any change to Code.gs:**
+1. Open the sheet, then **Extensions > Apps Script**.
+2. Replace everything with the new `Code.gs` and save.
+3. **Deploy > Manage deployments**, click the pencil (Edit), set **Version** to
+   **New version**, then **Deploy**. The link stays the same.
+4. Google asks to allow the script to **send email as you**: click **Authorize access**
+   and allow it.
+5. Place a test order on the website with **Submit order** and check the email arrives.
+
+Google allows about 100 of these emails a day on a free account.
 
 ## Everyday use
 
