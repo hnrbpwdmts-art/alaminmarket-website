@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#1d4a34">
   <link rel="icon" href="../images/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
-  <link rel="stylesheet" href="../styles.css?v=20261113d">
+  <link rel="stylesheet" href="../styles.css?v=20261113e">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -102,20 +102,22 @@
             </div>
             <label class="order-field">Your name<input id="order-name" type="text" autocomplete="name" required></label>
             <label class="order-field">Phone number<input id="order-phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="(310) 555-0123" required></label>
+            <p class="order-delivery-note" id="order-delivery-note" hidden></p>
             <div id="order-address-wrap" class="order-address" hidden>
               <div class="addr-wrap">
-                <label class="order-field">Street address<input id="addr-street" type="text" autocomplete="address-line1" placeholder="Start typing, e.g. 123 Main St"></label>
+                <label class="order-field">Delivery address<input id="addr-street" type="text" autocomplete="address-line1" placeholder="Start typing your address"></label>
                 <ul class="addr-suggest" id="addr-suggest" role="listbox" aria-label="Address suggestions" hidden></ul>
               </div>
-              <div class="order-field-row">
-                <label class="order-field">Apt / unit (optional)<input id="addr-unit" type="text" autocomplete="address-line2"></label>
+              <p class="addr-picked" id="addr-picked" hidden></p>
+              <div class="order-field-row" id="addr-more" hidden>
+                <label class="order-field">City<input id="addr-city" type="text" autocomplete="address-level2" placeholder="Torrance"></label>
                 <label class="order-field">ZIP code<input id="addr-zip" type="text" inputmode="numeric" maxlength="5" autocomplete="postal-code" placeholder="90504"></label>
               </div>
-              <label class="order-field">City<input id="addr-city" type="text" autocomplete="address-level2" placeholder="Torrance"></label>
-              <button type="button" class="btn btn-cream order-quote-btn" id="get-quote">Get delivery estimate</button>
+              <button type="button" class="order-link-btn addr-manual" id="addr-manual">Can't find your address? Enter city and ZIP yourself</button>
+              <label class="order-field">Apt / unit (optional)<input id="addr-unit" type="text" autocomplete="address-line2"></label>
+              <button type="button" class="btn btn-cream order-quote-btn" id="get-quote" hidden>Get delivery estimate</button>
               <p class="order-quote" id="order-quote" role="status" hidden></p>
             </div>
-            <p class="order-delivery-note" id="order-delivery-note" hidden></p>
             <label class="order-field">Notes (optional)<textarea id="order-notes" rows="2" placeholder="Anything we should know about your cuts"></textarea></label>
             <label class="order-optin"><input type="checkbox" id="order-optin"> <span>Yes, text me deals and new arrivals from Super Al-Amin. A few messages a month at most. Message and data rates may apply. Reply STOP anytime to stop. <em>(Optional, not needed to order.)</em></span></label>
             <p class="order-error" id="order-error" role="alert" hidden></p>
@@ -168,9 +170,9 @@
     </a>
   </nav>
 
-  <script src="../site-config.js?v=20261113d"></script>
-  <script src="../meat-menu.js?v=20261113d"></script>
-  <script src="../main.js?v=20261113d"></script>
-  <script src="../order.js?v=20261113d"></script>
+  <script src="../site-config.js?v=20261113e"></script>
+  <script src="../meat-menu.js?v=20261113e"></script>
+  <script src="../main.js?v=20261113e"></script>
+  <script src="../order.js?v=20261113e"></script>
 </body>
 </html>

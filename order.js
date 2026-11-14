@@ -422,6 +422,22 @@
     state.address = a.street ? a.street + (a.unit ? ", " + a.unit : "") + ", " + a.city + ", CA " + a.zip : "";
     return a;
   }
+  // One address box: city and ZIP come from the picked suggestion, or are typed by hand
+  function showManual(on) {
+    $("addr-more").hidden = !on;
+    $("addr-manual").hidden = on;
+    $("get-quote").hidden = !on;
+    if (on) $("addr-picked").hidden = true;
+  }
+  function showPicked(city, zip) {
+    var p = $("addr-picked"); p.textContent = "";
+    p.appendChild(el("strong", null, [city, "CA " + (zip || "")].join(", ").trim()));
+    p.appendChild(document.createTextNode(" "));
+    var ch = el("button", "order-link-btn", "Change"); ch.type = "button";
+    ch.addEventListener("click", function () { showManual(true); $("addr-city").focus(); });
+    p.appendChild(ch);
+    p.hidden = false; $("addr-manual").hidden = true;
+  }
   function addrComplete(a) { return a.street.length >= 4 && a.city.length >= 2 && /^\d{5}$/.test(a.zip); }
   function subtotal() {
     var t = 0; state.cart.forEach(function (l) { var c = lineCost(l); if (c != null) t += c; }); return t;
@@ -434,7 +450,11 @@
   function clearQuote() { quote = null; showQuote(""); renderTotals(); }
   function getQuote() {
     var a = readAddr(); save();
-    if (!addrComplete(a)) { showQuote("Please enter your street, city, and 5-digit ZIP code.", true); return; }
+    if (!addrComplete(a)) {
+      if ($("addr-more").hidden) showQuote("Please pick your address from the list, or tap \"Enter city and ZIP yourself\".", true);
+      else showQuote("Please enter your street, city, and 5-digit ZIP code.", true);
+      return;
+    }
     if (!M.delivery.quoteUrl) { quote = { error: "off" }; showQuote(M.delivery.note); return; }
     showQuote("Checking delivery price…");
     var body = { street: a.street, unit: a.unit, city: a.city, zip: a.zip };
@@ -490,10 +510,12 @@
     if (!$("order-day").value) err = "Please pick a day.";
     else if (!state.name) err = "Please enter your name.";
     else if (state.phone.replace(/\D/g, "").length < 10) err = "Please enter a phone number we can text.";
-    else if (state.mode === "delivery" && !addrComplete(a)) err = "Please enter your delivery street, city, and ZIP code.";
+    else if (state.mode === "delivery" && !addrComplete(a)) err = $("addr-more").hidden
+      ? "Please pick your delivery address from the list, or tap \"Enter city and ZIP yourself\"."
+      : "Please enter your delivery street, city, and ZIP code.";
     else if (state.mode === "delivery" && M.delivery.minimumOrder && subtotal() < M.delivery.minimumOrder)
       err = "Delivery orders need at least " + money(M.delivery.minimumOrder) + " of meat. Add more, or choose pickup.";
-    else if (state.mode === "delivery" && M.delivery.quoteUrl && !quote) err = "Please tap \"Get delivery estimate\" first.";
+    else if (state.mode === "delivery" && M.delivery.quoteUrl && !quote) { err = "Checking your delivery estimate. Please try again in a moment."; getQuote(); }
     else if (state.mode === "delivery" && quote && quote.error === "outside_area")
       err = "We can't deliver to this address. Please choose pickup.";
     var e = $("order-error"); e.hidden = !err; e.textContent = err;
@@ -643,7 +665,7 @@
   function setupSuggest() {
     var input = $("addr-street"), list = $("addr-suggest");
     if (!input || !list || !M.delivery || !M.delivery.suggestUrl) return;
-    var timer = null, items = [], active = -1, lastQ = "", seq = 0;
+    var timer = null, items = [], active = -1, lastQ = "", seq = 0, picked = false;
     input.setAttribute("role", "combobox");
     input.setAttribute("aria-autocomplete", "list");
     input.setAttribute("aria-expanded", "false");
@@ -667,9 +689,10 @@
       if (r.zip) $("addr-zip").value = r.zip;
       state.addrGeo = (r.lat != null && r.lon != null) ? { lat: r.lat, lon: r.lon } : null;
       close(); clearQuote(); readAddr(); save();
-      if (!r.zip) { $("addr-zip").focus(); return; }
+      if (!r.zip || !r.city) { showManual(true); $(r.city ? "addr-zip" : "addr-city").focus(); return; }
+      picked = true; showManual(false); showPicked(r.city, r.zip);
       $("addr-unit").focus();
-      if (addrComplete(state.addr)) getQuote();     // show the estimate right away
+      getQuote();     // show the estimate right away
     }
     function show(results) {
       list.textContent = ""; items = results; active = -1;
@@ -689,15 +712,18 @@
     }
     function search() {
       var q = input.value.trim();
-      if (q.length < 4 || !/\d/.test(q) || q === lastQ) { if (q.length < 4) close(); return; }
+      if (q.length < 4 || q === lastQ) { if (q.length < 4) close(); return; }
       lastQ = q; var my = ++seq;
-      var city = $("addr-city").value.trim();
-      fetch(M.delivery.suggestUrl + "?q=" + encodeURIComponent(q + (city ? " " + city : "")))
+      fetch(M.delivery.suggestUrl + "?q=" + encodeURIComponent(q))
         .then(function (r) { return r.json(); })
         .then(function (d) { if (my === seq && document.activeElement === input) show((d && d.results) || []); })
         .catch(function () { /* suggestions are optional; typing still works */ });
     }
-    input.addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(search, 300); });
+    input.addEventListener("input", function () {
+      // Typing a new address clears the city and ZIP that came from the last pick
+      if (picked || !$("addr-picked").hidden) { picked = false; $("addr-city").value = ""; $("addr-zip").value = ""; $("addr-picked").hidden = true; $("addr-manual").hidden = false; }
+      clearTimeout(timer); timer = setTimeout(search, 250);
+    });
     input.addEventListener("keydown", function (e) {
       if (list.hidden || !items.length) return;
       if (e.key === "ArrowDown") { e.preventDefault(); highlight(active < items.length - 1 ? active + 1 : 0); }
@@ -718,6 +744,10 @@
     $(id).addEventListener("input", function () { clearQuote(); if (id !== "addr-unit") state.addrGeo = null; });
   });
   setupSuggest();
+  $("addr-manual").addEventListener("click", function () { showManual(true); $("addr-city").focus(); });
+  $("addr-zip").addEventListener("input", function () { if (/^\d{5}$/.test(this.value.trim()) && addrComplete(readAddr())) getQuote(); });
+  // Saved address from a previous visit: show it ready to use
+  if (sa.city && sa.zip) { showManual(false); showPicked(sa.city, sa.zip); }
   $("get-quote").addEventListener("click", getQuote);
   $("order-day").addEventListener("change", updateMode);
   $("send-website").addEventListener("click", submitOrder);
