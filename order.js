@@ -159,7 +159,7 @@
   }
 
   function buildPicker(item, body) {
-    var picked = {}, qty = item.min || 1, custom = "";
+    var picked = {}, qty = item.min || 1, custom = "", showCustom = false;
     var units = item.units && item.units.length ? item.units : [item.unit];
     var unit = units[0];
     var step = item.step || 1, min = item.min || step;
@@ -251,21 +251,28 @@
           var b = el("button", "order-opt", v); b.type = "button";
           b.setAttribute("aria-pressed", picked.Packing === v ? "true" : "false");
           if (packs.length === 1) b.disabled = true;
-          b.addEventListener("click", function () { picked.Packing = v; draw(); });
+          b.addEventListener("click", function () { picked.Packing = v; if (/^Other size/.test(v)) showCustom = true; draw(); });
           prow.appendChild(b);
         });
         pg.appendChild(prow); body.appendChild(pg);
       } else delete picked.Packing;
 
-      // Free-text special cutting request, at the end of every item
+      // Free-text special request: tucked behind a link so the form stays simple
+      if (!showCustom && !custom) {
+        var more = el("button", "order-link-btn order-custom-toggle", "+ Add a special cutting or packing request");
+        more.type = "button";
+        more.addEventListener("click", function () { showCustom = true; draw(); var t = body.querySelector(".order-custom textarea"); if (t) t.focus(); });
+        body.appendChild(more);
+      } else {
       var cl = el("label", "order-field order-custom");
-      cl.appendChild(document.createTextNode("Special cutting or packing? (optional)"));
+      cl.appendChild(document.createTextNode("Special cutting or packing request (optional)"));
       var ct = document.createElement("textarea");
       ct.rows = 2; ct.maxLength = 200; ct.value = custom;
       ct.placeholder = "Example: 10 pieces, curry size, 1.5 lb packs";
       ct.addEventListener("input", function () { custom = ct.value; });
       cl.appendChild(ct);
       body.appendChild(cl);
+      }
 
       var ready = (item.choices || []).every(function (q) { return picked[q]; });
       var add = el("button", "btn btn-primary order-add", ready ? "Add to order" : "Choose " + firstMissing().toLowerCase());
@@ -312,8 +319,9 @@
   function renderCart() {
     cartEl.textContent = "";
     if (!state.cart.length) {
-      cartEl.appendChild(el("p", "order-empty", "Nothing added yet."));
+      cartEl.appendChild(el("p", "order-empty", "Nothing added yet. Choose a meat to get started."));
       form.hidden = true;
+      if (typeof updateBar === "function") updateBar();
       return;
     }
     var ul = el("ul", "order-lines"), total = 0, allPriced = true;
@@ -341,6 +349,31 @@
     form.hidden = false;
     renderDays();
     renderTotals();
+    updateBar();
+  }
+
+  // ---------- "Review your order" bar (phones) ----------
+  var bar = el("button", "order-bar");
+  bar.type = "button"; bar.hidden = true;
+  bar.addEventListener("click", function () { $("cart-title").scrollIntoView({ behavior: "smooth", block: "start" }); });
+  document.body.appendChild(bar);
+  var summaryVisible = false;
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(function (es) { summaryVisible = es[0].isIntersecting; updateBar(); }, { rootMargin: "0px 0px -30% 0px" })
+      .observe(document.querySelector(".order-summary"));
+  }
+  function updateBar() {
+    var n = state.cart.length;
+    var show = n > 0 && !summaryVisible && doneEl.hidden;
+    bar.hidden = !show;
+    document.body.classList.toggle("has-order-bar", show);
+    if (!n) return;
+    var total = 0, all = true;
+    state.cart.forEach(function (l) { var c = lineCost(l); if (c == null) all = false; else total += c; });
+    bar.textContent = "";
+    bar.appendChild(el("span", "order-bar-count", n + (n === 1 ? " item" : " items")));
+    bar.appendChild(el("span", "order-bar-total", total > 0 ? (all ? "" : "from ") + money(total) : ""));
+    bar.appendChild(el("span", "order-bar-cta", "Review & send →"));
   }
 
   // ---------- pickup / delivery ----------
@@ -576,7 +609,7 @@
     var back = el("button", "order-link-btn", "Go back and edit this order"); back.type = "button";
     back.addEventListener("click", function () { doneEl.hidden = true; form.hidden = false; cartEl.hidden = false; });
     doneEl.appendChild(again); doneEl.appendChild(back);
-    doneEl.hidden = false; form.hidden = true; cartEl.hidden = true;
+    doneEl.hidden = false; form.hidden = true; cartEl.hidden = true; updateBar();
     doneEl.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 

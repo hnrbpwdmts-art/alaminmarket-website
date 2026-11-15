@@ -603,3 +603,19 @@ a { color: var(--green); }
 .order-opts-tiles .order-opt { border-radius: 12px; padding: 10px 4px; text-align: center; }
 .order-q-sublabel { margin: 12px 0 8px; font-size: .82rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 @media (min-width: 640px) { .order-opts-grid { grid-template-columns: repeat(3, 1fr); } }
+
+/* Simpler item form */
+.order-custom-toggle { display: block; margin-top: 14px; grid-column: auto; }
+.order-qty-row { flex-wrap: wrap; }
+.order-unit-toggle { flex-wrap: nowrap; }
+/* "Review your order" bar on phones (replaces the contact bar while ordering) */
+.order-bar {
+  position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 60;
+  display: flex; align-items: center; gap: 10px; padding: 14px 18px; border: 0; border-radius: 999px;
+  background: var(--red); color: #fff; font: 700 1rem var(--sans); box-shadow: 0 10px 30px rgba(0,0,0,.25); cursor: pointer;
+}
+.order-bar[hidden] { display: none; }
+.order-bar-count { background: rgba(255,255,255,.2); padding: 3px 10px; border-radius: 999px; font-size: .9rem; }
+.order-bar-cta { margin-left: auto; }
+body.has-order-bar .quick-actions { display: none; }
+@media (min-width: 900px) { .order-bar { display: none !important; } }
