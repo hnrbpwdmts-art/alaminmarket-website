@@ -1138,3 +1138,10 @@ body.sheet-open { overflow: hidden; }
 
 /* Weight-allowance note under the review totals */
 .rv-allow-note { font-size: .84rem; color: var(--muted); margin: 8px 0 0; line-height: 1.45; }
+
+/* "Your order was sent" note when a customer comes back to the order page */
+.order-sent-note { background: #eef6ef; border: 1px solid #b9d8bf; border-radius: 12px; padding: 14px; margin: 14px 0 16px; }
+.order-sent-title { margin: 0; font-weight: 700; color: var(--green-dark); }
+.order-sent-sub { margin: 4px 0 10px; font-size: .92rem; color: var(--muted); }
+.order-sent-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.order-sent-btns .btn { flex: 1 1 140px; justify-content: center; cursor: pointer; font-family: var(--sans); }
