@@ -41,6 +41,11 @@ window.MEAT_MENU = {
 
   orderPrefix: "A",          // order numbers look like A1112-482
 
+  /* Meat is weighed after cutting, so the estimate customers see adds this
+     much extra on by-weight items (0.10 = 10%), rounded up to the next dollar.
+     They still pay only for the actual weight. Set 0 to turn it off. */
+  weightAllowance: 0.10,
+
   /* Every order sent is also saved to your Google Sheet. Paste the web app
      link from the setup guide (backend/README.md) between the quotes.
      Leave "" to turn saving off. */

@@ -1135,3 +1135,6 @@ body.sheet-open { overflow: hidden; }
 .order-static ul { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
 .order-static li span { color: var(--muted); font-size: .88rem; }
 .order-noscript { background: #fff4e8; padding: 12px 14px; border-radius: 12px; }
+
+/* Weight-allowance note under the review totals */
+.rv-allow-note { font-size: .84rem; color: var(--muted); margin: 8px 0 0; line-height: 1.45; }

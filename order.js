@@ -486,11 +486,22 @@
     return price * l.qty;
   }
 
+  // Extra added to the customer's estimate for by-weight meat (cuts vary in weight)
+  function allowRate() { var r = Number(M.weightAllowance); return r > 0 ? r : 0; }
+  function allowanceFor(cart) {
+    var t = 0;
+    cart.forEach(function (l) { var c = lineCost(l); if (c != null && priceUnit(findItem(l.id)) === "lb") t += c; });
+    return t * allowRate();
+  }
   function cartTotals() {
     var total = 0, allPriced = true, count = 0;
     state.cart.forEach(function (l) { var c = lineCost(l); count++; if (c == null) allPriced = false; else total += c; });
-    return { total: total, allPriced: allPriced, count: count };
+    var allow = allowanceFor(state.cart);
+    // What we show customers: meat estimate + weight allowance, rounded up to the dollar
+    var shown = total > 0 ? Math.ceil(total + allow) : 0;
+    return { total: total, allow: allow, shown: shown, allPriced: allPriced, count: count };
   }
+  function allowPct() { return Math.round(allowRate() * 100) + "%"; }
   function stepOf(l) { var it = findItem(l.id); return it.step || 1; }
   function minOf(l) { var it = findItem(l.id); return it.min || it.step || 1; }
 
@@ -552,9 +563,11 @@
     // Subtotal + Checkout stay pinned at the bottom of the cart panel on phones
     var foot = el("div", "order-cart-foot");
     var tot = el("p", "order-total");
-    tot.appendChild(el("span", null, "Subtotal (estimate)"));
-    tot.appendChild(el("strong", null, T.allPriced ? money(T.total) : T.total > 0 ? "From " + money(T.total) : "We'll price it"));
-    cartEl.appendChild(el("p", "order-weight-note", "Meat is priced by weight. We'll confirm your final total before you pay."));
+    tot.appendChild(el("span", null, "Estimated total"));
+    tot.appendChild(el("strong", null, T.allPriced ? money(T.shown) : T.total > 0 ? "From " + money(T.shown) : "We'll price it"));
+    cartEl.appendChild(el("p", "order-weight-note", T.allow > 0
+      ? "Meat is priced by weight. This estimate includes about " + allowPct() + " extra, so most orders come in at or below it. You only pay for the actual weight."
+      : "Meat is priced by weight. We'll confirm your final total before you pay."));
     var wk = state.cart.filter(function (l) { var it = findItem(l.id); return it.days && it.days.length; });
     if (wk.length && wk.length < state.cart.length)
       cartEl.appendChild(el("p", "order-mixed-note", "Goat and veal are for Friday or Saturday. Need the rest sooner? You can split it into 2 orders at checkout."));
@@ -641,7 +654,7 @@
     ic.appendChild(el("span", "cart-bar-count", String(T.count)));
     barBtn.appendChild(ic);
     barBtn.appendChild(el("span", "cart-bar-label", "View cart"));
-    barBtn.appendChild(el("span", "cart-bar-total", T.allPriced ? money(T.total) : T.total > 0 ? "From " + money(T.total) : ""));
+    barBtn.appendChild(el("span", "cart-bar-total", T.allPriced ? money(T.shown) : T.total > 0 ? "From " + money(T.shown) : ""));
   }
   function reviewHidden() { return typeof reviewEl === "undefined" || reviewEl.hidden; }
 
@@ -675,7 +688,7 @@
     var txt = el("p", "order-mini-text");
     txt.appendChild(el("strong", null, "Your order: "));
     txt.appendChild(document.createTextNode(T.count + (T.count === 1 ? " item" : " items") +
-      (T.total > 0 ? " · about " + money(T.total) : "")));
+      (T.total > 0 ? " · about " + money(T.shown) : "")));
     m.appendChild(txt);
     var ch = el("button", "order-link-btn", "Change"); ch.type = "button";
     ch.addEventListener("click", function () { setStep(1); });
@@ -968,6 +981,9 @@
       (quote.uberFee != null ? " (Uber quote " + money(quote.uberFee) + (quote.quoteId ? " [" + quote.quoteId + "]" : "") + ")" : ""));
     if (total > 0) lines.push((byWeight ? "Estimated total: " : "Total: ") + (allPriced ? "" : "at least ") + money(total + (fee || 0)) +
       (isDel ? (fee != null ? " incl. delivery" : " + delivery") : "") + (byWeight ? " (final price by weight)" : ""));
+    var allowMsg = allowanceFor(state.cart);
+    if (total > 0 && allowMsg > 0) lines.push("Estimate shown to customer (with " + allowPct() + " weight allowance): " + (allPriced ? "" : "at least ") +
+      money(Math.ceil(total + allowMsg) + (fee || 0)) + (isDel && fee == null ? " + delivery" : ""));
     var notes = $("order-notes").value.trim();
     if (notes) lines.push("Notes: " + notes);
     return lines.join("\n");
@@ -1028,9 +1044,12 @@
     var tot = el("div", "rv-totals");
     function row(label, value, cls) { var r = el("p", "rv-row" + (cls ? " " + cls : "")); r.appendChild(el("span", null, label)); r.appendChild(el("strong", null, value)); tot.appendChild(r); }
     var fee = isDel && quote && quote.fee != null ? quote.fee : null;
-    row(byWeight ? "Estimated meat total" : "Meat total", (allPriced ? "" : "at least ") + money(total));
+    var allow = allowanceFor(state.cart), shownMeat = total > 0 ? Math.ceil(total + allow) : 0;
+    row(byWeight ? "Meat (estimated weight)" : "Meat total", (allPriced ? "" : "at least ") + money(total));
+    if (allow > 0) row("Weight allowance (about " + allowPct() + ")", "+" + money(shownMeat - total));
     if (isDel) row("Delivery", fee != null ? "up to " + money(fee) : "We'll send you a quote");
-    row(byWeight || isDel ? "Estimated total" : "Total", (allPriced ? "" : "at least ") + money(total + (fee || 0)) + (isDel && fee == null ? " + delivery" : ""), "rv-grand");
+    row(byWeight || isDel ? "Estimated total" : "Total", (allPriced ? "" : "at least ") + money(shownMeat + (fee || 0)) + (isDel && fee == null ? " + delivery" : ""), "rv-grand");
+    if (allow > 0) tot.appendChild(el("p", "rv-allow-note", "Every cut weighs a little different, so we add a small cushion. Most orders come in at or below this estimate. You only pay for the actual weight."));
     reviewEl.appendChild(tot);
 
     // What happens next
@@ -1038,7 +1057,7 @@
     next.appendChild(el("h3", null, "What happens next"));
     var steps = el("ol", "rv-steps");
     [["We get your order", "It goes straight to our meat counter."],
-     ["We cut and weigh it", "Meat is sold by weight, and every cut is a little different, so your final weight and price may be slightly more or less than the estimate."],
+     ["We cut and weigh it", "Meat is sold by weight, and every cut is a little different, so we text you the exact price for the actual weight. It's usually at or below your estimate."],
      ["We text you to confirm", "You'll get your final total" + (isDel ? " (with delivery)" : "") + " at " + prettyPhone(state.phone) + "."],
      ["Payment", payText(isDel)],
      [isDel ? "We deliver it" : "Pick it up", isDel ? "We'll bring it to your door at the time we confirm." : "Come to the counter at your pickup time. Your order will be packed and ready."]
