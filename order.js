@@ -867,9 +867,8 @@
     p.hidden = false; $("addr-manual").hidden = true;
   }
   function addrComplete(a) { return a.street.length >= 4 && a.city.length >= 2 && /^\d{5}$/.test(a.zip); }
-  function subtotal() {
-    var t = 0; state.cart.forEach(function (l) { var c = lineCost(l); if (c != null) t += c; }); return t;
-  }
+  // Delivery minimum is checked against the same estimated total the customer sees
+  function subtotal() { return cartTotals().shown; }
   function showQuote(text, isError, isInfo) {
     var q = $("order-quote"); q.hidden = !text; q.textContent = text || "";
     q.classList.toggle("is-error", !!isError);
@@ -947,7 +946,7 @@
       else { err = "Please enter your delivery street, city, and 5-digit ZIP code."; field = a.street.length < 4 ? "addr-street" : a.city.length < 2 ? "addr-city" : "addr-zip"; }
     }
     else if (state.mode === "delivery" && M.delivery.minimumOrder && subtotal() < M.delivery.minimumOrder)
-      err = "Delivery orders need at least " + money(M.delivery.minimumOrder) + " of meat. You have about " + money(subtotal()) + ". Add more, or choose pickup.";
+      err = "Delivery orders need at least " + money(M.delivery.minimumOrder) + " of meat. Your estimated total is " + money(subtotal()) + ". Add a little more, or choose pickup.";
     else if (state.mode === "delivery" && M.delivery.quoteUrl && !quote) { err = "Checking your delivery estimate. Please try again in a moment."; getQuote(); }
     else if (state.mode === "delivery" && quote && quote.error === "outside_area")
       err = "We can't deliver to this address. Please choose pickup.";
