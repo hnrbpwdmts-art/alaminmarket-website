@@ -1044,10 +1044,13 @@
     function row(label, value, cls) { var r = el("p", "rv-row" + (cls ? " " + cls : "")); r.appendChild(el("span", null, label)); r.appendChild(el("strong", null, value)); tot.appendChild(r); }
     var fee = isDel && quote && quote.fee != null ? quote.fee : null;
     var allow = allowanceFor(state.cart), shownMeat = total > 0 ? Math.ceil(total + allow) : 0;
-    row(byWeight ? "Meat (estimated weight)" : "Meat total", (allPriced ? "" : "at least ") + money(total));
+    // Only special requests (no prices yet): don't show "at least $0.00"
+    function amt(v) { return !allPriced && total === 0 ? "We'll text you the price" : (allPriced ? "" : "at least ") + money(v); }
+    row(byWeight ? "Meat (estimated weight)" : "Meat total", amt(total));
     if (allow > 0) row("Weight allowance (about " + allowPct() + ")", "+" + money(shownMeat - total));
     if (isDel) row("Delivery", fee != null ? "up to " + money(fee) : "We'll send you a quote");
-    row(byWeight || isDel ? "Estimated total" : "Total", (allPriced ? "" : "at least ") + money(shownMeat + (fee || 0)) + (isDel && fee == null ? " + delivery" : ""), "rv-grand");
+    if (allPriced || total > 0)
+      row(byWeight || isDel ? "Estimated total" : "Total", amt(shownMeat + (fee || 0)) + (isDel && fee == null ? " + delivery" : ""), "rv-grand");
     if (allow > 0) tot.appendChild(el("p", "rv-allow-note", "Every cut weighs a little different, so we add a small cushion. Most orders come in at or below this estimate. You only pay for the actual weight."));
     reviewEl.appendChild(tot);
 
@@ -1386,4 +1389,23 @@
     }
   } catch (e) { /* old browser: start on the first tab */ }
   renderItems(); renderModes(); renderCart();
+
+  // Came back after sending? Say so, so nobody thinks the order didn't go through
+  // or sends a second copy by accident.
+  if (state.sentNum && state.cart.length && progEl) {
+    var sentBox = el("div", "order-sent-note"); sentBox.setAttribute("role", "status");
+    var at = state.sentAt ? new Date(state.sentAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "";
+    sentBox.appendChild(el("p", "order-sent-title", "✓ Order " + state.sentNum + " was sent" + (at ? " at " + at : "")));
+    sentBox.appendChild(el("p", "order-sent-sub", "We'll text you to confirm. Want to change it, or start a different order?"));
+    var row = el("div", "order-sent-btns");
+    var chg = el("button", "btn btn-cream", "Change this order"); chg.type = "button";
+    chg.addEventListener("click", function () { sentBox.remove(); updateSendLabels(); setStep(2); });
+    var fresh = el("button", "btn btn-primary", "Start a new order"); fresh.type = "button";
+    fresh.addEventListener("click", function () {
+      state.cart = []; state.sentNum = null; state.sentAt = null; submitNum = null; save(); updateSendLabels();
+      sentBox.remove(); renderCart(); setStep(1);
+    });
+    row.appendChild(chg); row.appendChild(fresh); sentBox.appendChild(row);
+    progEl.parentNode.insertBefore(sentBox, progEl.nextSibling);
+  }
 })();
