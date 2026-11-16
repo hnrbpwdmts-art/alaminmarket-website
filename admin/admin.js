@@ -12,6 +12,16 @@
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
   var pass = "", orders = [], tab = "active", timer = null;
+  var chats = [], chatsOn = null, openChat = "", chatTimer = null, chatSig = "";   // chatsOn: null = not known yet
+
+  // Ready-made chat replies (tap to put in the reply box, then edit or send)
+  var QUICK_REPLIES = [
+    "Yes, we have it today. Want us to save some for you?",
+    "Sorry, we're out of that today. Please check back with us soon.",
+    "You can order online here: https://alaminmarket.com/order/ and we'll text you to confirm.",
+    "Please call us at " + (store.phoneDisplay || "(310) 538-1188") + " and we'll help you right away.",
+    "Thank you! See you soon."
+  ];
   try { pass = sessionStorage.getItem(PASS_KEY) || localStorage.getItem(PASS_KEY) || ""; } catch (e) { /* private mode */ }
 
   // ---------- talking to the sheet ----------
@@ -51,7 +61,7 @@
     });
   });
   $("adm-lock").addEventListener("click", function () {
-    pass = ""; orders = [];
+    pass = ""; orders = []; chats = []; openChat = ""; clearInterval(chatTimer);
     try { sessionStorage.removeItem(PASS_KEY); localStorage.removeItem(PASS_KEY); } catch (e) { /* ignore */ }
     $("adm-pass").value = ""; showLogin("");
   });
@@ -69,6 +79,7 @@
         return false;
       }
       orders = res.orders;
+      loadChats();
       $("adm-login").hidden = true; $("adm-app").hidden = false; $("adm-top-actions").hidden = false;
       render();
       checkAlarm();
@@ -86,6 +97,150 @@
   }
   $("adm-refresh").addEventListener("click", function () { load(false); });
   document.addEventListener("visibilitychange", function () { if (!document.hidden && pass && !$("adm-app").hidden) load(false); });
+
+  // ---------- chats ----------
+  function loadChats() {
+    return api({ action: "chats", days: 3 }).then(function (res) {
+      if (!res || !res.ok) return;
+      var wasOn = chatsOn === true;
+      if (!Array.isArray(res.chats)) { var was = chatsOn; chatsOn = false; if (was !== false) render(); return; }   // sheet script not updated yet
+      chatsOn = true;
+      var sig = JSON.stringify(res.chats.map(function (c) { return [c.id, c.messages.length, c.name, c.phone]; }));
+      if (sig === chatSig && wasOn) { checkAlarm(); return; }   // nothing new: don't redraw (keeps scroll position)
+      chatSig = sig;
+      chats = res.chats;
+      if (tab === "chats") { renderChatsKeepTyping(); scrollThread(); } else render();
+      checkAlarm();
+    }).catch(function () { /* try again next time */ });
+  }
+  // Check chats more often while the Chats tab is open
+  function chatPolling() {
+    clearInterval(chatTimer); chatTimer = null;
+    if (tab === "chats" && pass) chatTimer = setInterval(function () { if (!document.hidden) loadChats(); }, 8000);
+  }
+  var DONE_KEY = "alamin-admin-chatdone";
+  var chatDone = {};
+  try { chatDone = JSON.parse(localStorage.getItem(DONE_KEY) || "{}") || {}; } catch (e) { chatDone = {}; }
+  function lastMsg(c) { return c.messages[c.messages.length - 1] || {}; }
+  function needsReply(c) { var m = lastMsg(c); return m.from === "Customer" && chatDone[c.id] !== m.at; }
+  function markDone(c) {
+    chatDone[c.id] = lastMsg(c).at;
+    var keep = {}; chats.forEach(function (x) { if (chatDone[x.id]) keep[x.id] = chatDone[x.id]; }); chatDone = keep;
+    try { localStorage.setItem(DONE_KEY, JSON.stringify(chatDone)); } catch (e) { /* ignore */ }
+  }
+  function ago(iso) {
+    var m = Math.round((Date.now() - Date.parse(iso)) / 60000);
+    if (!(m >= 0)) return "";
+    if (m < 1) return "just now";
+    if (m < 60) return m + " min ago";
+    var d = new Date(iso);
+    return (d.toDateString() === new Date().toDateString() ? "" : d.toLocaleDateString("en-US", { weekday: "short" }) + " ") +
+      d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+  function chatName(c) { return c.name || "Website visitor"; }
+  function renderChatsKeepTyping() {
+    var box = document.getElementById("adm-chat-reply"), keep = box ? box.value : null, focused = box && document.activeElement === box;
+    render();
+    var nb = document.getElementById("adm-chat-reply");
+    if (nb && keep != null) { nb.value = keep; if (focused) nb.focus(); }
+  }
+  function renderChats(ul) {
+    var empty = $("adm-empty");
+    if (chatsOn === false) {
+      empty.hidden = false;
+      empty.textContent = "Chats aren't turned on yet. Paste the updated script into the order sheet (see backend/README.md, \"Live chat\") and deploy a new version.";
+      return;
+    }
+    var c = openChat && chats.filter(function (x) { return x.id === openChat; })[0];
+    if (c) { ul.appendChild(chatThread(c)); empty.hidden = true; return; }
+    openChat = "";
+    chats.forEach(function (x) { ul.appendChild(chatCard(x)); });
+    empty.hidden = chats.length > 0;
+    empty.textContent = chatsOn ? "No chats in the last 3 days. Questions from the website chat show up here." : "Loading chats…";
+  }
+  function chatCard(c) {
+    var li = el("li", "adm-card adm-chat-card" + (needsReply(c) ? " is-new" : ""));
+    var b = el("button", "adm-chat-open"); b.type = "button";
+    var top = el("span", "adm-chat-top");
+    top.appendChild(el("strong", null, chatName(c)));
+    if (needsReply(c)) top.appendChild(el("span", "adm-badge is-new", "Needs reply"));
+    top.appendChild(el("span", "adm-chat-ago", ago(lastMsg(c).at)));
+    b.appendChild(top);
+    var m = lastMsg(c);
+    b.appendChild(el("span", "adm-chat-snip", (m.from === "Store" ? "You: " : "") + m.text));
+    b.addEventListener("click", function () { openChat = c.id; ackChat(c); render(); scrollThread(); });
+    li.appendChild(b);
+    return li;
+  }
+  function scrollThread() { requestAnimationFrame(function () { var t = document.querySelector(".adm-thread-msgs"); if (t) t.scrollTop = t.scrollHeight; }); }
+  function chatThread(c) {
+    var li = el("li", "adm-card adm-thread");
+    var head = el("div", "adm-thread-head");
+    var back = el("button", "adm-link-btn adm-back", "‹ All chats"); back.type = "button";
+    back.addEventListener("click", function () { openChat = ""; render(); });
+    head.appendChild(back);
+    var who = el("div", "adm-who");
+    who.appendChild(el("strong", null, chatName(c)));
+    var links = el("span", "adm-links"), ph = digits(c.phone);
+    if (ph) {
+      var full = ph.length === 10 ? "1" + ph : ph;
+      var call = el("a", null, "Call"); call.href = "tel:+" + full; links.appendChild(call);
+      var t = el("a", null, "Text"); t.href = "sms:+" + full; links.appendChild(t);
+      var wa = el("a", null, "WhatsApp"); wa.href = "https://wa.me/" + full; wa.target = "_blank"; wa.rel = "noopener"; links.appendChild(wa);
+    } else links.appendChild(el("span", "adm-fine-inline", "No phone number given"));
+    who.appendChild(links);
+    head.appendChild(who);
+    li.appendChild(head);
+    if (ph) { var d10 = ph.slice(-10); li.appendChild(el("p", "adm-chat-hint", "If they've left the website, text them at (" + d10.slice(0, 3) + ") " + d10.slice(3, 6) + "-" + d10.slice(6) + ".")); }
+
+    var msgs = el("div", "adm-thread-msgs");
+    c.messages.forEach(function (m) {
+      var row = el("div", "adm-msg " + (m.from === "Store" ? "is-store" : "is-customer"));
+      row.appendChild(el("div", "adm-msg-text", m.text));
+      row.appendChild(el("span", "adm-msg-time", (m.from === "Store" ? "You · " : "") + ago(m.at)));
+      msgs.appendChild(row);
+    });
+    li.appendChild(msgs);
+
+    var quick = el("div", "adm-quick");
+    QUICK_REPLIES.forEach(function (q) {
+      var b = el("button", "adm-quick-btn", q.length > 38 ? q.slice(0, 36) + "…" : q); b.type = "button"; b.title = q;
+      b.addEventListener("click", function () { box.value = q; box.focus(); });
+      quick.appendChild(b);
+    });
+    li.appendChild(quick);
+
+    var form = el("form", "adm-reply");
+    var box = el("textarea"); box.id = "adm-chat-reply"; box.rows = 2; box.placeholder = "Type a reply…"; box.maxLength = 1000;
+    box.setAttribute("aria-label", "Reply to " + chatName(c));
+    var send = el("button", "btn btn-primary", "Send"); send.type = "submit";
+    form.appendChild(box); form.appendChild(send);
+    box.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey && !onPhone) { e.preventDefault(); form.requestSubmit ? form.requestSubmit() : send.click(); } });
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var text = box.value.trim(); if (!text) return;
+      send.disabled = true; send.textContent = "Sending…";
+      api({ action: "chatReply", chatId: c.id, text: text }).then(function (res) {
+        if (!res || !res.ok) throw new Error("save");
+        c.messages.push({ at: res.at || new Date().toISOString(), from: "Store", text: text });
+        box.value = ""; render(); scrollThread();
+      }).catch(function () {
+        send.disabled = false; send.textContent = "Send";
+        toast("Couldn't send. Check your internet and try again.");
+      });
+    });
+    li.appendChild(form);
+
+    var foot = el("div", "adm-thread-foot");
+    if (needsReply(c)) {
+      var done = el("button", "adm-link-btn", "✓ Mark as answered"); done.type = "button"; done.title = "Use this if you answered by phone or text";
+      done.addEventListener("click", function () { markDone(c); ackChat(c); render(); toast("Marked as answered"); });
+      foot.appendChild(done);
+    }
+    if (c.page) foot.appendChild(el("span", "adm-fine-inline", "Asked on " + c.page));
+    li.appendChild(foot);
+    return li;
+  }
 
   // ---------- dates ----------
   function todayISO() {
@@ -112,19 +267,23 @@
   var TABS = [
     { id: "active", label: "To do", test: function (o) { return o.status !== "Done" && o.status !== "Cancelled"; } },
     { id: "today", label: "Today", test: function (o) { return o.date === todayISO() && o.status !== "Cancelled"; } },
-    { id: "done", label: "Done", test: function (o) { return o.status === "Done" || o.status === "Cancelled"; } }
+    { id: "done", label: "Done", test: function (o) { return o.status === "Done" || o.status === "Cancelled"; } },
+    { id: "chats", label: "💬 Chats", chats: true }
   ];
   function render() {
     var tabsEl = $("adm-tabs"); tabsEl.textContent = "";
     TABS.forEach(function (t) {
-      var n = orders.filter(t.test).length;
+      if (t.chats && chatsOn === false) return;   // hide until the sheet script is updated
+      var n = t.chats ? chats.filter(needsReply).length : orders.filter(t.test).length;
       var b = el("button", "adm-tab"); b.type = "button"; b.setAttribute("role", "tab");
       b.setAttribute("aria-selected", t.id === tab ? "true" : "false");
       b.appendChild(document.createTextNode(t.label + " "));
       b.appendChild(el("span", "adm-count", String(n)));
-      b.addEventListener("click", function () { tab = t.id; render(); });
+      if (t.chats && n) b.classList.add("has-chat");
+      b.addEventListener("click", function () { tab = t.id; if (t.chats) { openChat = ""; loadChats(); } render(); chatPolling(); });
       tabsEl.appendChild(b);
     });
+    if (tab === "chats") { var cl = $("adm-list"); cl.textContent = ""; renderChats(cl); return; }
     var t = TABS.filter(function (x) { return x.id === tab; })[0];
     var list = orders.filter(t.test).slice();
     if (tab === "done") list.sort(function (a, b) { return (b.statusAt || b.sentAt).localeCompare(a.statusAt || a.sentAt); });
@@ -309,8 +468,20 @@
   function saveAcks() {
     // keep the list small: only keys for orders still on the page
     var keep = {}; orders.forEach(function (o) { var k = alarmKey(o); if (acked[k]) keep[k] = 1; });
+    chats.forEach(function (c) { var k = chatKey(c); if (acked[k]) keep[k] = 1; });
     acked = keep;
     try { localStorage.setItem(ACK_KEY, JSON.stringify(acked)); } catch (e) { /* ignore */ }
+  }
+  var chatRung = {};
+  function chatKey(c) { return c.id + "|" + lastMsg(c).at; }
+  function pendingChats() { return chats.filter(function (c) { return needsReply(c) && !acked[chatKey(c)]; }); }
+  function ackChat(c) {
+    acked[chatKey(c)] = 1;
+    try { localStorage.setItem(ACK_KEY, JSON.stringify(acked)); } catch (e) { /* ignore */ }
+    setTimeout(checkAlarm, 0);
+  }
+  function chatAnnounce(list) {
+    return list.length > 1 ? "You have " + list.length + " new chat messages." : "New chat message from " + firstName(chatName(list[0])) + ".";
   }
   function ackOrder(o) { acked[alarmKey(o)] = 1; saveAcks(); setTimeout(checkAlarm, 0); }
   function unlockAudio() {
@@ -356,14 +527,35 @@
       n.onclick = function () { window.focus(); n.close(); };
     } catch (e) { /* ignore */ }
   }
-  function ring(list) {
+  function ring(list, chatList) {
     if (!soundOn) return;
     chime();
-    setTimeout(function () { speak(announceText(list)); }, 1300);
+    var say = list.length ? announceText(list) : chatAnnounce(chatList || []);
+    setTimeout(function () { speak(say); }, 1300);
     if (navigator.vibrate) try { navigator.vibrate([300, 150, 300]); } catch (e) { /* ignore */ }
   }
   function checkAlarm() {
-    var list = pendingOrders(), box = $("adm-alarm");
+    var list = pendingOrders(), box = $("adm-alarm"), cl = pendingChats();
+    // a chat the staff member is looking at right now doesn't need an alarm
+    if (tab === "chats" && openChat && !document.hidden) cl.filter(function (c) { return c.id === openChat; }).forEach(function (c) { acked[chatKey(c)] = 1; });
+    cl = pendingChats();
+    if (!list.length && cl.length) {
+      $("adm-alarm-title").textContent = cl.length > 1 ? "💬 " + cl.length + " new chat messages" : "💬 New chat from " + chatName(cl[0]);
+      $("adm-alarm-sub").textContent = cl.length > 1 ? "" : String(lastMsg(cl[0]).text).slice(0, 90);
+      box.hidden = false;
+      var freshC = cl.filter(function (c) { return !chatRung[chatKey(c)]; });
+      if (freshC.length) {
+        freshC.forEach(function (c) { chatRung[chatKey(c)] = 1; });
+        ring([], cl);
+        if ("Notification" in window && Notification.permission === "granted") try {
+          var n = new Notification(chatAnnounce(freshC), { body: String(lastMsg(freshC[0]).text).slice(0, 120), tag: "alamin-chat", renotify: true, icon: "../images/apple-touch-icon.png" });
+          n.onclick = function () { window.focus(); tab = "chats"; openChat = freshC[0].id; render(); n.close(); };
+        } catch (e) { /* ignore */ }
+      }
+      if (!ringTimer) ringTimer = setInterval(function () { var l = pendingOrders(), c2 = pendingChats(); if (l.length || c2.length) ring(l, c2); }, 30000);
+      if (!titleTimer) { var f2 = false; titleTimer = setInterval(function () { f2 = !f2; document.title = f2 ? "💬 New chat!" : baseTitle; }, 1000); }
+      return;
+    }
     if (!list.length) {
       box.hidden = true; clearInterval(ringTimer); ringTimer = null;
       clearInterval(titleTimer); titleTimer = null; document.title = baseTitle;
@@ -379,7 +571,7 @@
       fresh.forEach(function (o) { rung[alarmKey(o)] = 1; });
       ring(list); notify(fresh);
     }
-    if (!ringTimer) ringTimer = setInterval(function () { var l = pendingOrders(); if (l.length) ring(l); }, 30000);
+    if (!ringTimer) ringTimer = setInterval(function () { var l = pendingOrders(), c2 = pendingChats(); if (l.length || c2.length) ring(l, c2); }, 30000);
     if (!titleTimer) {
       var flip = false;
       titleTimer = setInterval(function () { flip = !flip; document.title = flip ? "🔔 New order!" : baseTitle; }, 1000);
@@ -388,6 +580,7 @@
   $("adm-alarm-ok").addEventListener("click", function () {
     unlockAudio();
     pendingOrders().forEach(function (o) { acked[alarmKey(o)] = 1; });
+    pendingChats().forEach(function (c) { acked[chatKey(c)] = 1; });
     saveAcks(); checkAlarm();
     if (window.speechSynthesis) try { speechSynthesis.cancel(); } catch (e) { /* ignore */ }
   });

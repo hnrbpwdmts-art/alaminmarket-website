@@ -84,6 +84,24 @@ The page adds three columns to the Orders tab: Status, Final total, Status updat
 After 10 wrong passcodes the page locks for 15 minutes. To sign everyone out,
 change the passcode and redeploy.
 
+## Live chat (website chat box + staff Chats tab)
+
+Every page has a "Questions?" chat button. Common questions (hours, address,
+delivery, goat and veal days, prices, payment, halal, how to order) are answered
+right away from site-config.js and meat-menu.js, so update those files and the
+answers update too. Anything else, or "Talk to a person", is saved to a
+**Chats** tab in this sheet, emailed to NOTIFY_EMAIL (at most once every 15
+minutes per conversation), and shows on the staff page under **💬 Chats**, with
+the same alarm as new orders. Staff replies appear in the customer's chat box.
+
+To turn it on, paste the updated `Code.gs` into Extensions > Apps Script, keep
+your own ADMIN_PASSCODE line, Save, then Deploy > Manage deployments > pencil
+(Edit) > Version: **New version** > Deploy. Until then the Chats tab stays hidden
+and questions for a person show "didn't go through, please call".
+
+The privacy page says chats are kept up to 90 days: delete older rows from the
+Chats tab now and then.
+
 ## Phone call reminders for new orders (Twilio)
 
 When an order comes in (website, WhatsApp, or text), the store landline rings and reads the order

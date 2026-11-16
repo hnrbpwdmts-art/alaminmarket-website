@@ -36,6 +36,8 @@ var ORDER_HEADERS = ["Sent at", "Order #", "Channel", "Pickup/Delivery", "Pickup
   "Texts opt-in", "Opt-in wording", "Source", "Device", "Status", "Final total", "Status updated",
   "Call status", "Call tries", "Last call"];
 // Order statuses used by the staff order page
+var CHAT_HEADERS = ["Time", "Chat ID", "From", "Name", "Phone", "Message", "Page"];
+var CHAT_EMAIL_EVERY_MINUTES = 15; // email the store about a chat at most this often (per chat)
 var STATUSES = ["New", "Confirmed", "Ready", "Out for delivery", "Done", "Cancelled"];
 var ITEM_HEADERS = ["Sent at", "Order #", "Category", "Item", "Choices", "Special request",
   "Amount", "Unit", "Price", "Price per", "Estimate"];
@@ -47,6 +49,7 @@ function doPost(e) {
   try { parsed = JSON.parse(e.postData.contents); } catch (err) { /* not JSON */ }
   if (parsed && parsed.admin) return adminRequest(parsed);
   if (parsed && parsed.callAck) return callAck(parsed);
+  if (parsed && parsed.chat) return chatRequest(parsed);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -199,6 +202,8 @@ function adminRequest(d) {
   try {
     if (d.action === "list") return jsonReply({ ok: true, orders: listOrders(Number(d.days) || 14), statuses: STATUSES });
     if (d.action === "status") return jsonReply(setStatus(d));
+    if (d.action === "chats") return jsonReply({ ok: true, chats: listChats(Number(d.days) || 3) });
+    if (d.action === "chatReply") return jsonReply(chatReply(d));
     return jsonReply({ ok: true });
   } catch (err) {
     return jsonReply({ ok: false, error: "server", detail: String(err).slice(0, 200) });
@@ -440,4 +445,101 @@ function testCall() {
     payload: JSON.stringify({ secret: CALL_SECRET, order: "T0000-123", name: "Test customer", mode: "pickup", day: "today", time: "3–5 PM", attempt: 1, to: "landline" })
   });
   Logger.log(res.getResponseCode() + " " + res.getContentText());
+}
+
+/* ---------------------------------------------------------------------
+   LIVE CHAT
+   Customers' questions from the website chat box are saved in the "Chats"
+   tab. The staff page shows them and staff replies are saved there too.
+   The website answers common questions by itself; only questions for a
+   person reach this sheet.
+   --------------------------------------------------------------------- */
+var CHAT_ID_RE = /^[a-z0-9]{20,40}$/;
+
+function chatSheet() { return sheet(SpreadsheetApp.getActiveSpreadsheet(), "Chats", CHAT_HEADERS); }
+
+// Rows for one chat, oldest first
+function chatRows(sh, id) {
+  if (sh.getLastRow() < 2) return [];
+  var found = sh.getRange(2, 2, sh.getLastRow() - 1, 1).createTextFinder(id).matchEntireCell(true).findAll();
+  return found.map(function (cell) { return sh.getRange(cell.getRow(), 1, 1, CHAT_HEADERS.length).getValues()[0]; });
+}
+
+function chatMessage(r) {
+  return { at: r[0] instanceof Date ? r[0].toISOString() : String(r[0]), from: String(r[2]), text: String(r[5]).replace(/^'/, "") };
+}
+
+// From the website (through /api/chat): send a message or check for replies
+function chatRequest(d) {
+  var id = String(d.chatId || "");
+  if (!CHAT_ID_RE.test(id)) return jsonReply({ ok: false, error: "bad_chat" });
+  var sh = chatSheet();
+  if (d.action === "send") {
+    var text = String(d.text || "").trim().slice(0, 1000);
+    if (!text) return jsonReply({ ok: false, error: "empty" });
+    var lock = LockService.getScriptLock(); lock.waitLock(20000);
+    try {
+      var phone = cleanPhone(d.phone);
+      sh.appendRow([new Date(), id, "Customer", safe(String(d.name || "").slice(0, 60)), asText(phone), safe(text), safe(String(d.page || "").slice(0, 100))]);
+    } finally { lock.releaseLock(); }
+    emailChat(id, d, text);
+  }
+  var rows = chatRows(sh, id), after = Math.max(Number(d.after) || 0, 0);
+  return jsonReply({ ok: true, count: rows.length, messages: rows.slice(after).map(chatMessage) });
+}
+
+// One email per chat every CHAT_EMAIL_EVERY_MINUTES, so a back-and-forth doesn't flood the inbox
+function emailChat(id, d, text) {
+  if (!NOTIFY_EMAIL) return;
+  var cache = CacheService.getScriptCache(), key = "chatMail" + id;
+  if (cache.get(key)) return;
+  cache.put(key, "1", CHAT_EMAIL_EVERY_MINUTES * 60);
+  var name = String(d.name || "").slice(0, 60) || "A customer", phone = cleanPhone(d.phone);
+  try {
+    MailApp.sendEmail({
+      to: NOTIFY_EMAIL,
+      subject: "New chat question from " + name,
+      body: name + " asked on the website chat:\n\n" + text + "\n\n" + (phone ? "Phone: " + phone + "\n\n" : "") +
+        "Reply on the staff page: https://alaminmarket.com/admin/ (Chats tab)",
+      htmlBody: "<p><strong>" + esc(name) + "</strong> asked on the website chat:</p>" +
+        '<p style="font-size:16px;white-space:pre-wrap">' + esc(text) + "</p>" +
+        (phone ? '<p>Phone: <a href="tel:' + phone + '">' + phone + "</a> · <a href=\"sms:" + phone + '">Text</a></p>' : "") +
+        '<p><a href="https://alaminmarket.com/admin/">Reply on the staff page</a> (Chats tab)</p>',
+      name: "Super Al-Amin Website"
+    });
+  } catch (e) { /* email limit reached; the chat is still saved */ }
+}
+
+// Staff page: chats from the last few days, newest first
+function listChats(days) {
+  var sh = chatSheet();
+  if (sh.getLastRow() < 2) return [];
+  var since = Date.now() - days * 86400000;
+  var rows = sh.getRange(2, 1, sh.getLastRow() - 1, CHAT_HEADERS.length).getValues();
+  var byId = {}, order = [];
+  rows.forEach(function (r) {
+    var t = r[0] instanceof Date ? r[0].getTime() : Date.parse(r[0]);
+    if (!(t >= since)) return;
+    var id = String(r[1]);
+    if (!byId[id]) { byId[id] = { id: id, name: "", phone: "", page: "", messages: [] }; order.push(id); }
+    var c = byId[id];
+    if (r[2] === "Customer") {
+      if (r[3]) c.name = String(r[3]).replace(/^'/, "");
+      if (r[4]) c.phone = String(r[4]).replace(/^'/, "");
+      if (r[6]) c.page = String(r[6]).replace(/^'/, "");
+    }
+    c.messages.push(chatMessage(r));
+  });
+  return order.map(function (id) { return byId[id]; }).sort(function (a, b) {
+    return b.messages[b.messages.length - 1].at.localeCompare(a.messages[a.messages.length - 1].at);
+  });
+}
+
+function chatReply(d) {
+  var id = String(d.chatId || ""), text = String(d.text || "").trim().slice(0, 1000);
+  if (!CHAT_ID_RE.test(id) || !text) return { ok: false, error: "bad_reply" };
+  var sh = chatSheet();
+  if (!chatRows(sh, id).length) return { ok: false, error: "no_chat" };
+  sh.appendRow([new Date(), id, "Store", "", "", safe(text), ""]);
+  return { ok: true, at: new Date().toISOString() };
 }
