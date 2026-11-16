@@ -263,7 +263,7 @@
       b.addEventListener("click", function () { ask(c[1], true); });
       chips.appendChild(b);
     });
-    if (!state.person) {
+    if (!state.person && personOK !== false) {
       var p = el("button", "chat-chip chat-chip-person", "💬 Talk to a person"); p.type = "button";
       p.addEventListener("click", function () { goPerson(""); });
       chips.appendChild(p);
@@ -295,7 +295,26 @@
     }
   }
 
+  // Is the staff side switched on? (The order sheet's script must be updated
+  // for chats.) Checked once, when the chat opens. Until it is, questions for
+  // a person get the store's phone numbers instead, and this turns on by
+  // itself as soon as the script is updated.
+  var personOK = null, checking = null;
+  function checkPerson(cb) {
+    if (personOK !== null || state.person) { if (state.person) personOK = true; return cb && cb(); }
+    if (!checking) checking = post({ action: "poll", chatId: state.id || newId(), after: 0 })
+      .then(function (res) { personOK = !!(res && res.ok); })
+      .catch(function () { personOK = false; })
+      .then(function () { checking = null; renderChips(); });
+    checking.then(function () { if (cb) cb(); });
+  }
   function goPerson(question) {
+    if (personOK === null && !state.person) { checkPerson(function () { goPerson(question); }); return; }
+    if (personOK === false && !state.person) {
+      push({ from: "bot", lines: [(question ? "Good question! " : "") + "For that, please " + phoneLine().charAt(0).toLowerCase() + phoneLine().slice(1) + " We'll help you right away."] });
+      track("chat_person_off");
+      return;
+    }
     state.person = true;
     if (!state.id) state.id = newId();
     var o = openState();
@@ -405,6 +424,7 @@
     panel.hidden = false; launcher.classList.add("is-open"); document.body.classList.add("chat-open");
     state.unread = 0; showBadge(); save();
     menu(function () { /* load prices and times for answers */ });
+    checkPerson();
     var o = openState();
     headSub.textContent = o.open ? "Open now · usually replies in minutes" : "Closed now · we'll reply when we open";
     if (!state.msgs.length) {
