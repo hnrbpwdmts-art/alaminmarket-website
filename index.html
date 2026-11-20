@@ -21,7 +21,7 @@
   <link rel="icon" href="images/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=20261120a">
+  <link rel="stylesheet" href="styles.css?v=20261120b">
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -258,6 +258,21 @@
       </div>
     </section>
 
+    <!-- SEASONAL: halal turkey (hides itself after Nov 25 via data-until) -->
+    <section class="promo" aria-labelledby="promo-title" data-until="2026-11-25">
+      <div class="container">
+        <a class="promo-card" href="halal-turkey/">
+          <img class="promo-art" src="images/art/turkey.svg" alt="" width="240" height="190">
+          <span class="promo-text">
+            <span class="promo-kicker">🦃 Thanksgiving special</span>
+            <strong id="promo-title" class="promo-title">Halal Turkey: $2.99/lb</strong>
+            <span class="promo-sub">Whole turkeys, about 12–14 lb each (around $36–$42). Order online by Wed, Nov 25 for pickup or delivery.</span>
+          </span>
+          <span class="btn btn-red promo-btn">Order a turkey <span aria-hidden="true">→</span></span>
+        </a>
+      </div>
+    </section>
+
     <!-- 2. SHOP THE MEAT COUNTER -->
     <section id="meat" class="section" aria-labelledby="meat-title">
       <div class="container">
@@ -268,7 +283,7 @@
         </div>
         <ul class="meat-cats" aria-label="Meat categories">
           <li><a class="meat-cat" href="order/?cat=chicken"><img src="images/art/chicken.svg" alt="" width="240" height="190" loading="lazy"><span class="meat-cat-name">Chicken</span><span class="meat-cat-price" data-from="chicken">Whole, boneless, wings &amp; more</span><span class="meat-cat-go">Shop chicken →</span></a></li>
-          <li><a class="meat-cat" href="halal-turkey/"><span class="meat-cat-badge">Thanksgiving</span><img src="images/art/turkey.svg" alt="" width="240" height="190" loading="lazy"><span class="meat-cat-name">Halal Turkey</span><span class="meat-cat-price">$2.99/lb · 12–14 lb each</span><span class="meat-cat-go">Shop turkey →</span></a></li>
+          <li data-until="2026-11-25"><a class="meat-cat" href="halal-turkey/"><span class="meat-cat-badge">Thanksgiving</span><img src="images/art/turkey.svg" alt="" width="240" height="190" loading="lazy"><span class="meat-cat-name">Halal Turkey</span><span class="meat-cat-price">$2.99/lb · 12–14 lb each</span><span class="meat-cat-go">Shop turkey →</span></a></li>
           <li><a class="meat-cat" href="order/?cat=lamb"><img src="images/art/lamb.svg" alt="" width="240" height="190" loading="lazy"><span class="meat-cat-name">Lamb</span><span class="meat-cat-price" data-from="lamb">New Zealand lamb</span><span class="meat-cat-go">Shop lamb →</span></a></li>
           <li><a class="meat-cat" href="order/?cat=beef"><img src="images/art/beef.svg" alt="" width="240" height="190" loading="lazy"><span class="meat-cat-name">Beef</span><span class="meat-cat-price" data-from="beef">Boneless, shank &amp; more</span><span class="meat-cat-go">Shop beef →</span></a></li>
           <li><a class="meat-cat" href="order/?cat=goat"><span class="meat-cat-badge">Fri &amp; Sat</span><img src="images/art/goat.svg" alt="" width="240" height="190" loading="lazy"><span class="meat-cat-name">Baby Goat</span><span class="meat-cat-price" data-from="goat">Fresh every weekend</span><span class="meat-cat-go">Shop goat →</span></a></li>
@@ -486,9 +501,9 @@
     </a>
   </nav>
 
-  <script src="site-config.js?v=20261120a"></script>
-  <script src="meat-menu.js?v=20261120a"></script>
-  <script src="main.js?v=20261120a"></script>
-  <script src="chat.js?v=20261120a"></script>
+  <script src="site-config.js?v=20261120b"></script>
+  <script src="meat-menu.js?v=20261120b"></script>
+  <script src="main.js?v=20261120b"></script>
+  <script src="chat.js?v=20261120b"></script>
 </body>
 </html>

@@ -102,7 +102,7 @@
       menu(function (M) {
         var it = null;
         if (M) M.categories.forEach(function (c) { c.items.forEach(function (x) { if (!it && /turkey/i.test(x.name)) it = x; }); });
-        if (!it) return done(["Please ask us about turkeys: " + phoneLine().charAt(0).toLowerCase() + phoneLine().slice(1)]);
+        if (!it) return done(["Turkey orders for this season are closed. Thank you! For anything else, " + phoneLine().charAt(0).toLowerCase() + phoneLine().slice(1)]);
         var p = itemPrice(it), est = it.avgWeight ? " (about " + money(p * it.avgWeight) + " each)" : "";
         done(["Yes! " + it.name + ": " + money(p) + "/lb" + (it.note ? ". " + it.note.replace(/\.$/, "") : "") + est + ".",
           "Order ahead online and we'll set it aside for you. [Order a turkey](order/?cat=turkey)"]);

@@ -132,6 +132,7 @@
     lamb: '<circle cx="9" cy="15" r="5.5"/><circle cx="9" cy="15" r="2"/><path d="M13 11l6.5-6.5"/><circle cx="20" cy="3.6" r="1.3"/><circle cx="20.6" cy="5.8" r="1.3"/>',
     beef: '<path d="M3.5 12.5C3.5 7.5 8 4.5 13 4.5c4.5 0 7.5 2.7 7.5 6.2 0 2.6-1.8 3.8-3.6 4.8-1.9 1-2.4 4-6.4 4C6.2 19.5 3.5 16.6 3.5 12.5z"/><circle cx="14" cy="10" r="2.2"/>',
     goat: '<path d="M8 7C6.5 4.5 4 4 2.5 5.5c2 .2 3.3 1.5 4 3.5"/><path d="M16 7c1.5-2.5 4-3 5.5-1.5-2 .2-3.3 1.5-4 3.5"/><path d="M7 10c0-2.4 2.2-3.6 5-3.6s5 1.2 5 3.6v4.5c0 3-2.2 5.5-5 5.5s-5-2.5-5-5.5z"/><path d="M10 12h.01M14 12h.01"/><path d="M11 20.5c.3 1 .6 1.5 1 1.5s.7-.5 1-1.5"/>',
+    turkey: '<path d="M12 21c-3.3 0-5.5-2.4-5.5-5.4 0-2.7 2-4.6 5.5-4.6s5.5 1.9 5.5 4.6c0 3-2.2 5.4-5.5 5.4z"/><path d="M6.8 13.2C4.6 11.6 3.6 9 4.2 6.4M9 11.2C8 8.6 8.4 5.4 10 3.5M15 11.2c1-2.6.6-5.8-1-7.7M17.2 13.2c2.2-1.6 3.2-4.2 2.6-6.8"/><circle cx="12" cy="8.2" r="1.7"/>',
     veal: '<path d="M5 10c0-3 3-5 7-5s7 2 7 5v3c0 4-3 7-7 7s-7-3-7-7z"/><path d="M5 10L2.5 8.5M19 10l2.5-1.5"/><path d="M9.5 15.5c1.5 1 3.5 1 5 0"/><path d="M9.5 11h.01M14.5 11h.01"/>'
   };
   // Illustration for items without their own photo (images/art/<category>.svg)
@@ -204,6 +205,7 @@
     var tags = el("span", "order-item-tags");
     tags.appendChild(el("span", "order-item-price", priceLabel(item)));
     if (item.days && item.days.length) tags.appendChild(el("span", "order-badge-days", daysShort(item.days)));
+    if (item.until) tags.appendChild(el("span", "order-badge-days", "Until " + untilText(item.until).replace(/^\w+, /, "")));
     main.appendChild(tags);
     head.appendChild(main);
     var plus = el("span", "order-item-plus"); plus.innerHTML = '<span class="plus-txt">+ Add</span>'; head.appendChild(plus);
@@ -324,6 +326,7 @@
     function draw() {
       body.textContent = "";
       if (item.days && item.days.length) body.appendChild(el("p", "order-item-days", "Available for " + item.days.map(function (d) { return DAY_FULL[d] || d; }).join(" and ") + " pickup or delivery only"));
+      if (item.until) body.appendChild(el("p", "order-item-days", "Pickup or delivery through " + untilText(item.until) + " only"));
       (item.choices || []).forEach(function (q) {
         var opts = optionsFor(item, q, picked);
         if (picked[q] && opts.indexOf(picked[q]) === -1) delete picked[q];
@@ -763,15 +766,14 @@
   function renderDays() {
     var sel = $("order-day"), prev = sel.value;
     sel.textContent = "";
-    var need = [], firstOk = null;
-    state.cart.forEach(function (l) { var it = findItem(l.id); if (it.days && it.days.length) need.push(it.days); });
+    var firstOk = null;
     var now = storeNow();
     for (var i = 0; i <= (M.daysAhead || 7); i++) {
       var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
       var dn = DAY_NAMES[d.getDay()];
       if (!windowsFor(state.mode, d, i === 0).length) continue;     // e.g. today after 6 PM
       if ((M.closedDays || []).indexOf(isoDate(d)) > -1) continue;
-      var ok = need.every(function (days) { return days.indexOf(dn) > -1; });
+      var ok = state.cart.every(function (l) { return itemOkOn(findItem(l.id), d); });
       var label = (i === 0 ? "Today, " : i === 1 ? "Tomorrow, " : "") +
         d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
       var o = el("option", null, label); o.value = label; o.setAttribute("data-date", isoDate(d)); o.setAttribute("data-ok", ok ? "1" : "0");
@@ -791,28 +793,42 @@
     var iso = opt && opt.getAttribute("data-date");
     if (!iso) return null;
     var p = iso.split("-"), d = new Date(+p[0], +p[1] - 1, +p[2]);
-    return { opt: opt, name: DAY_NAMES[d.getDay()], short: d.toLocaleDateString("en-US", { weekday: "long" }) };
+    return { opt: opt, date: d, name: DAY_NAMES[d.getDay()], short: d.toLocaleDateString("en-US", { weekday: "long" }) };
   }
-  function linesNotOn(dayName) {
-    return state.cart.filter(function (l) { var it = findItem(l.id); return it.days && it.days.length && it.days.indexOf(dayName) === -1; });
+  // Can this item be picked up / delivered on this date? (weekday-only items, seasonal "until" items)
+  function itemOkOn(it, d) {
+    if (!it) return true;
+    if (it.days && it.days.length && it.days.indexOf(DAY_NAMES[d.getDay()]) === -1) return false;
+    if (it.until && isoDate(d) > it.until) return false;
+    return true;
   }
-  function dayConflict() { var c = chosenDay(); return !!(c && linesNotOn(c.name).length); }
+  function untilText(iso) {
+    var p = iso.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  }
+  function linesNotOn(c) {
+    return state.cart.filter(function (l) { return !itemOkOn(findItem(l.id), c.date); });
+  }
+  function dayConflict() { var c = chosenDay(); return !!(c && linesNotOn(c).length); }
   function joinWords(list) { return list.length < 2 ? list.join("") : list.slice(0, -1).join(", ") + " and " + list[list.length - 1]; }
   function dayNote() {
     var box = $("order-day-note"); if (!box) return;
     box.textContent = "";
-    var c = chosenDay(), bad = c ? linesNotOn(c.name) : [];
+    var c = chosenDay(), bad = c ? linesNotOn(c) : [];
     $("order-day").toggleAttribute("aria-invalid", bad.length > 0);
     if (!bad.length) { box.hidden = true; return; }
-    var catNames = [], dayList = [];
+    var catNames = [], dayList = [], lastDay = "";
     bad.forEach(function (l) {
-      var cat = categoryOf(l.id), n = (cat ? cat.name : findItem(l.id).name).toLowerCase();
+      var it = findItem(l.id), cat = categoryOf(l.id), n = (cat ? cat.name : it.name).toLowerCase();
       if (catNames.indexOf(n) === -1) catNames.push(n);
-      (findItem(l.id).days || []).forEach(function (d) { var f = (DAY_FULL[d] || d) + "s"; if (dayList.indexOf(f) === -1) dayList.push(f); });
+      (it.days || []).forEach(function (d) { var f = (DAY_FULL[d] || d) + "s"; if (dayList.indexOf(f) === -1) dayList.push(f); });
+      if (it.until && (!lastDay || it.until < lastDay)) lastDay = it.until;
     });
+    var seasonal = !dayList.length && lastDay;
     var what = joinWords(catNames), rest = state.cart.length - bad.length;
     var whatCap = what.charAt(0).toUpperCase() + what.slice(1);
-    box.appendChild(el("p", "order-day-note-title", "Fresh " + what + (catNames.length > 1 ? " are" : " is") + " only available on " + joinWords(dayList) + "."));
+    box.appendChild(el("p", "order-day-note-title", seasonal
+      ? whatCap + (catNames.length > 1 ? " are" : " is") + " only available for pickup or delivery through " + untilText(lastDay) + "."
+      : "Fresh " + what + (catNames.length > 1 ? " are" : " is") + " only available on " + joinWords(dayList) + "."));
     box.appendChild(el("p", "order-day-note-sub", "Choose what works best for you:"));
     var opts = el("div", "order-day-opts");
     function option(title, sub, fn, primary) {
@@ -825,7 +841,7 @@
       $("order-day").value = firstOk.value; updateMode(); dayNote(); toast("Day changed to " + firstOk.value);
     }, true);
     if (rest > 0) {
-      option("Split into 2 orders", "Everything else on " + c.short + ", then order the " + what + " for the weekend", function () {
+      option("Split into 2 orders", "Everything else on " + c.short + ", then order the " + what + (seasonal ? " for an earlier day" : " for the weekend"), function () {
         state.later = (state.later || []).concat(bad);
         state.cart = state.cart.filter(function (l) { return bad.indexOf(l) === -1; });
         save(); renderCart(); renderMini();
@@ -1253,9 +1269,9 @@
       var names = [];
       state.later.forEach(function (l) { var n = findItem(l.id).name; if (names.indexOf(n) === -1) names.push(n); });
       var nx = el("div", "done-next");
-      nx.appendChild(el("p", "done-next-title", "Next: your weekend order"));
+      nx.appendChild(el("p", "done-next-title", "Next: your second order"));
       nx.appendChild(el("p", null, joinWords(names) + " is saved. Order it now for Friday or Saturday. Your details are already filled in."));
-      var go = el("button", "btn btn-red done-next-btn", "Order my weekend items ›"); go.type = "button";
+      var go = el("button", "btn btn-red done-next-btn", "Order the rest ›"); go.type = "button";
       go.addEventListener("click", function () {
         state.cart = state.later; state.later = []; state.sentNum = null; state.sentAt = null; submitNum = null;
         save(); updateSendLabels();

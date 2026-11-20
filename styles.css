@@ -1221,3 +1221,32 @@ body.cart-open .chat-launcher, body.sheet-open .chat-launcher { display: none; }
 .turkey-grid { display: grid; gap: 24px; align-items: start; }
 .turkey-art img { width: 100%; max-width: 320px; height: auto; display: block; margin: 0 auto; }
 @media (min-width: 800px) { .turkey-grid { grid-template-columns: 300px 1fr; gap: 40px; } }
+
+/* Category tabs: keep them on one row on computers (6–7 tabs) */
+@media (min-width: 760px) {
+  .order-cats { display: flex; flex-wrap: nowrap; gap: 8px; }
+  .order-cats .order-cat { flex: 1 1 0; min-width: 0; padding: 12px 4px; font-size: .92rem; white-space: nowrap; }
+}
+
+/* Seasonal promo card on the homepage */
+.promo { padding: 0 0 8px; }
+.promo-card { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 6px 16px; padding: 16px; border-radius: 20px; text-decoration: none; color: var(--green-dark);
+  background: linear-gradient(120deg, #fff4df, #fbe3c4); border: 2px solid #e9c38f; box-shadow: 0 10px 26px rgba(150,90,30,.15); }
+.promo-art { width: 110px; height: auto; grid-row: span 2; }
+.promo-text { display: flex; flex-direction: column; gap: 4px; }
+.promo-kicker { font-size: .82rem; font-weight: 700; color: var(--red); text-transform: uppercase; letter-spacing: .04em; }
+.promo-title { font-family: var(--serif, Georgia, serif); font-size: 1.45rem; line-height: 1.15; }
+.promo-sub { font-size: .95rem; color: #5b4a36; line-height: 1.4; }
+.promo-btn { justify-self: start; }
+.promo-card:hover .promo-btn { background: #962b22; }
+@media (min-width: 760px) {
+  .promo-card { grid-template-columns: 150px 1fr auto; padding: 18px 26px; gap: 22px; }
+  .promo-art { width: 150px; grid-row: auto; }
+  .promo-title { font-size: 1.8rem; }
+  .promo-btn { justify-self: end; }
+}
+@media (max-width: 759px) {
+  .promo-card { grid-template-columns: 84px 1fr; gap: 10px 14px; }
+  .promo-art { width: 84px; grid-row: auto; align-self: start; }
+  .promo-btn { grid-column: 1 / -1; justify-self: stretch; justify-content: center; white-space: nowrap; }
+}
