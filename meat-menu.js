@@ -238,7 +238,8 @@ window.MEAT_MENU = {
     {
       id: "turkey",
       name: "Turkey",
-      note: "Whole halal turkeys, about 12–14 lb each. Sold by weight.",
+      note: "Whole halal turkeys, about 12–14 lb each. Order for pickup or delivery by Wed, Nov 25.",
+      until: "2026-11-25",
       items: [
         {
           id: "whole-turkey",
@@ -249,6 +250,7 @@ window.MEAT_MENU = {
           unit: "each",
           countName: ["turkey", "turkeys"],
           avgWeight: 13,
+          until: "2026-11-25",
           min: 1, step: 1
         }
       ]
@@ -446,3 +448,16 @@ window.MEAT_MENU = {
     }
   ]
 };
+
+/* Seasonal items: a category or item with until: "YYYY-MM-DD" is shown through
+   that date (store time) and can only be picked up or delivered by then. After
+   it, it disappears from the website by itself. */
+(function () {
+  var M = window.MEAT_MENU;
+  var today;
+  try { today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date()); }
+  catch (e) { var d = new Date(); today = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  var live = function (x) { return !x.until || today <= x.until; };
+  M.categories = M.categories.filter(live).map(function (c) { c.items = (c.items || []).filter(live); return c; })
+    .filter(function (c) { return c.items.length; });
+})();

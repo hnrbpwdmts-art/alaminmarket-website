@@ -258,6 +258,16 @@
     if (document.getElementById("social")) document.getElementById("social").hidden = false;
   })();
 
+  // Seasonal bits: data-until="YYYY-MM-DD" shows through that date (store time),
+  // data-after="YYYY-MM-DD" shows only after it.
+  (function () {
+    var today;
+    try { today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date()); }
+    catch (e) { today = new Date().toISOString().slice(0, 10); }
+    document.querySelectorAll("[data-until]").forEach(function (el) { if (today > el.getAttribute("data-until")) el.hidden = true; });
+    document.querySelectorAll("[data-after]").forEach(function (el) { el.hidden = !(today > el.getAttribute("data-after")); });
+  })();
+
   // Announcement banner
   var a = S.announcement;
   if (a && a.show && a.text && !(a.hideAfter && new Date() >= new Date(a.hideAfter + "T00:00:00-08:00"))) {
