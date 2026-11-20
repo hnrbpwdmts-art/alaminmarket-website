@@ -250,6 +250,7 @@ window.MEAT_MENU = {
           unit: "each",
           countName: ["turkey", "turkeys"],
           avgWeight: 13,
+          packing: [],          // sold whole and frozen: no packing choice
           until: "2026-11-25",
           min: 1, step: 1
         }
