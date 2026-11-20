@@ -90,7 +90,7 @@
   // ---------- instant answers ----------
   // Each answer is a list of lines. [label](link) becomes a link.
   function phoneLine() { return "Call the store at [" + store.phoneDisplay + "](" + store.phoneLink + ")" + (store.whatsappDisplay ? ", or WhatsApp/text [" + store.whatsappDisplay + "](https://wa.me/" + store.whatsappNumber + ")." : "."); }
-  var CATS = { chicken: /chicken|murgh|murghi|murgi/, beef: /beef|gosht|cow/, lamb: /lamb/, goat: /goat|bakra|mutton/, veal: /veal/ };
+  var CATS = { turkey: /turkey|thanksgiving/, chicken: /chicken|murgh|murghi|murgi/, beef: /beef|gosht|cow/, lamb: /lamb/, goat: /goat|bakra|mutton/, veal: /veal/ };
   function catIn(q) { for (var c in CATS) if (CATS[c].test(q)) return c; return ""; }
 
   var INTENTS = [
@@ -98,6 +98,16 @@
     { id: "status", re: /\b(my order|order status|status|ready yet|haven'?t heard|no (text|reply|response)|did you get|confirm(ed|ation)?)\b/, answer: function () {
       return ["After you send an order, we text you at the number you gave to confirm the exact total and pickup or delivery time.",
         "Haven't heard back within 30 minutes while we're open? Tap Talk to a person, or " + phoneLine().charAt(0).toLowerCase() + phoneLine().slice(1)]; } },
+    { id: "turkey", re: /\b(turkey|turkeys|thanksgiving)\b/, answer: function (q, done) {
+      menu(function (M) {
+        var it = null;
+        if (M) M.categories.forEach(function (c) { c.items.forEach(function (x) { if (!it && /turkey/i.test(x.name)) it = x; }); });
+        if (!it) return done(["Please ask us about turkeys: " + phoneLine().charAt(0).toLowerCase() + phoneLine().slice(1)]);
+        var p = itemPrice(it), est = it.avgWeight ? " (about " + money(p * it.avgWeight) + " each)" : "";
+        done(["Yes! " + it.name + ": " + money(p) + "/lb" + (it.note ? ". " + it.note.replace(/\.$/, "") : "") + est + ".",
+          "Order ahead online and we'll set it aside for you. [Order a turkey](order/?cat=turkey)"]);
+      });
+      return null; } },
     { id: "goat", re: /\b(goat|bakra|mutton|veal|baby goat|kid meat)\b/, answer: function () {
       var d = nowLA().day, line = "Fresh baby goat and veal are available on Fridays and Saturdays.";
       var today = d === 5 || d === 6 ? "Today is " + DAY_NAMES[d] + ", so you can get them today." : "You can order ahead any day and choose Friday or Saturday for pickup or delivery.";
@@ -151,8 +161,11 @@
     var hits = INTENTS.filter(function (i) { return i.re.test(q); });
     if (hits.some(function (h) { return h.id === "person"; })) return [INTENTS[0]];
     var real = hits.filter(function (h) { return h.id !== "thanks" && h.id !== "hello"; });
+    // "halal turkey price?" → the turkey answer already covers halal and price
+    if (real.some(function (h) { return h.id === "turkey" || h.id === "goat"; }))
+      real = real.filter(function (h) { return h.id !== "halal" && h.id !== "price"; });
     if (real.length) {
-      if (STOCK.test(q) && !real.some(function (h) { return /goat|delivery|hours|location|payment|halal|groceries|price/.test(h.id); })) return [];
+      if (STOCK.test(q) && !real.some(function (h) { return /turkey|goat|delivery|hours|location|payment|halal|groceries|price/.test(h.id); })) return [];
       return real.slice(0, 2);
     }
     if (hits.length && q.split(/\s+/).length <= 5) return hits.slice(0, 1);

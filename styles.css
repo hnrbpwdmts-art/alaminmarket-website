@@ -1216,3 +1216,8 @@ body.cart-open .chat-launcher, body.sheet-open .chat-launcher { display: none; }
 .chat-contact-btns { display: flex; gap: 8px; }
 .chat-contact-ok { flex: 1; border: 0; border-radius: 999px; background: var(--green); color: #fff; padding: 10px; font: 700 .92rem var(--sans); cursor: pointer; }
 .chat-contact-skip { border: 0; background: none; color: var(--muted); text-decoration: underline; font: 600 .9rem var(--sans); cursor: pointer; padding: 10px 12px; }
+
+/* Halal turkey page */
+.turkey-grid { display: grid; gap: 24px; align-items: start; }
+.turkey-art img { width: 100%; max-width: 320px; height: auto; display: block; margin: 0 auto; }
+@media (min-width: 800px) { .turkey-grid { grid-template-columns: 300px 1fr; gap: 40px; } }

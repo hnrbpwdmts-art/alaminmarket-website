@@ -236,6 +236,24 @@ window.MEAT_MENU = {
       ]
     },
     {
+      id: "turkey",
+      name: "Turkey",
+      note: "Whole halal turkeys, about 12–14 lb each. Sold by weight.",
+      items: [
+        {
+          id: "whole-turkey",
+          name: "Whole Halal Turkey",
+          note: "Average weight 12–14 lb. Final price by actual weight.",
+          price: 2.99,
+          priceUnit: "lb",
+          unit: "each",
+          countName: ["turkey", "turkeys"],
+          avgWeight: 13,
+          min: 1, step: 1
+        }
+      ]
+    },
+    {
       id: "lamb",
       name: "Lamb",
       note: "All our lamb is New Zealand grass-fed and comes frozen.",
