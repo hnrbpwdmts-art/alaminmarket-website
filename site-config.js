@@ -288,7 +288,7 @@ window.SITE = {
      "directions", or a full web address. Leave linkText "" for no link. */
   announcement: {
     show: true,
-    text: "🦃 Halal turkeys for Thanksgiving: $2.99/lb, about 12–14 lb each.",
+    text: "🦃 Frozen halal turkeys for Thanksgiving: $2.99/lb, about 12–14 lb each.",
     linkText: "Order yours",
     linkTo: "/halal-turkey/",
     hideAfter: "2026-11-26"     // banner hides itself from this date (leave "" to keep it up)

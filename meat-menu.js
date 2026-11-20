@@ -238,13 +238,13 @@ window.MEAT_MENU = {
     {
       id: "turkey",
       name: "Turkey",
-      note: "Whole halal turkeys, about 12–14 lb each. Order for pickup or delivery by Wed, Nov 25.",
+      note: "Frozen whole halal turkeys, about 12–14 lb each. Order for pickup or delivery by Wed, Nov 25.",
       until: "2026-11-25",
       items: [
         {
           id: "whole-turkey",
-          name: "Whole Halal Turkey",
-          note: "Average weight 12–14 lb. Final price by actual weight.",
+          name: "Whole Halal Turkey (Frozen)",
+          note: "Comes frozen. Average weight 12–14 lb. Final price by actual weight.",
           price: 2.99,
           priceUnit: "lb",
           unit: "each",
