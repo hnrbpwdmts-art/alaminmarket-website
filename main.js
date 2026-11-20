@@ -260,7 +260,7 @@
 
   // Announcement banner
   var a = S.announcement;
-  if (a && a.show && a.text) {
+  if (a && a.show && a.text && !(a.hideAfter && new Date() >= new Date(a.hideAfter + "T00:00:00-08:00"))) {
     var bar = document.getElementById("announcement");
     var p = document.createElement("p");
     p.className = "container";

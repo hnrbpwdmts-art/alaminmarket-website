@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 190" role="img" aria-label="Whole halal turkey"><ellipse cx="120" cy="178" rx="96" ry="10" fill="#143726" opacity=".10"/>
+<rect x="22" y="40" width="196" height="128" rx="22" fill="#c98b52"/><rect x="22" y="40" width="196" height="128" rx="22" fill="none" stroke="#a96f3d" stroke-width="5"/>
+<path d="M40 70h160M40 104h160M40 138h160" stroke="#b67a45" stroke-width="2" opacity=".45" stroke-linecap="round"/>
+<g>
+<path d="M70 104 C70 70 98 58 124 58 C154 58 178 74 178 104 C178 134 152 150 124 150 C96 150 70 138 70 104Z" fill="#f0b49d"/>
+<path d="M84 118 C96 138 128 144 154 132" stroke="#e39178" stroke-width="7" fill="none" stroke-linecap="round"/>
+<path d="M96 78 C110 70 134 68 152 76" stroke="#f8cfbf" stroke-width="7" fill="none" stroke-linecap="round"/>
+<path d="M124 64 C124 82 124 120 124 144" stroke="#e8a48b" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>
+<path d="M150 128 C166 136 176 148 182 160" stroke="#f0b49d" stroke-width="22" fill="none" stroke-linecap="round"/>
+<path d="M98 128 C82 136 72 148 66 160" stroke="#f0b49d" stroke-width="22" fill="none" stroke-linecap="round"/>
+<path d="M150 128 C162 134 170 142 175 150" stroke="#e39178" stroke-width="5" fill="none" stroke-linecap="round" opacity=".7"/>
+<path d="M98 128 C86 134 78 142 73 150" stroke="#e39178" stroke-width="5" fill="none" stroke-linecap="round" opacity=".7"/>
+<circle cx="186" cy="166" r="7" fill="#f7efdc" stroke="#e6d8b8" stroke-width="2"/><circle cx="194" cy="160" r="6" fill="#f7efdc" stroke="#e6d8b8" stroke-width="2"/>
+<circle cx="62" cy="166" r="7" fill="#f7efdc" stroke="#e6d8b8" stroke-width="2"/><circle cx="54" cy="160" r="6" fill="#f7efdc" stroke="#e6d8b8" stroke-width="2"/>
+</g>
+<g transform="translate(36 70) rotate(-20)"><path d="M0 0 C10 -10 22 -16 36 -18" stroke="#3f7a4f" stroke-width="3" fill="none" stroke-linecap="round"/>
+<ellipse cx="10" cy="-8" rx="7" ry="3.4" transform="rotate(-50 10 -8)" fill="#4f8f5d"/><ellipse cx="18" cy="-4" rx="7" ry="3.4" transform="rotate(25 18 -4)" fill="#5fa36c"/>
+<ellipse cx="24" cy="-16" rx="7" ry="3.4" transform="rotate(-60 24 -16)" fill="#5fa36c"/><ellipse cx="30" cy="-10" rx="7" ry="3.4" transform="rotate(30 30 -10)" fill="#4f8f5d"/></g>
+</svg>

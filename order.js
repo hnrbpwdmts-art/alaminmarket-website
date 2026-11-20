@@ -135,7 +135,7 @@
     veal: '<path d="M5 10c0-3 3-5 7-5s7 2 7 5v3c0 4-3 7-7 7s-7-3-7-7z"/><path d="M5 10L2.5 8.5M19 10l2.5-1.5"/><path d="M9.5 15.5c1.5 1 3.5 1 5 0"/><path d="M9.5 11h.01M14.5 11h.01"/>'
   };
   // Illustration for items without their own photo (images/art/<category>.svg)
-  var ART_CATS = { chicken: 1, lamb: 1, beef: 1, goat: 1, veal: 1 };
+  var ART_CATS = { chicken: 1, turkey: 1, lamb: 1, beef: 1, goat: 1, veal: 1 };
   function artFor(itemId) {
     var c = categoryOf(itemId);
     return c && ART_CATS[c.id] ? (document.documentElement.getAttribute("data-root") || "") + "images/art/" + c.id + ".svg" : "";
