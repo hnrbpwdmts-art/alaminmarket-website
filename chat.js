@@ -108,6 +108,8 @@
           "Order ahead online and we'll set it aside for you. [Order a turkey](order/?cat=turkey)"]);
       });
       return null; } },
+    { id: "deals", re: /\b(deals?|specials?|offers?|discounts?|coupons?|on sale|promotions?|promos?|newsletter|subscribe|sign ?up)\b/, answer: function () {
+      return ["Get our meat specials, new arrivals and holiday offers by text, a few texts a month. [Sign up for deals](deals/)", "Reply STOP anytime to unsubscribe."]; } },
     { id: "goat", re: /\b(goat|bakra|mutton|veal|baby goat|kid meat)\b/, answer: function () {
       var d = nowLA().day, line = "Fresh baby goat and veal are available on Fridays and Saturdays.";
       var today = d === 5 || d === 6 ? "Today is " + DAY_NAMES[d] + ", so you can get them today." : "You can order ahead any day and choose Friday or Saturday for pickup or delivery.";
@@ -165,7 +167,7 @@
     if (real.some(function (h) { return h.id === "turkey" || h.id === "goat"; }))
       real = real.filter(function (h) { return h.id !== "halal" && h.id !== "price"; });
     if (real.length) {
-      if (STOCK.test(q) && !real.some(function (h) { return /turkey|goat|delivery|hours|location|payment|halal|groceries|price/.test(h.id); })) return [];
+      if (STOCK.test(q) && !real.some(function (h) { return /turkey|deals|goat|delivery|hours|location|payment|halal|groceries|price/.test(h.id); })) return [];
       return real.slice(0, 2);
     }
     if (hits.length && q.split(/\s+/).length <= 5) return hits.slice(0, 1);
