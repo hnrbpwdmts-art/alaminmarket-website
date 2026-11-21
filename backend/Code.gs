@@ -42,7 +42,7 @@ var STATUSES = ["New", "Confirmed", "Ready", "Out for delivery", "Done", "Cancel
 var ITEM_HEADERS = ["Sent at", "Order #", "Category", "Item", "Choices", "Special request",
   "Amount", "Unit", "Price", "Price per", "Estimate"];
 var CUSTOMER_HEADERS = ["Phone", "Name", "First order", "Last order", "Orders", "Texts opt-in",
-  "Opt-in date", "Opt-in wording"];
+  "Opt-in date", "Opt-in wording", "Email", "Signed up from"];
 
 function doPost(e) {
   var parsed = null;
@@ -50,6 +50,7 @@ function doPost(e) {
   if (parsed && parsed.admin) return adminRequest(parsed);
   if (parsed && parsed.callAck) return callAck(parsed);
   if (parsed && parsed.chat) return chatRequest(parsed);
+  if (parsed && parsed.subscribe) return subscribe(parsed);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -131,6 +132,7 @@ function updateCustomer(sh, phone, d, when) {
     if (String(values[r][0]).replace(/^'/, "") === phone) {
       var row = r + 1;
       sh.getRange(row, 2).setValue(safe(d.name));
+      if (!values[r][2]) sh.getRange(row, 3).setValue(when);   // signed up for deals before ordering
       sh.getRange(row, 4).setValue(when);
       sh.getRange(row, 5).setValue((Number(values[r][4]) || 0) + 1);
       // Opting in is recorded; it is never switched off here. Remove a number
@@ -542,4 +544,43 @@ function chatReply(d) {
   if (!chatRows(sh, id).length) return { ok: false, error: "no_chat" };
   sh.appendRow([new Date(), id, "Store", "", "", safe(text), ""]);
   return { ok: true, at: new Date().toISOString() };
+}
+
+/* ---------------------------------------------------------------------
+   DEALS SIGN-UP (alaminmarket.com/deals/)
+   Saves the customer to the "Customers" tab with Texts opt-in = Yes, the
+   date and the exact wording they agreed to (keep these: Twilio and phone
+   carriers can ask for proof of consent). When someone replies STOP, change
+   their "Texts opt-in" to "No".
+   --------------------------------------------------------------------- */
+function subscribe(d) {
+  var phone = cleanPhone(d.phone);
+  if (phone.replace(/\D/g, "").length !== 11) return jsonReply({ ok: false, error: "bad_phone" });
+  if (!d.agree) return jsonReply({ ok: false, error: "no_consent" });
+  var email = String(d.email || "").trim().slice(0, 120);
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) email = "";
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), when = new Date();
+  var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  var already = false;
+  try {
+    var sh = sheet(ss, "Customers", CUSTOMER_HEADERS);
+    ensureHeaders(sh, CUSTOMER_HEADERS);
+    var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+    var col = function (h) { return head.indexOf(h) + 1; };
+    var values = sh.getDataRange().getValues(), row = 0;
+    for (var r = 1; r < values.length; r++) if (String(values[r][0]).replace(/^'/, "") === phone) { row = r + 1; break; }
+    if (!row) {
+      sh.appendRow([asText(phone), safe(String(d.name || "").slice(0, 60)), "", "", 0]);
+      row = sh.getLastRow();
+    } else {
+      already = values[row - 1][col("Texts opt-in") - 1] === "Yes";
+      if (d.name && !values[row - 1][1]) sh.getRange(row, 2).setValue(safe(String(d.name).slice(0, 60)));
+    }
+    sh.getRange(row, col("Texts opt-in")).setValue("Yes");
+    sh.getRange(row, col("Opt-in date")).setValue(when);
+    sh.getRange(row, col("Opt-in wording")).setValue(safe(String(d.optInText || "").slice(0, 400)));
+    if (email) sh.getRange(row, col("Email")).setValue(safe(email));
+    sh.getRange(row, col("Signed up from")).setValue(safe(String(d.source || "Deals page").slice(0, 60)));
+  } finally { lock.releaseLock(); }
+  return jsonReply({ ok: true, already: already });
 }

@@ -1291,6 +1291,12 @@
     back.addEventListener("click", function () { updateSendLabels(); setStep(2); });
     var home = el("a", "order-link-btn done-home", "Back to home"); home.href = (document.documentElement.getAttribute("data-root") || "/");
     doneEl.appendChild(again); doneEl.appendChild(back); doneEl.appendChild(home);
+    if (!$("order-optin").checked) {
+      var dl = el("p", "done-deals");
+      var da = el("a", null, "Get deals by text →"); da.href = (document.documentElement.getAttribute("data-root") || "/") + "deals/?from=order";
+      dl.appendChild(document.createTextNode("Want our weekly specials? ")); dl.appendChild(da);
+      doneEl.appendChild(dl);
+    }
     doneEl.hidden = false; form.hidden = true; cartEl.hidden = true;
     setStep(4);
   }

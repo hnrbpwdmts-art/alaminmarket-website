@@ -1250,3 +1250,24 @@ body.cart-open .chat-launcher, body.sheet-open .chat-launcher { display: none; }
   .promo-art { width: 84px; grid-row: auto; align-self: start; }
   .promo-btn { grid-column: 1 / -1; justify-self: stretch; justify-content: center; white-space: nowrap; }
 }
+
+/* Deals sign-up page */
+.deals-wrap { display: grid; gap: 28px; align-items: start; }
+@media (min-width: 860px) { .deals-wrap { grid-template-columns: minmax(0, 460px) 1fr; gap: 48px; } }
+.deals-form, .deals-done { background: #fff; border: 1px solid var(--cream-2); border-radius: 18px; padding: 22px; box-shadow: 0 10px 30px rgba(20,55,38,.08); display: flex; flex-direction: column; gap: 14px; }
+.deals-form h2, .deals-done h2 { margin: 0; }
+.deals-field { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
+.deals-opt { font-weight: 400; color: var(--muted); font-size: .9rem; }
+.deals-field input { border: 1px solid #cfc6b0; border-radius: 12px; padding: 12px 14px; font: 16px var(--sans); }
+.deals-field input:focus { outline: 2px solid var(--green); border-color: var(--green); }
+.deals-agree { display: flex; gap: 10px; align-items: flex-start; font-size: .9rem; line-height: 1.45; background: var(--cream); border-radius: 12px; padding: 12px; cursor: pointer; }
+.deals-agree input { width: 22px; height: 22px; margin-top: 1px; flex: 0 0 auto; accent-color: var(--green); }
+.deals-error { margin: 0; color: var(--red); font-weight: 600; }
+.deals-form .btn { justify-content: center; }
+.deals-fine { margin: 0; font-size: .85rem; color: var(--muted); text-align: center; }
+.deals-done { text-align: center; align-items: center; }
+.deals-done-icon { font-size: 2.6rem; margin: 0; }
+.deals-cta { background: var(--green); color: #fff; border-radius: 18px; padding: 20px 22px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
+.deals-cta p { margin: 0; font-size: 1.05rem; }
+.deals-cta strong { display: block; font-size: 1.3rem; font-family: var(--serif, Georgia, serif); }
+.done-deals { margin: 14px 0 0; text-align: center; font-size: .95rem; } .done-deals a { color: var(--green); font-weight: 700; }
