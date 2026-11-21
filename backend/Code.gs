@@ -24,6 +24,10 @@ var ADMIN_PASSCODE = "";
 // CALL_SECRET must be the same text as CALL_SECRET in Cloudflare. "" = calls off.
 var CALL_SECRET = "";
 var CALL_URL = "https://alaminmarket.com/api/call-order";
+var SMS_URL = "https://alaminmarket.com/api/sms";        // texts (deals, welcome, replies) go through here
+var SMS_FORCE_READY = false;     // texting turns on by itself when Twilio approves the campaign; set true only if the staff page still says "waiting" after approval
+var DEAL_HOURS = [9, 20];        // deals only go out between 9 AM and 8 PM (store time)
+var WELCOME_TEXT = "Super Al-Amin Halal Market: You're signed up for deals, about 2-4 msgs/month. Msg & data rates may apply. Reply HELP for help, STOP to opt out.";
 var CALL_EVERY_MINUTES = 5;   // wait between calls
 var CALL_LANDLINE_TRIES = 5;  // store landline first...
 var CALL_CELL_TRIES = 3;      // ...then the backup cell phone
@@ -42,7 +46,8 @@ var STATUSES = ["New", "Confirmed", "Ready", "Out for delivery", "Done", "Cancel
 var ITEM_HEADERS = ["Sent at", "Order #", "Category", "Item", "Choices", "Special request",
   "Amount", "Unit", "Price", "Price per", "Estimate"];
 var CUSTOMER_HEADERS = ["Phone", "Name", "First order", "Last order", "Orders", "Texts opt-in",
-  "Opt-in date", "Opt-in wording", "Email", "Signed up from"];
+  "Opt-in date", "Opt-in wording", "Email", "Signed up from", "Opted out"];
+var DEAL_HEADERS = ["Time", "Message", "Recipients", "Sent", "Failed", "Test", "Failures"];
 
 function doPost(e) {
   var parsed = null;
@@ -51,6 +56,7 @@ function doPost(e) {
   if (parsed && parsed.callAck) return callAck(parsed);
   if (parsed && parsed.chat) return chatRequest(parsed);
   if (parsed && parsed.subscribe) return subscribe(parsed);
+  if (parsed && parsed.smsIn) return smsIn(parsed);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -139,12 +145,14 @@ function updateCustomer(sh, phone, d, when) {
       // by hand (change "Yes" to "No") when someone replies STOP.
       if (d.marketingOptIn && values[r][5] !== "Yes") {
         sh.getRange(row, 6, 1, 3).setValues([["Yes", when, safe(d.optInText)]]);
+        welcomeText(phone);
       }
       return;
     }
   }
   sh.appendRow([asText(phone), safe(d.name), when, when, 1, d.marketingOptIn ? "Yes" : "No",
     d.marketingOptIn ? when : "", d.marketingOptIn ? safe(d.optInText) : ""]);
+  if (d.marketingOptIn) welcomeText(phone);
 }
 
 function sheet(ss, name, headers) {
@@ -206,6 +214,8 @@ function adminRequest(d) {
     if (d.action === "status") return jsonReply(setStatus(d));
     if (d.action === "chats") return jsonReply({ ok: true, chats: listChats(Number(d.days) || 3) });
     if (d.action === "chatReply") return jsonReply(chatReply(d));
+    if (d.action === "dealInfo") return jsonReply(dealInfo());
+    if (d.action === "sendDeal") return jsonReply(sendDeal(d));
     return jsonReply({ ok: true });
   } catch (err) {
     return jsonReply({ ok: false, error: "server", detail: String(err).slice(0, 200) });
@@ -542,6 +552,11 @@ function chatReply(d) {
   if (!CHAT_ID_RE.test(id) || !text) return { ok: false, error: "bad_reply" };
   var sh = chatSheet();
   if (!chatRows(sh, id).length) return { ok: false, error: "no_chat" };
+  var smsTo = smsChatPhone(id);
+  if (smsTo) {   // the customer texted us: reply by text
+    var res = smsSend([smsTo], text);
+    if (!res.sent) return { ok: false, error: "sms_failed", detail: (res.failures[0] || {}).error || res.error || "" };
+  }
   sh.appendRow([new Date(), id, "Store", "", "", safe(text), ""]);
   return { ok: true, at: new Date().toISOString() };
 }
@@ -582,5 +597,169 @@ function subscribe(d) {
     if (email) sh.getRange(row, col("Email")).setValue(safe(email));
     sh.getRange(row, col("Signed up from")).setValue(safe(String(d.source || "Deals page").slice(0, 60)));
   } finally { lock.releaseLock(); }
+  if (!already) welcomeText(phone);
   return jsonReply({ ok: true, already: already });
+}
+
+/* ---------------------------------------------------------------------
+   TEXT MESSAGES (Twilio, through alaminmarket.com/api/sms)
+   - Staff page "Send a deal": texts everyone with Texts opt-in = Yes.
+   - New opt-ins get one welcome text.
+   - STOP / START replies update the Customers tab; other replies show up in
+     the staff page Chats tab, and staff replies go back as texts.
+   Nothing is sent until Twilio approves the A2P campaign.
+   --------------------------------------------------------------------- */
+function smsPost(payload) {
+  if (!CALL_SECRET) return { ok: false, error: "not_set" };
+  payload.secret = CALL_SECRET;
+  try {
+    var res = UrlFetchApp.fetch(SMS_URL, { method: "post", contentType: "application/json", muteHttpExceptions: true, payload: JSON.stringify(payload) });
+    return JSON.parse(res.getContentText());
+  } catch (e) { return { ok: false, error: "unreachable" }; }
+}
+function smsStatus() {
+  if (SMS_FORCE_READY) return { ready: true, status: "approved" };
+  var cache = CacheService.getScriptCache(), hit = cache.get("smsStatus");
+  if (hit) return JSON.parse(hit);
+  var r = smsPost({ action: "status" });
+  var st = r && r.ok ? { ready: !!r.ready, status: r.status || "unknown" } : { ready: false, status: (r && r.error) || "unknown" };
+  cache.put("smsStatus", JSON.stringify(st), st.ready ? 3600 : 300);   // ask Twilio at most every 5 min (hourly once approved)
+  return st;
+}
+function smsStatusUncached() {
+  var r = smsPost({ action: "status" });
+  return r && r.ok ? { ready: !!r.ready, status: r.status || "unknown" } : { ready: false, status: (r && r.error) || "unknown" };
+}
+// Sends in batches of 40; returns { sent, failed, failures: [{ to, error }] }
+function smsSend(numbers, body) {
+  var out = { sent: 0, failed: 0, failures: [] };
+  for (var i = 0; i < numbers.length; i += 40) {
+    var batch = numbers.slice(i, i + 40);
+    var r = smsPost({ action: "send", to: batch, body: body });
+    if (!r || !r.ok || !r.results) {
+      out.failed += batch.length; out.error = (r && r.error) || "send_failed";
+      batch.forEach(function (n) { out.failures.push({ to: n, error: out.error }); });
+      continue;
+    }
+    r.results.forEach(function (x) { if (x.ok) out.sent++; else { out.failed++; out.failures.push({ to: x.to, error: x.error }); } });
+  }
+  return out;
+}
+function welcomeText(phone) {
+  try { if (phone && smsStatus().ready) smsSend([phone], WELCOME_TEXT); } catch (e) { /* never block a sign-up or order */ }
+}
+
+function customersSheet() {
+  var sh = sheet(SpreadsheetApp.getActiveSpreadsheet(), "Customers", CUSTOMER_HEADERS);
+  ensureHeaders(sh, CUSTOMER_HEADERS);
+  return sh;
+}
+function optedInNumbers() {
+  var sh = customersSheet();
+  if (sh.getLastRow() < 2) return [];
+  var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String), opt = head.indexOf("Texts opt-in");
+  var seen = {}, list = [];
+  sh.getRange(2, 1, sh.getLastRow() - 1, head.length).getValues().forEach(function (r) {
+    var p = String(r[0]).replace(/^'/, "");
+    if (r[opt] === "Yes" && /^\+1[2-9]\d{9}$/.test(p) && !seen[p]) { seen[p] = 1; list.push(p); }
+  });
+  return list;
+}
+
+// Every deal starts with the store name and ends with opt-out help (carrier rules)
+function dealBody(text) {
+  var t = String(text || "").replace(/\s+$/, "");
+  if (!/^super al-amin/i.test(t)) t = "Super Al-Amin: " + t;
+  if (!/\bstop\b/i.test(t)) t += " Reply STOP to opt out.";
+  return t;
+}
+function dealSheet() { var sh = sheet(SpreadsheetApp.getActiveSpreadsheet(), "Deals", DEAL_HEADERS); ensureHeaders(sh, DEAL_HEADERS); return sh; }
+function storeHour() { return Number(Utilities.formatDate(new Date(), "America/Los_Angeles", "H")); }
+
+function dealInfo() {
+  var st = SMS_FORCE_READY ? smsStatus() : smsStatusUncached(), sh = dealSheet(), history = [];
+  if (!SMS_FORCE_READY) CacheService.getScriptCache().put("smsStatus", JSON.stringify(st), st.ready ? 3600 : 300);
+  if (sh.getLastRow() > 1) {
+    var n = Math.min(10, sh.getLastRow() - 1);
+    history = sh.getRange(sh.getLastRow() - n + 1, 1, n, 6).getValues().reverse().map(function (r) {
+      return { at: r[0] instanceof Date ? r[0].toISOString() : String(r[0]), text: String(r[1]).replace(/^'/, ""), recipients: r[2], sent: r[3], failed: r[4], test: r[5] === "Yes" };
+    });
+  }
+  var h = storeHour();
+  return { ok: true, ready: st.ready, status: st.status, count: optedInNumbers().length, history: history,
+    quiet: !(h >= DEAL_HOURS[0] && h < DEAL_HOURS[1]), hours: DEAL_HOURS };
+}
+
+function sendDeal(d) {
+  var text = String(d.text || "").trim();
+  if (text.length < 5) return { ok: false, error: "empty" };
+  if (text.length > 480) return { ok: false, error: "too_long" };
+  var body = dealBody(text), test = !!d.test;
+  var st = smsStatus();
+  if (!st.ready) return { ok: false, error: "not_approved", status: st.status };
+  var numbers;
+  if (test) {
+    var tp = cleanPhone(d.testPhone);
+    if (!/^\+1[2-9]\d{9}$/.test(tp)) return { ok: false, error: "bad_test_phone" };
+    numbers = [tp];
+  } else {
+    var h = storeHour();
+    if (!(h >= DEAL_HOURS[0] && h < DEAL_HOURS[1])) return { ok: false, error: "quiet_hours" };
+    numbers = optedInNumbers();
+    if (!numbers.length) return { ok: false, error: "no_subscribers" };
+    if (Number(d.expect) !== numbers.length) return { ok: false, error: "count_changed", count: numbers.length };
+  }
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return { ok: false, error: "busy" };
+  try {
+    var cache = CacheService.getScriptCache(), key = "deal" + Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, body));
+    if (!test && cache.get(key)) return { ok: false, error: "duplicate" };   // same deal sent in the last 30 minutes
+    var res = smsSend(numbers, body);
+    if (!test && res.sent) cache.put(key, "1", 1800);
+    dealSheet().appendRow([new Date(), safe(body), numbers.length, res.sent, res.failed, test ? "Yes" : "No",
+      safe(res.failures.slice(0, 20).map(function (f) { return f.to + " " + f.error; }).join("; "))]);
+    return { ok: true, sent: res.sent, failed: res.failed, recipients: numbers.length, body: body };
+  } finally { lock.releaseLock(); }
+}
+
+// Texts sent to our number (from /api/sms-in)
+var STOP_WORDS = ["STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT", "REVOKE", "OPTOUT"];
+var START_WORDS = ["START", "YES", "UNSTOP"];
+function smsChatId(phone) { return ("sms" + phone.replace(/\D/g, "") + "0000000000").slice(0, 24); }
+function smsChatPhone(id) { var m = /^sms(1[2-9]\d{9})0*$/.exec(id); return m ? "+" + m[1] : ""; }
+
+function smsIn(d) {
+  if (!CALL_SECRET || String(d.secret || "") !== CALL_SECRET) return reply("forbidden");
+  var from = cleanPhone(d.from), body = String(d.body || "").trim().slice(0, 1000), word = body.toUpperCase().replace(/[^A-Z]/g, "");
+  if (!/^\+1[2-9]\d{9}$/.test(from) || !body) return reply("ignored");
+  if (STOP_WORDS.indexOf(word) > -1 || START_WORDS.indexOf(word) > -1) {
+    var yes = START_WORDS.indexOf(word) > -1, sh = customersSheet(), when = new Date();
+    var lock = LockService.getScriptLock(); lock.waitLock(20000);
+    try {
+      var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String), col = function (h) { return head.indexOf(h) + 1; };
+      var values = sh.getDataRange().getValues(), row = 0;
+      for (var r = 1; r < values.length; r++) if (String(values[r][0]).replace(/^'/, "") === from) { row = r + 1; break; }
+      if (!row && yes) { sh.appendRow([asText(from), "", "", "", 0]); row = sh.getLastRow(); }
+      if (row) {
+        sh.getRange(row, col("Texts opt-in")).setValue(yes ? "Yes" : "No");
+        if (yes) {
+          sh.getRange(row, col("Opt-in date")).setValue(when);
+          sh.getRange(row, col("Opt-in wording")).setValue("Texted " + word + " to our number");
+          sh.getRange(row, col("Signed up from")).setValue("Text message");
+        } else sh.getRange(row, col("Opted out")).setValue(when);
+      }
+    } finally { lock.releaseLock(); }
+    return reply("ok");
+  }
+  if (word === "HELP" || word === "INFO") return reply("ok");   // Twilio already sent the help message
+  // Anything else: show it in the staff Chats tab
+  var name = "";
+  try {
+    var cs = customersSheet(), vals = cs.getDataRange().getValues();
+    for (var i = 1; i < vals.length; i++) if (String(vals[i][0]).replace(/^'/, "") === from) { name = String(vals[i][1] || ""); break; }
+  } catch (e) { /* no name */ }
+  var id = smsChatId(from), csh = chatSheet();
+  csh.appendRow([new Date(), id, "Customer", safe(name), asText(from), safe(body), "Text message"]);
+  emailChat(id, { name: name || from, phone: from }, body);
+  return reply("ok");
 }

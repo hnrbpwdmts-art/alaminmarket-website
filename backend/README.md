@@ -102,6 +102,30 @@ and questions for a person show "didn't go through, please call".
 The privacy page says chats are kept up to 90 days: delete older rows from the
 Chats tab now and then.
 
+## Text message deals (Twilio)
+
+Staff page → **📣 Send a deal by text** texts everyone in the Customers tab with
+Texts opt-in = Yes. Every deal starts with "Super Al-Amin:" and ends with
+"Reply STOP to opt out." (added automatically). Deals only go out 9 AM–8 PM,
+the same deal can't be sent twice within 30 minutes, and each send is logged
+in a **Deals** tab. New opt-ins (deals page, order checkbox, confirmation box)
+get one welcome text. Nothing sends until Twilio approves the A2P campaign;
+the staff page shows "Waiting for Twilio" until then and switches on by itself.
+
+Replies: STOP / START update the Customers tab (Texts opt-in No / Yes) and
+Twilio answers them. Any other reply shows up in the staff page Chats tab
+("Text message"); replying there sends a text back.
+
+Setup (once):
+1. Cloudflare secret `TWILIO_MESSAGING_SID` = the Messaging Service SID (MG…).
+2. Twilio → Messaging → Services → Super AL-Amin Deals → Integration →
+   Incoming Messages: **Send a webhook**, Request URL
+   `https://alaminmarket.com/api/sms-in` (HTTP POST). Save.
+3. Paste the updated Code.gs (keep ADMIN_PASSCODE and CALL_SECRET), deploy a
+   new version.
+If the staff page still says "waiting" after Twilio emails that the campaign
+is approved, set `SMS_FORCE_READY = true` in Code.gs and deploy again.
+
 ## Phone call reminders for new orders (Twilio)
 
 When an order comes in (website, WhatsApp, or text), the store landline rings and reads the order

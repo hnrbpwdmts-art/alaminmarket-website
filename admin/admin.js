@@ -191,7 +191,8 @@
     who.appendChild(links);
     head.appendChild(who);
     li.appendChild(head);
-    if (ph) { var d10 = ph.slice(-10); li.appendChild(el("p", "adm-chat-hint", "If they've left the website, text them at (" + d10.slice(0, 3) + ") " + d10.slice(3, 6) + "-" + d10.slice(6) + ".")); }
+    if (c.page === "Text message") li.appendChild(el("p", "adm-chat-hint", "📱 This customer texted the store's Twilio number. Your reply below is sent to them as a text."));
+    else if (ph) { var d10 = ph.slice(-10); li.appendChild(el("p", "adm-chat-hint", "If they've left the website, text them at (" + d10.slice(0, 3) + ") " + d10.slice(3, 6) + "-" + d10.slice(6) + ".")); }
 
     var msgs = el("div", "adm-thread-msgs");
     c.messages.forEach(function (m) {
@@ -221,12 +222,13 @@
       var text = box.value.trim(); if (!text) return;
       send.disabled = true; send.textContent = "Sending…";
       api({ action: "chatReply", chatId: c.id, text: text }).then(function (res) {
+        if (res && res.error === "sms_failed") { var e2 = new Error("sms"); e2.sms = true; throw e2; }
         if (!res || !res.ok) throw new Error("save");
         c.messages.push({ at: res.at || new Date().toISOString(), from: "Store", text: text });
         box.value = ""; render(); scrollThread();
-      }).catch(function () {
+      }).catch(function (err) {
         send.disabled = false; send.textContent = "Send";
-        toast("Couldn't send. Check your internet and try again.");
+        toast(err && err.sms ? "The text didn't go through (Twilio texting may not be approved yet)." : "Couldn't send. Check your internet and try again.");
       });
     });
     li.appendChild(form);
@@ -241,6 +243,106 @@
     li.appendChild(foot);
     return li;
   }
+
+  // ---------- send a deal by text ----------
+  var deal = { info: null, sending: false };
+  var PHONE_KEY = "alamin-admin-dealphone";
+  function dealBody(t) {   // same rules as Code.gs: store name first, opt-out help last
+    t = String(t || "").replace(/\s+$/, "");
+    if (!t) return "";
+    if (!/^super al-amin/i.test(t)) t = "Super Al-Amin: " + t;
+    if (!/\bstop\b/i.test(t)) t += " Reply STOP to opt out.";
+    return t;
+  }
+  function segments(t) {   // texts over 160 characters (70 with emoji) are billed as several
+    var gsm = /^[\x20-\x7E\n\r£¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ¡ÄÖÑÜ§¿äöñüà€]*$/.test(t);
+    var one = gsm ? 160 : 70, many = gsm ? 153 : 67;
+    return t.length <= one ? 1 : Math.ceil(t.length / many);
+  }
+  var DEAL_STATUS = {
+    approved: "", pending: "⏳ Waiting for Twilio to approve your texting campaign. You can write a deal, but it can't be sent yet.",
+    not_registered: "⏳ Your texting campaign isn't registered yet in Twilio.", rejected: "⚠️ Twilio didn't approve the texting campaign. Check your Twilio email.",
+    no_service: "⚠️ Add TWILIO_MESSAGING_SID in Cloudflare to turn on texting.", not_set: "⚠️ Texting isn't set up (CALL_SECRET in the order sheet's script).",
+    unknown: "⚠️ Couldn't check with Twilio right now. Try again in a minute."
+  };
+  function dealMsg(text, err) { var m = $("adm-deal-msg"); m.textContent = text; m.hidden = !text; m.classList.toggle("is-err", !!err); }
+  function dealDraw() {
+    var info = deal.info, text = $("adm-deal-text").value, body = dealBody(text);
+    $("adm-deal-preview").textContent = body || "(type your deal above)";
+    var seg = body ? segments(body) : 0;
+    $("adm-deal-count").textContent = body ? body.length + " characters" + (seg > 1 ? " · sends as " + seg + " texts per customer (costs " + seg + "×)" : " · 1 text per customer") : "";
+    var ready = info && info.ready, n = info ? info.count : 0;
+    var st = $("adm-deal-status");
+    if (!info) st.textContent = "Checking…";
+    else if (!ready) st.textContent = DEAL_STATUS[info.status] || DEAL_STATUS.unknown;
+    else st.textContent = "✅ Ready. " + n + " customer" + (n === 1 ? "" : "s") + " signed up for texts." + (info.quiet ? " Deals can only go out " + fmtHour(info.hours[0]) + "–" + fmtHour(info.hours[1]) + "." : "");
+    st.classList.toggle("is-ready", !!ready);
+    var send = $("adm-deal-send");
+    send.textContent = n ? "Send to " + n + " customer" + (n === 1 ? "" : "s") : "Send to everyone";
+    send.disabled = deal.sending || !ready || !n || text.trim().length < 5 || (info && info.quiet);
+    $("adm-deal-test").disabled = deal.sending || !ready || text.trim().length < 5;
+    var hist = $("adm-deal-hist"); hist.textContent = "";
+    (info && info.history || []).forEach(function (h) {
+      var li = el("li");
+      li.appendChild(el("span", "adm-deal-hist-meta", ago(h.at) + " · " + (h.test ? "test" : h.sent + " sent" + (h.failed ? ", " + h.failed + " failed" : ""))));
+      li.appendChild(el("span", null, h.text));
+      hist.appendChild(li);
+    });
+    if (!hist.children.length) hist.appendChild(el("li", "adm-deal-hist-meta", "No deals sent yet."));
+  }
+  function fmtHour(h) { return (h % 12 || 12) + (h < 12 ? " AM" : " PM"); }
+  function dealLoad() {
+    return api({ action: "dealInfo" }).then(function (res) {
+      if (res && res.ok && typeof res.count === "number") deal.info = res;
+      else deal.info = { ready: false, status: res && (res.ok || res.error === "unknown_action") ? "update_script" : "unknown", count: 0, history: [] };
+      if (deal.info.status === "update_script") DEAL_STATUS.update_script = "⚠️ Paste the updated Code.gs into the order sheet's script and deploy a new version to turn on deals.";
+      dealDraw();
+    }).catch(function () { deal.info = { ready: false, status: "unknown", count: 0, history: [] }; dealDraw(); });
+  }
+  function dealOpen() {
+    $("adm-deal").hidden = false; $("adm-deal-bg").hidden = false; dealMsg("");
+    try { $("adm-deal-phone").value = localStorage.getItem(PHONE_KEY) || ""; } catch (e) { /* ignore */ }
+    deal.info = null; dealDraw(); dealLoad();
+    setTimeout(function () { $("adm-deal-text").focus(); }, 50);
+  }
+  function dealClose() { if (deal.sending) return; $("adm-deal").hidden = true; $("adm-deal-bg").hidden = true; }
+  var DEAL_ERRORS = {
+    not_approved: "Twilio hasn't approved texting yet.", quiet_hours: "Deals can only go out during the day (9 AM–8 PM).",
+    no_subscribers: "Nobody has signed up for texts yet.", duplicate: "This exact deal was already sent in the last 30 minutes.",
+    count_changed: "The number of customers changed. Check it and tap Send again.", bad_test_phone: "Enter a 10-digit mobile number for the test.",
+    busy: "Another deal is sending right now. Try again in a minute.", too_long: "That's too long. Keep it under 480 characters.", empty: "Type the deal first."
+  };
+  function dealSend(test) {
+    var text = $("adm-deal-text").value.trim(), info = deal.info;
+    var body = { action: "sendDeal", text: text, test: test };
+    if (test) {
+      var ph = digits($("adm-deal-phone").value).replace(/^1(?=\d{10}$)/, "");
+      if (ph.length !== 10) { dealMsg(DEAL_ERRORS.bad_test_phone, true); return; }
+      body.testPhone = ph;
+      try { localStorage.setItem(PHONE_KEY, $("adm-deal-phone").value); } catch (e) { /* ignore */ }
+    } else {
+      if (!window.confirm("Send this deal to " + info.count + " customers now?\n\n" + dealBody(text))) return;
+      body.expect = info.count;
+    }
+    deal.sending = true; dealDraw(); dealMsg(test ? "Sending test…" : "Sending to " + info.count + " customers… keep this open.");
+    api(body).then(function (res) {
+      deal.sending = false;
+      if (!res || !res.ok) {
+        if (res && res.error === "count_changed") info.count = res.count;
+        dealMsg(DEAL_ERRORS[res && res.error] || "Couldn't send. Check your internet and try again.", true); dealDraw(); return;
+      }
+      dealMsg(test ? "✅ Test sent. Check your phone." : "✅ Sent to " + res.sent + " customer" + (res.sent === 1 ? "" : "s") + (res.failed ? ". " + res.failed + " couldn't be reached (usually numbers that replied STOP)." : "."), false);
+      if (!test) $("adm-deal-text").value = "";
+      dealLoad();
+    }).catch(function () { deal.sending = false; dealMsg("Couldn't reach the order sheet. Check your internet and try again.", true); dealDraw(); });
+  }
+  $("adm-deal-open").addEventListener("click", dealOpen);
+  $("adm-deal-close").addEventListener("click", dealClose);
+  $("adm-deal-bg").addEventListener("click", dealClose);
+  $("adm-deal-text").addEventListener("input", dealDraw);
+  $("adm-deal-test").addEventListener("click", function () { dealSend(true); });
+  $("adm-deal-send").addEventListener("click", function () { dealSend(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("adm-deal").hidden) dealClose(); });
 
   // ---------- dates ----------
   function todayISO() {
