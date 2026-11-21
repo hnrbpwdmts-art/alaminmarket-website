@@ -292,7 +292,7 @@
   (function deals() {
     if (!(S.dealsSection && S.dealsSection.show) || !document.getElementById("deals")) return; // section stays hidden
     document.getElementById("deals").hidden = false;
-    document.querySelector("[data-deals-nav]").hidden = false;
+    var dn = document.querySelector("[data-deals-nav]"); if (dn) dn.hidden = false;
     var list = document.getElementById("deals-list");
     var today = new Date(); today.setHours(0, 0, 0, 0);
 
