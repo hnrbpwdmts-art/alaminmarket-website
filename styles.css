@@ -1271,3 +1271,18 @@ body.cart-open .chat-launcher, body.sheet-open .chat-launcher { display: none; }
 .deals-cta p { margin: 0; font-size: 1.05rem; }
 .deals-cta strong { display: block; font-size: 1.3rem; font-family: var(--serif, Georgia, serif); }
 .done-deals { margin: 14px 0 0; text-align: center; font-size: .95rem; } .done-deals a { color: var(--green); font-weight: 700; }
+
+/* Deals: menu link, homepage band, confirmation box */
+.nav-deals { color: #ffd28a !important; font-weight: 700; }
+.deals-band { padding: 8px 0 36px; }
+a.deals-cta { text-decoration: none; color: #fff; background: linear-gradient(120deg, var(--green-dark, #143726), var(--green)); box-shadow: 0 12px 30px rgba(20,55,38,.25); }
+.deals-cta-icon { font-size: 2.2rem; line-height: 1; }
+.deals-cta-text { flex: 1 1 260px; font-size: 1rem; color: #e9f2ea; }
+.deals-cta-text strong { color: #fff; }
+.deals-cta-btn { white-space: nowrap; }
+@media (max-width: 599px) { .deals-cta-btn { width: 100%; justify-content: center; } }
+.done-deals { margin: 18px 0 4px; padding: 14px; border: 2px dashed #b9d8bf; border-radius: 14px; background: #f3f9f4; text-align: left; display: flex; flex-direction: column; gap: 10px; }
+.done-deals-title { margin: 0; font-weight: 700; color: var(--green-dark, #143726); }
+.done-deals .btn { justify-content: center; }
+.done-deals-msg { margin: 0; font-size: .9rem; color: var(--muted); }
+.done-deals-msg.is-err { color: var(--red); font-weight: 600; }

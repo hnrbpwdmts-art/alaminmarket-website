@@ -100,6 +100,42 @@
     return list;
   }
 
+  // ---------- "Get deals by text" box on the confirmation screen ----------
+  var DEALS_TEXT = "Yes, text me deals and new arrivals from Super Al-Amin Halal Market at this number, a few texts a month. " +
+    "Consent is not a condition of purchase. Msg & data rates may apply. Reply STOP to unsubscribe or HELP for help.";
+  function dealsBox() {
+    var digits = String(state.phone || "").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
+    var box = el("div", "done-deals");
+    box.appendChild(el("p", "done-deals-title", "📲 Want our weekly specials?"));
+    var lab = el("label", "deals-agree");
+    var cb = el("input"); cb.type = "checkbox"; cb.id = "done-deals-agree";
+    var span = el("span", null, DEALS_TEXT.replace("this number", digits.length === 10 ? prettyPhone(digits) : "this number"));
+    lab.appendChild(cb); lab.appendChild(span); box.appendChild(lab);
+    var msg = el("p", "done-deals-msg"); msg.hidden = true;
+    var btn = el("button", "btn btn-red", "Send me deals"); btn.type = "button";
+    box.appendChild(msg); box.appendChild(btn);
+    btn.addEventListener("click", function () {
+      msg.hidden = true; msg.classList.remove("is-err");
+      if (!cb.checked) { msg.textContent = "Tick the box first to agree to texts."; msg.classList.add("is-err"); msg.hidden = false; return; }
+      btn.disabled = true; btn.textContent = "Signing you up…";
+      fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: state.name || "", phone: digits, agree: true, optInText: span.textContent, source: "Order confirmation" }) })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (res) {
+          if (!res || !res.ok) throw new Error("x");
+          box.textContent = "";
+          box.appendChild(el("p", "done-deals-title", "🎉 You're signed up for deals!"));
+          box.appendChild(el("p", "done-deals-msg", "Reply STOP to any text to unsubscribe."));
+          try { if (window.alaminTrack) window.alaminTrack("deals_signup", { from: "order" }); } catch (e) { /* ignore */ }
+        })
+        .catch(function () {
+          btn.disabled = false; btn.textContent = "Send me deals";
+          msg.textContent = "Sorry, that didn't go through. Please try again."; msg.classList.add("is-err"); msg.hidden = false;
+        });
+    });
+    return box;
+  }
+
   // ---------- saved state ----------
   var state = { cart: [], mode: "pickup", name: "", phone: "", address: "", addr: {} };
   var quote = null;
@@ -1290,13 +1326,8 @@
     var back = el("button", "order-link-btn", "Change this order"); back.type = "button";
     back.addEventListener("click", function () { updateSendLabels(); setStep(2); });
     var home = el("a", "order-link-btn done-home", "Back to home"); home.href = (document.documentElement.getAttribute("data-root") || "/");
+    if (!$("order-optin").checked) doneEl.appendChild(dealsBox());   // above the buttons so it's seen
     doneEl.appendChild(again); doneEl.appendChild(back); doneEl.appendChild(home);
-    if (!$("order-optin").checked) {
-      var dl = el("p", "done-deals");
-      var da = el("a", null, "Get deals by text →"); da.href = (document.documentElement.getAttribute("data-root") || "/") + "deals/?from=order";
-      dl.appendChild(document.createTextNode("Want our weekly specials? ")); dl.appendChild(da);
-      doneEl.appendChild(dl);
-    }
     doneEl.hidden = false; form.hidden = true; cartEl.hidden = true;
     setStep(4);
   }
