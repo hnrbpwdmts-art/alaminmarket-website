@@ -127,6 +127,6 @@ staff page also stops the calls. Every order is also emailed to the store as a b
 5. Deploy > Manage deployments > Edit > New version > Deploy.
 6. Optional test: pick `testCall` and click Run. The landline should ring.
 
-Save the Twilio number in the store phones as "Online Order".
+Save the Twilio number in the store phones as "Online Order". The store's Twilio number is +1 (424) 622-3540 (Voice).
 The Orders tab gains three columns: Call status, Call tries, Last call.
 To turn calls off, set `CALL_SECRET = ""` in Code.gs and redeploy.
