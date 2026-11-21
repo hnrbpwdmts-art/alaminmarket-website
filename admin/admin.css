@@ -137,3 +137,27 @@
   .adm-tabs { flex-wrap: wrap; overflow: visible; }
   .adm-tab { flex: 1 1 auto; padding: 0 8px; font-size: .88rem; }
 }
+
+/* ---------- Send a deal ---------- */
+.adm-deal-open { display: block; width: 100%; margin: 0 0 12px; padding: 12px 16px; border: 2px solid var(--green); border-radius: 14px; background: #eef6ef; color: var(--green-dark, #143726); font: 700 1rem var(--sans); cursor: pointer; text-align: left; }
+.adm-deal-open:hover { background: #e2f0e5; }
+.adm-deal { display: flex; flex-direction: column; gap: 12px; }
+.adm-deal[hidden] { display: none; }
+.adm-deal-status { margin: 0; padding: 10px 12px; border-radius: 12px; background: #fff4df; color: #6b4a14; font-size: .92rem; line-height: 1.4; }
+.adm-deal-status.is-ready { background: #e3f0e6; color: var(--green-dark, #143726); font-weight: 600; }
+.adm-deal textarea { width: 100%; border: 1px solid #cfc6b0; border-radius: 12px; padding: 10px 12px; font: 16px/1.4 var(--sans); resize: vertical; }
+.adm-deal-count { margin: -6px 0 0; font-size: .82rem; color: var(--muted); }
+.adm-deal-preview { background: #fff; border: 1px solid var(--cream-2); border-radius: 14px; padding: 10px 12px; }
+.adm-deal-preview-label { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.adm-deal-preview p { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.adm-deal-test { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.adm-deal-test .order-field { flex: 1 1 180px; margin: 0; }
+.adm-deal-test input { width: 100%; border: 1px solid #cfc6b0; border-radius: 12px; padding: 10px 12px; font: 16px var(--sans); }
+.adm-deal-test .btn, .adm-deal-send { min-height: 46px; justify-content: center; }
+.adm-deal-send:disabled, .adm-deal-test .btn:disabled { opacity: .5; cursor: not-allowed; }
+.adm-deal-msg { margin: 0; font-weight: 600; color: var(--green-dark, #143726); }
+.adm-deal-msg.is-err { color: var(--red); }
+.adm-deal-hist-title { margin: 6px 0 0; font-size: 1rem; }
+.adm-deal-hist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.adm-deal-hist li { display: flex; flex-direction: column; gap: 2px; font-size: .9rem; padding: 8px 10px; background: var(--cream); border-radius: 10px; overflow-wrap: anywhere; }
+.adm-deal-hist-meta { font-size: .78rem; color: var(--muted); }

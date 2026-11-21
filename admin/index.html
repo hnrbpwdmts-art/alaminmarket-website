@@ -8,8 +8,8 @@
   <meta name="theme-color" content="#1d4a34">
   <link rel="icon" href="../images/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
-  <link rel="stylesheet" href="../styles.css?v=20261120f">
-  <link rel="stylesheet" href="admin.css?v=20261120f">
+  <link rel="stylesheet" href="../styles.css?v=20261120g">
+  <link rel="stylesheet" href="admin.css?v=20261120g">
 </head>
 <body class="admin-body">
   <header class="adm-top">
@@ -41,6 +41,7 @@
 
     <!-- Orders -->
     <section id="adm-app" hidden>
+      <button type="button" class="adm-deal-open" id="adm-deal-open">📣 Send a deal by text</button>
       <div class="adm-tabs" role="tablist" id="adm-tabs"></div>
       <p class="adm-status-line" id="adm-status-line" aria-live="polite"></p>
       <div class="adm-new" id="adm-new" hidden></div>
@@ -73,10 +74,35 @@
     </div>
   </div>
 
+  <!-- Send a deal by text to everyone who opted in -->
+  <div class="adm-sheet-bg" id="adm-deal-bg" hidden></div>
+  <div class="adm-sheet adm-deal" id="adm-deal" role="dialog" aria-modal="true" aria-labelledby="adm-deal-title" hidden>
+    <div class="adm-sheet-head">
+      <h2 id="adm-deal-title">📣 Send a deal</h2>
+      <button type="button" class="adm-icon-btn" id="adm-deal-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <p class="adm-deal-status" id="adm-deal-status">Checking…</p>
+    <label class="order-field">Your deal
+      <textarea id="adm-deal-text" rows="4" maxlength="480" placeholder="Example: Fresh goat this weekend, $9.99/lb. Order at alaminmarket.com/order"></textarea>
+    </label>
+    <p class="adm-deal-count" id="adm-deal-count"></p>
+    <div class="adm-deal-preview"><span class="adm-deal-preview-label">Customers will see:</span><p id="adm-deal-preview"></p></div>
+    <div class="adm-deal-test">
+      <label class="order-field">Send a test to my phone first
+        <input id="adm-deal-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(424) 527-3540">
+      </label>
+      <button type="button" class="btn btn-outline" id="adm-deal-test">Send test</button>
+    </div>
+    <button type="button" class="btn btn-primary adm-deal-send" id="adm-deal-send" disabled>Send to everyone</button>
+    <p class="adm-deal-msg" id="adm-deal-msg" role="status" hidden></p>
+    <h3 class="adm-deal-hist-title">Sent before</h3>
+    <ul class="adm-deal-hist" id="adm-deal-hist"></ul>
+  </div>
+
   <div class="order-toast" id="adm-toast" role="status" aria-live="polite"></div>
 
-  <script src="../site-config.js?v=20261120f"></script>
-  <script src="../meat-menu.js?v=20261120f"></script>
-  <script src="admin.js?v=20261120f"></script>
+  <script src="../site-config.js?v=20261120g"></script>
+  <script src="../meat-menu.js?v=20261120g"></script>
+  <script src="admin.js?v=20261120g"></script>
 </body>
 </html>
